@@ -2817,3 +2817,33 @@ h1 {
   background: #241a30;
   stroke: #fff;
 }
+
+/* ---------------------------------------------------------------------------
+   Packaged as an app
+   ---------------------------------------------------------------------------
+   Inside the Android WebView the page owns the whole screen, including whatever
+   the notch and the gesture bar are standing on. `viewport-fit=cover` in the
+   document hands those regions to us, and these insets hand them back — without
+   them the top bar sits under the camera and the bottom row under the system
+   gesture area, which is the first thing anyone notices about a wrapped web app.
+   The fallbacks mean this is inert in a normal browser.
+   --------------------------------------------------------------------------- */
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Pinned overlays are positioned against the viewport, so they need the inset too. */
+.card-peek {
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+/* A long press on the board should lift a piece, not pop the WebView's text-selection
+   and copy menus over the top of it. */
+.board-wrap,
+.sq,
+.player {
+  -webkit-touch-callout: none;
+}

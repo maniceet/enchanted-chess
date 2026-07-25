@@ -3,3 +3,17 @@ dist/
 *.local
 .DS_Store
 *.tsbuildinfo
+.vercel
+
+# Android
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+.gradle/
+# Signing material never belongs in the repo, not even once.
+*.keystore
+*.jks
+keystore.properties

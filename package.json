@@ -13,15 +13,24 @@
     "server": "tsx server/main.ts",
     "server:dev": "tsx watch server/main.ts",
     "start": "tsx server/main.ts",
-    "build:all": "npm run build"
+    "build:all": "npm run build",
+    "android:sync": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug",
+    "android:bundle": "npm run android:sync && cd android && ./gradlew bundleRelease"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/status-bar": "^8.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "ws": "^8.21.1",
-    "tsx": "^4.23.1"
+    "tsx": "^4.23.1",
+    "ws": "^8.21.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.2",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/ws": "^8.18.1",

@@ -54,6 +54,7 @@ import {
 } from './banter';
 import { spriteUrl } from './pixel';
 import { describeHead, headIndex, jumpHead, stepHead } from './rewind';
+import { dressStatusBar, onBackButton } from './native';
 import { strangerReset } from './stranger';
 import {
   ARDAX,
@@ -449,6 +450,23 @@ export default function App() {
   const [retortOpen, setRetortOpen] = useState(false);
   /** A story card sitting on a finished board can be pushed aside to look at the position. */
   const [cardAside, setCardAside] = useState(false);
+
+  /* Android's back button, and the status bar. Both no-ops in a browser — see `native.ts`.
+   *
+   * Back is read as "up one screen", innermost thing first: a modal, then a story card that is
+   * standing on a board, then the board itself, then any screen that is not the inn. Only at
+   * the inn does back mean leave, which is what an Android user expects and what a Play
+   * reviewer will check within the first minute. The handler is bound once and reads live
+   * state through a ref, because re-registering it on every phase change would race. */
+  const backRef = useRef<() => boolean>(() => false);
+  useEffect(() => {
+    void dressStatusBar();
+    let remove = () => {};
+    void onBackButton(() => backRef.current()).then((off) => {
+      remove = off;
+    });
+    return () => remove();
+  }, []);
   // A new beat always arrives in front of the board, never behind it.
   useEffect(() => {
     setCardAside(false);
@@ -474,6 +492,42 @@ export default function App() {
    *  position. Only the display reads `shown`. Keeping those two names apart is what makes
    *  rewind safe: there is no path by which a rewound board can be played from. */
   const reviewing = reviewAt !== null && history.length > 0;
+
+  // Android back, read as "up one screen", innermost thing first. Each branch returns true to
+  // say the press was used; falling off the end returns false and only then does the shell
+  // close the app. Assigned on every render so it always sees live state, and deliberately
+  // placed above the phase early-returns — inside one of those, `phase` is already narrowed
+  // and the last branch silently becomes unreachable.
+  backRef.current = () => {
+    if (loader !== null) {
+      setLoader(null);
+      return true;
+    }
+    if (promo || bindChoice) {
+      setPromo(null);
+      setBindChoice(null);
+      return true;
+    }
+    if (card && !cardAside) {
+      // Step the card aside rather than dismissing it: `card.then` carries the run forward.
+      setCardAside(true);
+      return true;
+    }
+    if (reviewing) {
+      setReviewAt(null);
+      return true;
+    }
+    if (powerMode || selected !== null) {
+      setPowerMode(null);
+      setSelected(null);
+      return true;
+    }
+    if (phase !== 'home') {
+      setPhase('home');
+      return true;
+    }
+    return false;
+  };
   const shown = reviewing ? (history[headIndex(reviewAt, history.length)] ?? state) : state;
   const setupRef = useRef(setup);
   setupRef.current = setup;
