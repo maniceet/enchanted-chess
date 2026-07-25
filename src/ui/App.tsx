@@ -2338,15 +2338,13 @@ export default function App() {
                   Load position
                 </button>
               )}
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.removeItem(STORAGE_KEY);
-                  setHistory([]);
-                  setReviewAt(null);
-                  setPhase('home');
-                }}
-              >
+              {/* Stepping away from a board is not the same as burning it. This used to clear
+                  the saved game on the way out, with no warning, sitting between Flip and
+                  Export — I lost an eleven-move duel to it mid-playtest by reaching for the
+                  nearest way back to the inn, which is exactly how a player would lose one.
+                  The board is kept and the inn offers it straight back; Resign is next to this
+                  button and is the honest way to end a game you mean to end. */}
+              <button type="button" onClick={() => setPhase('home')} title="Back to the inn. The board keeps.">
                 Leave
               </button>
             </div>

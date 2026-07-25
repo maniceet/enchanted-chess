@@ -53,8 +53,19 @@ for (let depth = 1; depth <= CAMPAIGN.length; depth++) {
   // Spoils land once per seat, ever. All-coin and all-mana are the two ends of that choice.
   const allCoin = total + depth * SPOIL_GOLD;
   const allMana = Math.min(MANA_CAP, MANA_START + depth * SPOIL_MANA);
-  const verdict =
-    allCoin >= BOOK ? 'can fill the book' : allCoin >= 30 ? 'a working book' : 'stuck';
+  // The shop needs the Innkeeper down at least once, so a traveller who never gets past him
+  // has no shop to be short of gold *for*. This row used to read "stuck", which describes an
+  // economy problem that does not exist and cost a reading of this table to disbelieve: they
+  // are not locked out by their purse, they are simply not through the door yet, and they are
+  // still banking mana every walk. Say which of the two it is.
+  const shopOpen = depth >= 2;
+  const verdict = !shopOpen
+    ? 'no shop yet — beat the keeper first'
+    : allCoin >= BOOK
+      ? 'can fill the book'
+      : allCoin >= 30
+        ? 'a working book'
+        : 'short of the cheapest pair';
   console.log(
     [
       seat.padEnd(9),
