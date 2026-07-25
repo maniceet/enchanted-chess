@@ -2789,3 +2789,31 @@ h1 {
     row-gap: 7px;
   }
 }
+
+/* A binding, offered on a piece the Archbishop could have taken. It borrows the shield-break's
+   dark disc so the two read as the same family of "instead of moving" — and a knot rather than
+   a hammer, because nothing is being struck. */
+.sq-bind {
+  box-shadow: inset 0 0 0 3px #c8a2d8;
+}
+
+.knot {
+  position: absolute;
+  inset: auto 3% 3% auto;
+  width: 52%;
+  height: 52%;
+  padding: 7%;
+  border-radius: 50%;
+  background: #14101a;
+  box-shadow: 0 0 0 2px #c8a2d8;
+  fill: none;
+  stroke: #ecdff5;
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.sq-bind:hover .knot {
+  background: #241a30;
+  stroke: #fff;
+}

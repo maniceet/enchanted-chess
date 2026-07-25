@@ -22,6 +22,7 @@ import {
   armorArmy,
   chooseAction,
   innkeeperLoadout,
+  raiseArchbishops,
   raiseDragons,
   searchOptionsFor,
   type House,
@@ -106,7 +107,10 @@ function build(who: House, seed: number, hero: HeroBuild): GameState {
   // The seat always spends the duelling four; only the traveller's purse varies.
   const ready = applyLoadout(applyLoadout(base, 'w', loadout, mana), 'b', black);
   const mounted = profile.dragons ? raiseDragons(ready, 'b', profile.dragons) : ready;
-  return profile.armored ? armorArmy(mounted, 'b', profile.armored) : mounted;
+  const ordained = profile.archbishops
+    ? raiseArchbishops(mounted, 'b', profile.archbishops)
+    : mounted;
+  return profile.armored ? armorArmy(ordained, 'b', profile.armored) : ordained;
 }
 
 interface Caps {

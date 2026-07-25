@@ -12,6 +12,8 @@ export interface BoardProps {
   targets: Map<number, MoveAction[]>;
   /** Squares holding a shielded enemy piece the selected piece may hammer (T2). */
   breakTargets: Set<number>;
+  /** Squares holding an enemy piece the selected Archbishop may bind instead of taking. */
+  bindTargets: Set<number>;
   /** Squares a pending King power may act on. */
   powerTargets: Set<number>;
   lastMove: { from: number; to: number } | null;
@@ -57,6 +59,7 @@ export function Board({
   selected,
   targets,
   breakTargets,
+  bindTargets,
   powerTargets,
   lastMove,
   checkedKing,
@@ -81,6 +84,7 @@ export function Board({
           const dark = (fileOf(s) + rankOf(s)) % 2 === 0;
           const isTarget = targets.has(s);
           const isBreak = breakTargets.has(s);
+          const isBind = bindTargets.has(s);
           const frozen = piece ? isFrozen(state, piece) : false;
           // Turns the piece has left before Destined Death collects it. Counted in the victim's
           // own moves, which is how the rule is stated and how a player counts.
@@ -94,6 +98,7 @@ export function Board({
             selected === s ? 'sq-selected' : '',
             isTarget ? (piece ? 'sq-capture' : 'sq-move') : '',
             isBreak ? 'sq-break' : '',
+            isBind ? 'sq-bind' : '',
             powerTargets.has(s) ? 'sq-power' : '',
             lastMove && (lastMove.from === s || lastMove.to === s) ? 'sq-last' : '',
             checkedKing === s ? 'sq-check' : '',
@@ -115,6 +120,13 @@ export function Board({
               title={describe(state, s)}
               aria-label={describe(state, s).split('\n')[0]}
             >
+              {isBind && (
+                /* A knot, not a hammer: a binding takes nothing and the mark should not read
+                   like a strike. Same dark disc so the two affordances feel related. */
+                <svg className="knot" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 6a4 4 0 0 1 0 8h10a4 4 0 0 1 0-8M7 10h10M6 17h12v2H6z" />
+                </svg>
+              )}
               {piece && (
                 <PieceGlyph
                   type={piece.type}

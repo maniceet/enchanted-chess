@@ -23,11 +23,12 @@ import {
   CAMPAIGN,
   HOUSE,
   innkeeperLoadout,
+  raiseArchbishops,
   raiseDragons,
   searchOptionsFor,
   type House,
 } from '../engine/ai';
-import { inCheck, legalMoves, shieldBreakActions } from '../engine/movegen';
+import { bindActions, inCheck, legalMoves, shieldBreakActions } from '../engine/movegen';
 import { toSan } from '../engine/notation';
 import { REVIVE_COST, powerActions, powerUnavailableReason } from '../engine/powers';
 import {
@@ -259,6 +260,8 @@ interface Setup {
   budget?: number;
   /** Knights turned to Dragons by Dragonblood. Road only, same reasoning as `budget`. */
   dragons?: number;
+  /** Bishops raised by Holy Orders. Road only, same reasoning as `dragons`. */
+  archbishops?: number;
   /** The keeper's cruelties in force for this game. Road only. */
   trials?: Trial[];
   /** Which colour the traveller has. White everywhere except The Second Chair, where the keeper
@@ -310,7 +313,10 @@ function startingState(setup: Setup): GameState {
   );
   const profile = isHouse(setup.opponent) ? HOUSE[setup.opponent] : undefined;
   const mounted = profile?.dragons ? raiseDragons(ready, house, profile.dragons) : ready;
-  const armored = profile?.armored ? armorArmy(mounted, house, profile.armored) : mounted;
+  const ordained = profile?.archbishops
+    ? raiseArchbishops(mounted, house, profile.archbishops)
+    : mounted;
+  const armored = profile?.armored ? armorArmy(ordained, house, profile.armored) : ordained;
 
   // `boon` and `silentKing` describe a *run*, and `Setup` is reused between games, so a stale
   // one has leaked into a hotseat duel and into an online match before now. Both call sites
@@ -326,7 +332,11 @@ function startingState(setup: Setup): GameState {
       : armored;
   const mounted2 =
     onTheRoad && setup.boon ? raiseDragons(evolved, player, { count: 1, taunt: true }) : evolved;
-  return onTheRoad && setup.silentKing ? silenceKing(mounted2, player) : mounted2;
+  const ordained2 =
+    onTheRoad && setup.archbishops
+      ? raiseArchbishops(mounted2, player, { count: setup.archbishops, taunt: false })
+      : mounted2;
+  return onTheRoad && setup.silentKing ? silenceKing(ordained2, player) : ordained2;
 }
 
 function replay(saved: Saved): GameState[] {
@@ -424,6 +434,10 @@ export default function App() {
   const houseColorRef = useRef<Color>('b');
   const [muted, setMutedState] = useState(isMuted());
   const [promo, setPromo] = useState<{ from: number; to: number } | null>(null);
+  /** A square an Archbishop can both take and bind. Taking and binding are different turns with
+   *  different prices, so the choice is the player's — same reasoning as the promotion picker,
+   *  and the same shape. Without it the capture simply won and the binding was unreachable. */
+  const [bindChoice, setBindChoice] = useState<{ from: number; to: number } | null>(null);
   const [loader, setLoader] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const keepSelectionRef = useRef(false);
@@ -466,6 +480,7 @@ export default function App() {
 
   const moves = useMemo(() => (state ? legalMoves(state) : []), [state]);
   const breaks = useMemo(() => (state ? shieldBreakActions(state) : []), [state]);
+  const binds = useMemo(() => (state ? bindActions(state) : []), [state]);
   const powers = useMemo(
     () => (state && powerMode ? powerActions(state) : []),
     [state, powerMode],
@@ -485,6 +500,11 @@ export default function App() {
     if (selected === null) return new Set<number>();
     return new Set(breaks.filter((b) => b.from === selected).map((b) => b.target));
   }, [breaks, selected]);
+
+  const bindTargets = useMemo(() => {
+    if (selected === null) return new Set<number>();
+    return new Set(binds.filter((b) => b.from === selected).map((b) => b.target));
+  }, [binds, selected]);
 
   const powerTargets = useMemo(() => {
     if (!powerMode) return new Set<number>();
@@ -947,6 +967,8 @@ export default function App() {
     const candidates = targets.get(square);
     if (candidates?.length) {
       if (candidates.some((m) => m.promo)) setPromo({ from: candidates[0].from, to: square });
+      else if (bindTargets.has(square) && selected !== null)
+        setBindChoice({ from: selected, to: square });
       else commit(candidates[0]);
       return;
     }
@@ -954,11 +976,17 @@ export default function App() {
       commit({ type: 'shieldBreak', from: selected, target: square });
       return;
     }
+    if (bindTargets.has(square) && selected !== null) {
+      commit({ type: 'bind', from: selected, target: square });
+      return;
+    }
 
     const piece = state.board[square];
     if (piece && piece.color === state.turn) {
       const hasAction =
-        moves.some((m) => m.from === square) || breaks.some((b) => b.from === square);
+        moves.some((m) => m.from === square) ||
+        breaks.some((b) => b.from === square) ||
+        binds.some((b) => b.from === square);
       if (!hasAction) {
         refuse(square);
         setSelected(null);
@@ -1098,6 +1126,7 @@ export default function App() {
       // knights. A duel between strangers gets neither: four points each, knights are knights.
       budget: isHouse(merged.opponent) ? campaignBudget(run) : BUDGET,
       dragons: isHouse(merged.opponent) ? run.dragons : 0,
+      archbishops: isHouse(merged.opponent) ? run.archbishops : 0,
       trials: isHouse(merged.opponent) ? run.trials : [],
     };
     setSetup(next);
@@ -2232,6 +2261,7 @@ export default function App() {
             onLift={beginDrag}
             targets={targets}
             breakTargets={breakTargets}
+            bindTargets={bindTargets}
             powerTargets={powerTargets}
             lastMove={lastMove}
             checkedKing={checkedKing}
@@ -2545,6 +2575,40 @@ export default function App() {
               </button>
               <button type="button" onClick={() => setLoader(null)}>
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bindChoice && (
+        <div className="modal-backdrop" onClick={() => setBindChoice(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Take it, or bind it</h3>
+            <p className="muted">
+              Taking removes the piece and moves your Archbishop onto the square. Binding leaves
+              both where they are and stops it moving on its owner's next turn.
+            </p>
+            <div className="promo-row">
+              <button
+                type="button"
+                onClick={() => {
+                  const move = targets.get(bindChoice.to)?.[0];
+                  setBindChoice(null);
+                  if (move) commit(move);
+                }}
+              >
+                Take
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const { from, to } = bindChoice;
+                  setBindChoice(null);
+                  commit({ type: 'bind', from, target: to });
+                }}
+              >
+                Bind
               </button>
             </div>
           </div>

@@ -43,7 +43,7 @@ function makeRandoms(count: number, seed = 0x9e3779b9): number[] {
   return out;
 }
 
-const TYPES: PieceType[] = ['p', 'n', 'b', 'r', 'q', 'd', 'k'];
+const TYPES: PieceType[] = ['p', 'n', 'b', 'r', 'q', 'd', 'a', 'k'];
 const ENCH_INDEX: Record<string, number> = {
   none: 0,
   taunt: 1,
@@ -263,7 +263,7 @@ const MOVE_KEY = (action: Action): string =>
       ? `s${action.from}:${action.target}`
       : `p${action.type}`;
 
-const SEE_VALUE: Record<PieceType, number> = { p: 100, n: 320, b: 330, r: 500, q: 900, d: 720, k: 0 };
+const SEE_VALUE: Record<PieceType, number> = { p: 100, n: 320, b: 330, r: 500, q: 900, d: 720, a: 430, k: 0 };
 
 export class Searcher {
   private table: TranspositionTable;

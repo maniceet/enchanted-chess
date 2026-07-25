@@ -17,11 +17,13 @@ import {
   legalMoves,
   promotionRankOf,
   shieldBreakActions,
+  bindActions,
 } from './movegen';
 import { REPEATABLE, REVIVE_COST, powerActions, samePowerArgs } from './powers';
 import { TIME_POWER_INCREMENT_MS, TIME_POWER_LUMP_MS, incrementFor } from './clock';
 import type {
   Action,
+  BindAction,
   Color,
   EngineError,
   FrozenMarker,
@@ -75,6 +77,7 @@ function evaluateStatus(state: GameState): GameStatus {
     if (inCheck(state, state.turn)) return { kind: 'checkmate', winner: opposite(state.turn) };
     if (
       shieldBreakActions(state, state.turn).length === 0 &&
+      bindActions(state, state.turn).length === 0 &&
       powerActions(state, state.turn).length === 0
     ) {
       return { kind: 'stalemate' };
@@ -267,6 +270,25 @@ function applyShieldBreak(state: GameState, action: ShieldBreakAction): GameStat
   );
 }
 
+/** A binding takes nothing. The Archbishop stays where he is, the piece he named cannot move
+ *  on its owner's next turn, and everything else about the position is untouched — same freeze
+ *  a Martyr leaves on its killer, and the same M1 semantics: it still attacks and defends. */
+function applyBind(state: GameState, action: BindAction): GameState | EngineError {
+  const legal = bindActions(state, state.turn).some(
+    (a) => a.from === action.from && a.target === action.target,
+  );
+  if (!legal) return err(`illegal binding on ${squareName(action.target)}`);
+
+  const victim = state.board[action.target]!;
+  // `+ 3` is the Martyr number: this ply, the owner's reply, and back to the binder — which
+  // lands on exactly one lost turn for the piece named.
+  const frozen = [...state.frozen, { pieceId: victim.id, untilPly: state.ply + 3 }];
+
+  return settle(
+    endTurn({ ...state, frozen, ep: null, log: [...state.log, action] }, { spentMs: action.spentMs }),
+  );
+}
+
 function applyPower(state: GameState, action: PowerAction): GameState | EngineError {
   const color = state.turn;
   const legal = powerActions(state, color).some(
@@ -410,6 +432,9 @@ export function applyAction(state: GameState, action: Action): GameState | Engin
     case 'shieldBreak':
       return applyShieldBreak(state, action);
 
+    case 'bind':
+      return applyBind(state, action);
+
     case 'power':
       return applyPower(state, action);
   }
@@ -422,6 +447,7 @@ export function legalActions(state: GameState): Action[] {
   return [
     ...legalMoves(state, state.turn),
     ...shieldBreakActions(state, state.turn),
+    ...bindActions(state, state.turn),
     ...powerActions(state, state.turn),
   ];
 }

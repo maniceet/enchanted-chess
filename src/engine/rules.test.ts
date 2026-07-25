@@ -3,7 +3,7 @@ import { applyAction, isFrozen } from './apply';
 import { initialState, parseSquare, squareName } from './board';
 import { applyLoadout, carrierError, costOf } from './loadout';
 import { deserialize, parseFen, serialize, toFen } from './fen';
-import { inCheck, isShielded, legalMoves, shieldBreakActions } from './movegen';
+import { bindActions, inCheck, isAttacked, isShielded, legalMoves, shieldBreakActions } from './movegen';
 import { powerActions, powerUnavailableReason } from './powers';
 import { TIME_CONTROLS, newClock } from './clock';
 import { toSan } from './notation';
@@ -936,5 +936,64 @@ describe('Power notation names its target', () => {
     });
     expect(san).toBe('⚡doom(†h8)');
     expect(san).not.toContain('time');
+  });
+});
+
+/*  The Archbishop. He walks the diagonals like a bishop, and instead of arriving on a piece he
+ *  can stop it where it stands: a Martyr freeze, laid on purpose and as often as he likes. */
+describe('The Archbishop binds instead of taking', () => {
+  it('reaches exactly as far as a bishop, and no further', () => {
+    // A blocker on the diagonal hides everything behind it, same as any bishop.
+    const state = position(
+      { d4: 'wa', f6: 'bn', g7: 'br', e1: 'wk', a8: 'bk' },
+      { turn: 'w' },
+    );
+    const targets = bindActions(state).map((b) => squareName(b.target));
+    expect(targets).toContain('f6');
+    expect(targets).not.toContain('g7');
+  });
+
+  it('leaves the binder where it stands and takes nothing', () => {
+    const state = position({ d4: 'wa', f6: 'bn', e1: 'wk', a8: 'bk' }, { turn: 'w' });
+    const after = ok(applyAction(state, { type: 'bind', from: parseSquare('d4'), target: parseSquare('f6') }));
+    expect(after.board[parseSquare('d4')]!.type).toBe('a');
+    expect(after.board[parseSquare('f6')]!.type).toBe('n');
+    expect(after.graveyard.b).toEqual([]);
+  });
+
+  it('freezes the piece for exactly its owner’s next turn (M1 semantics)', () => {
+    const state = position({ d4: 'wa', f6: 'bn', e1: 'wk', a8: 'bk' }, { turn: 'w' });
+    const after = ok(applyAction(state, { type: 'bind', from: parseSquare('d4'), target: parseSquare('f6') }));
+    const knight = after.board[parseSquare('f6')]!;
+    expect(isFrozen(after, knight)).toBe(true);
+    expect(hasMove(legalMoves(after), 'f6', 'e4')).toBe(false);
+  });
+
+  it('does not stop the bound piece defending — it restricts movement only', () => {
+    // The knight on f6 is frozen but still covers d5, so the King may not step there.
+    const state = position({ d4: 'wa', f6: 'bn', e1: 'wk', a8: 'bk' }, { turn: 'w' });
+    const after = ok(applyAction(state, { type: 'bind', from: parseSquare('d4'), target: parseSquare('f6') }));
+    expect(isAttacked(after.board, parseSquare('d5'), 'b')).toBe(true);
+  });
+
+  it('may not bind a King — he bows to nothing, same as Decree', () => {
+    const state = position({ d4: 'wa', g7: 'bk', e1: 'wk' }, { turn: 'w' });
+    expect(bindActions(state).map((b) => squareName(b.target))).not.toContain('g7');
+  });
+
+  it('may not bind while its own King is in check (the T4 principle)', () => {
+    // Black rook on e8 checks the white king on e1; a binding does not answer that.
+    const state = position({ d4: 'wa', f6: 'bn', e1: 'wk', e8: 'br', a8: 'bk' }, { turn: 'w' });
+    expect(inCheck(state, 'w')).toBe(true);
+    expect(bindActions(state)).toHaveLength(0);
+  });
+
+  it('does not offer a second binding on a piece already bound', () => {
+    // The spare pawn exists so Black has a legal move that is not the frozen knight and not
+    // the king walking onto the Archbishop's own diagonal.
+    const state = position({ d4: 'wa', f6: 'bn', h7: 'bp', e1: 'wk', a8: 'bk' }, { turn: 'w' });
+    const after = ok(applyAction(state, { type: 'bind', from: parseSquare('d4'), target: parseSquare('f6') }));
+    const black = ok(applyAction(after, { type: 'move', from: parseSquare('h7'), to: parseSquare('h6') }));
+    expect(bindActions(black, 'w').map((b) => squareName(b.target))).not.toContain('f6');
   });
 });

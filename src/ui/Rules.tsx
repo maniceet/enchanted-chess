@@ -2,7 +2,17 @@ import { CARRIER_MULTIPLIER, ENCH_COST, ENCH_TEXT, POWER_TEXT } from '../engine/
 import type { Enchantment, PowerName } from '../engine/types';
 import { ENCH_NAME, EnchRune } from './Pieces';
 
-const ENCH_ORDER: Enchantment[] = ['taunt', 'martyr', 'outpost', 'swift', 'herald', 'poison'];
+const ENCH_ORDER: Enchantment[] = [
+  'taunt',
+  'martyr',
+  'outpost',
+  'swift',
+  'herald',
+  'poison',
+  // Not on the Sorcerer's shelf. It is in the table anyway, because a rule a player can meet
+  // is a rule a player should be able to look up — and the row says where it comes from.
+  'immolation',
+];
 const POWER_ORDER: PowerName[] = ['teleport', 'relocate', 'decree', 'revive', 'chrono'];
 const POWER_NAME: Record<PowerName, string> = {
   teleport: 'Teleport',
@@ -85,6 +95,34 @@ export function Rules({ onBack }: { onBack: () => void }) {
             ))}
           </tbody>
         </table>
+
+        <p>
+          Six of those the Sorcerer will teach you, for gold. <strong>Immolation</strong> he will
+          not: it is not on his shelf and never has been. The Book is carried by two men on the
+          road, and the only way it joins your own is to take it off one of them. Beat them often
+          enough and it turns up eventually.
+        </p>
+
+        <h3>The Dragon and the Archbishop</h3>
+        <p>
+          Two pieces exist that no ordinary army has, and neither can be bought. A{' '}
+          <strong>Dragon</strong> moves as a knight and as a bishop, both, and is worth about
+          what that sounds like. An <strong>Archbishop</strong> walks the diagonals as a bishop
+          does — but where a bishop can only take a piece, he may instead <em>bind</em> it:
+          reach a piece he could have captured, leave it standing, and it may not move on its
+          owner's next turn. He does not move either. The turn buys a piece frozen where it is.
+        </p>
+        <p>
+          A bound piece is <em>stopped, not blinded</em>. It still covers every square it
+          covered before, still gives check, still defends its neighbours — exactly what a
+          Martyr's dying grip does to whoever took it. And like every other word in this game,
+          it has no purchase on a King. He may not be bound, any more than he may be poisoned or
+          decreed at.
+        </p>
+        <p>
+          The road hands both of these out as rare boons, and never before Princess Rolain has
+          put a dragon on the board in front of you. The Dark Lord brings two of each.
+        </p>
 
         <h3>On Shields, and the Breaking of Them</h3>
         <p>

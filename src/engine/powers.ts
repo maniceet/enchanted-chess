@@ -4,7 +4,7 @@ import type { Color, GameState, PieceType, PowerAction, PowerArgs, PowerName } f
 
 /** Reserve cost of reviving a piece = its face value (spec §2.4). Rook and queen are
  *  unaffordable inside a 4-point budget and are filtered out automatically. */
-export const REVIVE_COST: Record<PieceType, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, d: 7, k: 0 };
+export const REVIVE_COST: Record<PieceType, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, d: 7, a: 4, k: 0 };
 
 const inOwnHalf = (color: Color, square: number): boolean => relativeRank(color, square) <= 4;
 

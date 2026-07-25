@@ -55,7 +55,7 @@ export function blastZone(c: Color, from: number): number[] {
   return zone;
 }
 
-export const PIECE_VALUE: Record<PieceType, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, d: 7, k: 0 };
+export const PIECE_VALUE: Record<PieceType, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, d: 7, a: 4, k: 0 };
 
 export function makePiece(
   id: number,

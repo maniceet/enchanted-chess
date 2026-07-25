@@ -21,6 +21,8 @@ export interface StrangerReset {
   budget: number;
   /** Dragonblood turns knights into dragons on the road only. */
   dragons: number;
+  /** Holy Orders raises bishops on the road only. */
+  archbishops: number;
   /** Trials — Second Chair, timed, deadly — are road modifiers. */
   trials: never[];
   /** Colour comes from the server, not from whatever the last game used. */
@@ -40,6 +42,7 @@ export function strangerReset(you: Color | null | undefined): StrangerReset {
     silentKing: false,
     budget: BUDGET,
     dragons: 0,
+    archbishops: 0,
     trials: [],
     player: you ?? 'w',
     white: emptyLoadout(),

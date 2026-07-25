@@ -17,6 +17,7 @@ describe('a match against a stranger inherits nothing from the road', () => {
     expect(reset.boon).toBe(false);
     expect(reset.silentKing).toBe(false);
     expect(reset.dragons).toBe(0);
+    expect(reset.archbishops).toBe(0);
     expect(reset.trials).toEqual([]);
   });
 

@@ -1,17 +1,33 @@
 import { fileOf, rankOf, squareName } from './board';
 import { makeMove } from './apply';
 import { inCheck, legalMoves } from './movegen';
-import type { Action, GameState, MoveAction } from './types';
+import type { Action, GameState, MoveAction, PieceType } from './types';
 
-const LETTER: Record<string, string> = { p: '', n: 'N', b: 'B', r: 'R', q: 'Q', d: 'D', k: 'K' };
+// Typed against PieceType so a new piece cannot be added without a letter — the Archbishop
+// shipped as `undefinedc4` in the chronicle for exactly as long as this was a loose Record.
+const LETTER: Record<PieceType, string> = {
+  p: '',
+  n: 'N',
+  b: 'B',
+  r: 'R',
+  q: 'Q',
+  d: 'D',
+  a: 'A',
+  k: 'K',
+};
 
-/** Standard algebraic notation, extended per spec §4 with ⚡ (power) and ⊘ (shield-break). */
+/** Standard algebraic notation, extended per spec §4 with ⚡ (power), ⊘ (shield-break) and ⛨ (binding). */
 export function toSan(state: GameState, action: Action): string {
   if (action.type === 'resign') return 'resign';
   if (action.type === 'drawOffer') return '(=)';
   if (action.type === 'drawAccept') return '½-½';
   if (action.type === 'shieldBreak') {
     return `⊘${squareName(action.target)}`;
+  }
+  // A binding is its own kind of turn, so it gets its own mark rather than reading as a move
+  // the Archbishop did not make.
+  if (action.type === 'bind') {
+    return `⛨${squareName(action.target)}`;
   }
   if (action.type === 'power') {
     const a = action.args;

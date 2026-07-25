@@ -41,6 +41,7 @@ export const CARRIER_MULTIPLIER: Record<PieceType, number> = {
   b: 2,
   r: 3,
   d: 4, // a Dragon carries magic as poorly as a queen
+  a: 3, // an Archbishop is already half a spell
   q: 4,
   k: 0, // the King can never be enchanted (§2.4a)
 };
@@ -102,6 +103,7 @@ const CARRIER_PLURAL: Record<PieceType, string> = {
   b: 'bishops',
   r: 'rooks',
   d: 'dragons',
+  a: 'archbishops',
   q: 'queens',
   k: 'kings',
 };

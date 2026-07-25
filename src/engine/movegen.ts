@@ -16,6 +16,7 @@ import type {
   GameState,
   MoveAction,
   MoveFlag,
+  BindAction,
   Piece,
   PieceType,
   ShieldBreakAction,
@@ -88,7 +89,7 @@ export function isAttacked(board: Board, target: number, byColor: Color): boolea
       while (onBoard(f, r)) {
         const p = board[sq(f, r)];
         if (p) {
-          const diagonal = slider === 'b' && (p.type === 'b' || p.type === 'd');
+          const diagonal = slider === 'b' && (p.type === 'b' || p.type === 'd' || p.type === 'a');
           const straight = slider === 'r' && p.type === 'r';
           if (p.color === byColor && (diagonal || straight || p.type === 'q')) return true;
           break;
@@ -191,7 +192,7 @@ export function attackersOf(board: Board, square: number, color: Color): number[
         const s = sq(f, r);
         const p = board[s];
         if (p) {
-          const diagonal = slider === 'b' && (p.type === 'b' || p.type === 'd');
+          const diagonal = slider === 'b' && (p.type === 'b' || p.type === 'd' || p.type === 'a');
           const straight = slider === 'r' && p.type === 'r';
           if (
             p.color === color &&
@@ -352,6 +353,9 @@ export function pseudoMoves(state: GameState, color: Color): MoveAction[] {
         break;
       }
       case 'b':
+      // The Archbishop walks the diagonals like any bishop. What makes him is what he can do
+      // instead of arriving: see `bindActions`.
+      case 'a':
         slidingMoves(out, board, from, piece, DIAGONALS);
         break;
       case 'd': {
@@ -445,6 +449,51 @@ export function shieldBreakActions(
   return out;
 }
 
+/** Every binding the side to move could lay this turn.
+ *
+ *  The Archbishop's word, and the mirror of a shield-break: he reaches a piece he could have
+ *  taken and stops it instead, staying where he is and spending the turn. The frozen piece
+ *  keeps every square it covers (M1) — this restricts movement and nothing else, so a bound
+ *  piece still gives check, still defends its friends, and still has to be answered.
+ *
+ *  Two limits, both borrowed from rules that already exist rather than invented here. He may
+ *  not bind a King, for the same reason Decree may not name one: the King bows to nothing.
+ *  And he may not bind while his own King is in check, for the same reason a shield-break is
+ *  illegal there (T4) — a bind does not answer a check, so spending the turn on one would be
+ *  leaving the King attacked. */
+export function bindActions(state: GameState, color: Color = state.turn): BindAction[] {
+  if (inCheck(state, color)) return [];
+  const out: BindAction[] = [];
+  for (let from = 0; from < 64; from++) {
+    const piece = state.board[from];
+    if (!piece || piece.color !== color || piece.type !== 'a') continue;
+    if (isFrozen(state, piece)) continue;
+    // The first piece down each diagonal, exactly as far as he could have moved to take it.
+    const f0 = fileOf(from);
+    const r0 = rankOf(from);
+    for (const [df, dr] of DIAGONALS) {
+      let f = f0 + df;
+      let r = r0 + dr;
+      while (onBoard(f, r)) {
+        const target = sq(f, r);
+        const victim = state.board[target];
+        if (victim) {
+          // Already bound is already bound; a second word this turn changes nothing. Outpost
+          // and Taunt say who may *take* a piece, and a binding takes nothing, so neither of
+          // them has an opinion here.
+          if (victim.color !== color && victim.type !== 'k' && !isFrozen(state, victim)) {
+            out.push({ type: 'bind', from, target });
+          }
+          break;
+        }
+        f += df;
+        r += dr;
+      }
+    }
+  }
+  return out;
+}
+
 /** Squares between two aligned squares, exclusive. Empty when they do not line up. */
 function between(from: number, to: number): number[] {
   const df = Math.sign(fileOf(to) - fileOf(from));
@@ -515,7 +564,7 @@ function isAttackedIgnoring(
         if (s !== ignore) {
           const p = board[s];
           if (p) {
-            const diagonal = slider === 'b' && (p.type === 'b' || p.type === 'd');
+            const diagonal = slider === 'b' && (p.type === 'b' || p.type === 'd' || p.type === 'a');
             const straight = slider === 'r' && p.type === 'r';
             if (p.color === byColor && (diagonal || straight || p.type === 'q')) return true;
             break;
@@ -572,7 +621,7 @@ function pictureOf(board: Board, color: Color): KingPicture {
             if (piece.color !== color) break; // an enemy first: this is a check, not a pin
             candidate = s;
           } else {
-            const diagonal = slider === 'b' && (piece.type === 'b' || piece.type === 'd');
+            const diagonal = slider === 'b' && (piece.type === 'b' || piece.type === 'd' || piece.type === 'a');
             const straight = slider === 'r' && piece.type === 'r';
             if (piece.color === enemy && (diagonal || straight || piece.type === 'q')) {
               // Along the line, or take the pinner itself.

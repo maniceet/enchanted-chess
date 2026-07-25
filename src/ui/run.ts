@@ -119,7 +119,14 @@ export const DROPS: Partial<Record<House, { relic: Relic; chance: number }[]>> =
  *  Weighted, and the good ones are rare on purpose. A traveller who walks the whole road for
  *  the first time collects seven of these, so the common ones are what usually shows up and
  *  Dragonblood is the thing you tell somebody about afterwards. */
-export type Powerup = 'purse' | 'mana' | 'hoard' | 'lesson' | 'whetstone' | 'dragonblood';
+export type Powerup =
+  | 'purse'
+  | 'mana'
+  | 'hoard'
+  | 'lesson'
+  | 'whetstone'
+  | 'dragonblood'
+  | 'holyorders';
 
 export const POWERUP: Record<
   Powerup,
@@ -155,9 +162,23 @@ export const POWERUP: Record<
     flavour: 'One of your knights does not sleep that night, and in the morning it is not a knight.',
     weight: 4,
   },
+  holyorders: {
+    name: 'Holy Orders',
+    flavour:
+      'A bishop of yours is called away for a night and comes back with a second peak on his hat and a great deal more to say.',
+    weight: 3,
+  },
 };
 
-const POWERUP_ORDER: Powerup[] = ['purse', 'mana', 'hoard', 'lesson', 'whetstone', 'dragonblood'];
+const POWERUP_ORDER: Powerup[] = [
+  'purse',
+  'mana',
+  'hoard',
+  'lesson',
+  'whetstone',
+  'dragonblood',
+  'holyorders',
+];
 
 /** What this powerup will actually do, given the book you already hold. */
 export function powerupEffect(state: RunState, up: Powerup): string {
@@ -179,7 +200,11 @@ export function powerupEffect(state: RunState, up: Powerup): string {
         ? 'The Sorcerer teaches you one enchantment, now, for nothing.'
         : 'Nothing left to teach you, so he pays you 20 gold instead.';
     case 'dragonblood':
-      return 'One of your knights becomes a Dragon, in every game from here on. A Dragon moves as knight and bishop both.';
+      return state.dragons >= 2
+        ? `Both your knights already have it, and he offers a third draught anyway. You would own an imaginary dragon: no square, no moves, entirely yours. He is not joking, and he pays ${SYMBOLIC_GOLD.mana} gold towards the upkeep.`
+        : 'One of your knights becomes a Dragon, in every game from here on. A Dragon moves as knight and bishop both.';
+    case 'holyorders':
+      return 'One of your bishops becomes an Archbishop, in every game from here on. He walks the diagonals as before, and instead of taking a piece he can bind it where it stands for a turn.';
   }
 }
 
@@ -199,6 +224,7 @@ const FAMILY: Record<Powerup, string> = {
   whetstone: 'mana',
   lesson: 'lesson',
   dragonblood: 'dragon',
+  holyorders: 'dragon',
 };
 
 /** Whether this powerup would do anything at all for this traveller right now.
@@ -207,7 +233,12 @@ const FAMILY: Record<Powerup, string> = {
  *  rather than a gift, and the card says so, but a gesture with a few coins behind it still
  *  beats an empty half of the table. */
 function worthOffering(state: RunState, up: Powerup): boolean {
-  if (up === 'dragonblood') return state.dragons < 2;
+  // Neither exotic piece exists on the road until Princess Rolain has put a dragon on the board
+  // in front of you. Handing a traveller a Dragon before the seat that teaches what one *is*
+  // spends the lesson before it is taught, and the Archbishop is stranger still.
+  const metTheDragon = (state.beaten.rolain ?? 0) > 0;
+  if (up === 'dragonblood') return metTheDragon;
+  if (up === 'holyorders') return metTheDragon && state.archbishops < 2;
   return true;
 }
 
@@ -273,7 +304,13 @@ export function takePowerup(
     }
     case 'dragonblood':
       // Capped at both knights. A third would have nothing left to turn.
-      return save({ ...state, dragons: Math.min(2, state.dragons + 1) });
+      // There are only two knights. A third draught buys an imaginary dragon, which is worth
+      // exactly what it sounds like and a few coins for the trouble.
+      return state.dragons >= 2
+        ? save({ ...state, gold: state.gold + SYMBOLIC_GOLD.mana })
+        : save({ ...state, dragons: Math.min(2, state.dragons + 1) });
+    case 'holyorders':
+      return save({ ...state, archbishops: Math.min(2, state.archbishops + 1) });
   }
 }
 
@@ -327,6 +364,9 @@ export interface RunState {
   /** Knights turned into Dragons by Dragonblood, permanently. Capped at two — there are only
    *  two knights to turn. */
   dragons: number;
+  /** Bishops raised to Archbishops by Holy Orders, permanently. Capped at two, for the same
+   *  reason dragons are: there are only two bishops to raise. */
+  archbishops: number;
   /** Relics taken off the road's cleverest men. Permanent, like everything else in the book. */
   relics: Relic[];
   /** Whether the back room has been walked into since it opened. The Sorcerer's row glistens
@@ -387,6 +427,7 @@ const FRESH: RunState = {
   walkPurse: 0,
   mana: MANA_START,
   dragons: 0,
+  archbishops: 0,
   relics: [],
   sorcererSeen: false,
   freed: false,
@@ -422,6 +463,7 @@ function sanitize(raw: unknown): RunState {
     // with a traveller's purse, not an empty one.
     mana: Math.min(MANA_CAP, Math.max(0, Math.floor(Number(value.mana) || MANA_START))),
     dragons: Math.min(2, Math.max(0, Math.floor(Number(value.dragons) || 0))),
+    archbishops: Math.min(2, Math.max(0, Math.floor(Number(value.archbishops) || 0))),
     mode: value.mode === '960' ? '960' : 'classic',
     gold: Math.max(0, Math.floor(Number(value.gold) || 0)),
     active: Boolean(value.active),

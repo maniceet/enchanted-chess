@@ -80,6 +80,9 @@ export interface HouseProfile {
   /** Dragon riders field dragons in place of knights, and may shield them. Bosses are exempt
    *  from the four point budget on purpose: better pieces are the whole threat. */
   dragons?: { count: number; taunt: boolean };
+  /** Archbishops in place of bishops. Wittex is the only seat that fields them: the piece is
+   *  a rare boon on the road, and meeting two of them at the last table is the point. */
+  archbishops?: { count: number; taunt: boolean };
   /** Armour: the pieces in scope carry Taunt, so anything defended costs a whole turn to
    *  strip. Omitted means no armour at all. */
   armored?: ArmorScope;
@@ -196,6 +199,11 @@ export const HOUSE: Record<House, HouseProfile> = {
     banter: 0.9,
     power: 'doom',
     boss: true,
+    // He does not need cavalry to be frightening, and he brings it anyway. Two dragons and two
+    // Archbishops is the whole bestiary at one table: the pieces the road handed out one rare
+    // drop at a time, all of them at once, on the other side.
+    dragons: { count: 2, taunt: true },
+    archbishops: { count: 2, taunt: true },
   },
   // The end of the road. Two shielded dragons and a search that reads to the bottom.
   kyrax: {
@@ -338,6 +346,28 @@ export function raiseDragons(
   return { ...state, board };
 }
 
+/** Bishops become Archbishops. Same shape as `raiseDragons`: the piece keeps its square and
+ *  its enchantment, and gains the word. */
+export function raiseArchbishops(
+  state: GameState,
+  color: Color,
+  options: { count?: number; taunt?: boolean } = {},
+): GameState {
+  const count = options.count ?? 2;
+  let raised = 0;
+  const board = state.board.map((piece) => {
+    if (!piece || piece.color !== color || piece.type !== 'b' || raised >= count) return piece;
+    raised++;
+    return {
+      ...piece,
+      type: 'a' as const,
+      ench: options.taunt ? ('taunt' as const) : piece.ench,
+      shieldBroken: false,
+    };
+  });
+  return { ...state, board };
+}
+
 export interface InnkeeperOptions {
   /** Reuse a table across turns so the house keeps what it learned last move. */
   table?: TranspositionTable;
@@ -421,7 +451,7 @@ export function material(state: GameState, color: Color): number {
    actually worth, which is the part a stock chess engine would get wrong here.
 --------------------------------------------------------------------------- */
 
-const SCORE: Record<PieceType, number> = { p: 100, n: 320, b: 330, r: 500, q: 900, d: 720, k: 0 };
+const SCORE: Record<PieceType, number> = { p: 100, n: 320, b: 330, r: 500, q: 900, d: 720, a: 430, k: 0 };
 
 /** Piece-square tables, written from White's side and mirrored for Black. */
 const PST: Record<PieceType, number[]> = {
@@ -484,6 +514,16 @@ const PST: Record<PieceType, number[]> = {
    -10, 10, 20, 20, 20, 20, 10,-10,
    -20,  0, 10, 10, 10, 10,  0,-20,
    -30,-20,-10,-10,-10,-10,-20,-30,
+  ],
+  a: [
+   -20,-10,-10,-10,-10,-10,-10,-20,
+   -10,  5,  0,  0,  0,  0,  5,-10,
+   -10, 10, 10, 10, 10, 10, 10,-10,
+   -10,  0, 10, 10, 10, 10,  0,-10,
+   -10,  5,  5, 10, 10,  5,  5,-10,
+   -10,  0,  5, 10, 10,  5,  0,-10,
+   -10,  0,  0,  0,  0,  0,  0,-10,
+   -20,-10,-10,-10,-10,-10,-10,-20,
   ],
   k: [
     20, 30, 10,  0,  0, 10, 30, 20,

@@ -5,7 +5,7 @@
 export type Color = 'w' | 'b';
 
 /** 'd' is the Dragon: a knight's leap or a bishop's diagonal, the Dragonlord's cavalry. */
-export type PieceType = 'p' | 'n' | 'b' | 'r' | 'q' | 'k' | 'd';
+export type PieceType = 'p' | 'n' | 'b' | 'r' | 'q' | 'k' | 'd' | 'a';
 
 export type Enchantment =
   | 'taunt'
@@ -111,6 +111,14 @@ export interface ShieldBreakAction extends Timed {
   readonly target: number;
 }
 
+/** The Archbishop's word. He does not take the piece, he stops it: same freeze a Martyr
+ *  leaves behind, delivered on purpose and as often as he likes. He does not move. */
+export interface BindAction extends Timed {
+  readonly type: 'bind';
+  readonly from: number;
+  readonly target: number;
+}
+
 export interface PowerAction extends Timed {
   readonly type: 'power';
   readonly power: PowerName;
@@ -141,6 +149,7 @@ export interface DrawAction {
 export type Action =
   | MoveAction
   | ShieldBreakAction
+  | BindAction
   | PowerAction
   | FlagAction
   | ResignAction

@@ -56,6 +56,22 @@ const SHAPES: Record<PieceType, JSX.Element> = {
       <path className="pc-body" d="M11.8 33.5h21.4c1.6 0 2.6 1 2.6 2.4v3H9.2v-3c0-1.4 1-2.4 2.6-2.4z" />
     </>
   ),
+  a: (
+    // A bishop who has been given a mitre with two peaks and a crozier: the silhouette has to
+    // separate from the plain bishop at rail size, so the head is split and the body squarer.
+    <>
+      <path className="pc-body" d="M22.5 5.6l3.1 4.4h-6.2z" />
+      <circle className="pc-body" cx="18.6" cy="9.6" r="2" />
+      <circle className="pc-body" cx="26.4" cy="9.6" r="2" />
+      <path
+        className="pc-body"
+        d="M22.5 11.6c-4.2 3-7.2 7.4-7.2 11.6 0 3.5 2.1 6.3 4.7 7.9h5c2.6-1.6 4.7-4.4 4.7-7.9 0-4.2-3-8.6-7.2-11.6z"
+      />
+      <path className="pc-detail" d="M22.5 15.8v8.4M18.3 19.9h8.4M17.4 24.6h10.2" />
+      <path className="pc-body" d="M16.2 30.6h12.6v3.1H16.2z" />
+      <path className="pc-body" d="M11.8 33.7h21.4c1.6 0 2.6 1 2.6 2.4v3H9.2v-3c0-1.4 1-2.4 2.6-2.4z" />
+    </>
+  ),
   q: (
     <>
       <circle className="pc-body" cx="8.6" cy="13.8" r="2.2" />
@@ -213,6 +229,7 @@ export function EnchRune({ ench, shield }: { ench: Enchantment; shield?: ShieldS
 
 export const PIECE_NAME: Record<PieceType, string> = {
   d: 'Dragon',
+  a: 'Archbishop',
   p: 'Pawn',
   n: 'Knight',
   b: 'Bishop',
