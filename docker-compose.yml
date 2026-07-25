@@ -1,0 +1,20 @@
+# One service, the way production runs it: a single Node process serving the built site and
+# hosting the games. `docker compose up --build` gives you the real thing on localhost:8080.
+services:
+  game:
+    build:
+      context: .
+    image: enchanted-chess:local
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: "8080"
+      # Empty means any origin, which is right for local play and wrong in production.
+      ALLOWED_ORIGINS: ""
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped

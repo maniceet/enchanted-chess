@@ -1,0 +1,2790 @@
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { applyAction } from '../engine/apply';
+import {
+  PIECE_VALUE,
+  findKing,
+  initialState,
+  opposite,
+  random960Back,
+  squareName,
+} from '../engine/board';
+import {
+  BUDGET,
+  POWER_TEXT,
+  applyLoadout,
+  emptyLoadout,
+  loadoutSummary,
+  validateLoadout,
+  type Loadout,
+} from '../engine/loadout';
+import { TIME_CONTROLS, formatClock, newClock, timePowerEffect } from '../engine/clock';
+import {
+  armorArmy,
+  CAMPAIGN,
+  HOUSE,
+  innkeeperLoadout,
+  raiseDragons,
+  searchOptionsFor,
+  type House,
+} from '../engine/ai';
+import { inCheck, legalMoves, shieldBreakActions } from '../engine/movegen';
+import { toSan } from '../engine/notation';
+import { REVIVE_COST, powerActions, powerUnavailableReason } from '../engine/powers';
+import {
+  isError,
+  type Action,
+  type Color,
+  type GameState,
+  type MoveAction,
+  type PieceType,
+  type PowerName,
+  type TimeControlId,
+} from '../engine/types';
+import { Board } from './Board';
+import { LoadoutBuilder } from './Loadout';
+import { ENCH_NAME, EnchRune, PieceGlyph, PIECE_NAME } from './Pieces';
+import { Rules } from './Rules';
+import {
+  houseCommentary,
+  houseSays,
+  INNKEEPER_FAREWELL,
+  TRAVELLER_LINES,
+  type BanterMood,
+} from './banter';
+import { spriteUrl } from './pixel';
+import { describeHead, headIndex, jumpHead, stepHead } from './rewind';
+import { strangerReset } from './stranger';
+import {
+  ARDAX,
+  ARDAX_PALETTE,
+  ARMORED,
+  ARMORED_PALETTE,
+  DRUNKARD,
+  DRUNKARD_PALETTE,
+  KYRAX,
+  KYRAX_PALETTE,
+  ROLAIN,
+  ROLAIN_PALETTE,
+  INNKEEPER,
+  INNKEEPER_PALETTE,
+  TRAVELLER,
+  TRAVELLER_PALETTE,
+  WIT,
+  WIT_PALETTE,
+  WITTEX_PALETTE,
+} from './portraits';
+import { isMuted, play, setMuted } from './sound';
+import {
+  availableEnchantments,
+  beginRun,
+  canRideBackUp,
+  isOpen,
+  learn,
+  lendDragon,
+  loadRun,
+  loseRun,
+  nextSeat,
+  purseFor,
+  purseSoFar,
+  roadFor,
+  TRIAL,
+  TRIALS,
+  toggleTrial,
+  type Trial,
+  PRICE,
+  SPELLBOOK,
+  resetRun,
+  campaignBudget,
+  carriedBy,
+  firstBlood,
+  knowsTheTruth,
+  MANA_CAP,
+  oddsInWords,
+  offerSpoils,
+  POWERUP,
+  powerupEffect,
+  takePowerup,
+  type Powerup,
+  opensTheShop,
+  RELIC,
+  rollDrop,
+  seeSorcerer,
+  takeRelic,
+  winSeat,
+  type BoardMode,
+  type RunState,
+} from './run';
+import { Shop } from './Shop';
+import { Stats } from './StatsPage';
+import {
+  KYRAX_BOUND_STILL,
+  KYRAX_RETURN,
+  PROLOGUE,
+  ROLAIN_LENDS,
+  STORY,
+  drawCard,
+  kyraxCard,
+  relicCard,
+  runOverCard,
+  type StoryCard,
+} from './story';
+import { online, type OnlineSnapshot } from './online';
+import { forgetPendingThoughts, think } from './think';
+import { recordGame, sideOf } from './stats';
+
+const STORAGE_KEY = 'enchanted-chess:v2';
+const BENCH_KEY = 'enchanted-chess:bench';
+const PROMO_ORDER: PieceType[] = ['q', 'r', 'b', 'n'];
+const FACE: Record<House | 'you', { rows: string[]; palette: Record<string, string>; key: string }> = {
+  drunkard: { rows: DRUNKARD, palette: DRUNKARD_PALETTE, key: 'drunkard' },
+  innkeeper: { rows: INNKEEPER, palette: INNKEEPER_PALETTE, key: 'innkeeper' },
+  wit: { rows: WIT, palette: WIT_PALETTE, key: 'wit' },
+  rolain: { rows: ROLAIN, palette: ROLAIN_PALETTE, key: 'rolain' },
+  armored: { rows: ARMORED, palette: ARMORED_PALETTE, key: 'armored' },
+  ardax: { rows: ARDAX, palette: ARDAX_PALETTE, key: 'ardax' },
+  kyrax: { rows: KYRAX, palette: KYRAX_PALETTE, key: 'kyrax' },
+  // The Wit's own face, in Shivlar's colours. Recognising it is the point.
+  wittex: { rows: WIT, palette: WITTEX_PALETTE, key: 'wittex' },
+  you: { rows: TRAVELLER, palette: TRAVELLER_PALETTE, key: 'traveller' },
+};
+
+const isHouse = (o: Setup['opponent']): o is House => o !== 'table' && o !== 'online';
+
+const POWER_NAME: Record<PowerName, string> = {
+  teleport: 'Teleport',
+  relocate: 'Relocate',
+  decree: 'Decree',
+  revive: 'Revive',
+  doom: 'Destined Death',
+  chrono: 'Time Manipulation',
+};
+
+type Phase =
+  | 'home'
+  | 'story'
+  | 'online'
+  | 'house'
+  | 'rules'
+  | 'chest'
+  | 'friendly'
+  | 'spoils'
+  | 'trials'
+  | 'shop'
+  | 'ledger'
+  | 'mode'
+  | 'build-w'
+  | 'build-b'
+  | 'reveal'
+  | 'game';
+
+/** How long a speech bubble stays up, from how long it takes to read.
+ *
+ *  It used to be a flat three seconds, which was right when every line was "Mnnf." or "Taken."
+ *  The road talks properly now: the Wit gives himself away in twenty words when he loses, and
+ *  Rolain's one lucid moment runs to twenty-three. Three seconds is about half what those need,
+ *  and hers surfaces on roughly one beating in five — so the most important line in the story
+ *  was the one most likely to be missed. Roughly 200 words a minute, with a floor for the short
+ *  jabs and a ceiling so nothing parks on the board. */
+function dwellFor(text: string): number {
+  return Math.min(11_000, 2_200 + text.trim().split(/\s+/).length * 300);
+}
+
+/** The cheapest thing the Sorcerer still has for you, or Infinity when the book is full. Used
+ *  only to decide whether the home screen should say he has something in your price range,
+ *  which is the nudge that turns "I have gold" into "I should go spend it". */
+function cheapestUnlearned(run: RunState): number {
+  const left = SPELLBOOK.filter((e) => !run.taught.includes(e)).map((e) => PRICE[e]);
+  return left.length ? Math.min(...left) : Infinity;
+}
+
+/** The bench stores a standing loadout written from White's side. Mirrored onto Black's
+ *  squares when it is used as a prefill (a1↔a8, b2↔b7, …). */
+function mirrorLoadout(loadout: Loadout): Loadout {
+  const enchantments: Record<string, (typeof loadout.enchantments)[string]> = {};
+  for (const [square, ench] of Object.entries(loadout.enchantments)) {
+    enchantments[`${square[0]}${9 - Number(square[1])}`] = ench;
+  }
+  return { enchantments, power: loadout.power };
+}
+
+function loadBench(): Loadout {
+  try {
+    const raw = localStorage.getItem(BENCH_KEY);
+    return raw ? (JSON.parse(raw) as Loadout) : emptyLoadout();
+  } catch {
+    return emptyLoadout();
+  }
+}
+
+interface Setup {
+  back: PieceType[] | null;
+  white: Loadout;
+  black: Loadout;
+  control: TimeControlId;
+  /** Who is opposite: the person next to you, one of the regulars, or a stranger online. */
+  opponent: 'table' | 'online' | House;
+  /** Rolain's dragon, lent after your first fall at Kyrax's table. Shielded, and yours for
+   *  every attempt on him after that. */
+  boon?: boolean;
+  /** Set on the road until Rolain has fallen: the traveller's King may not call at all. */
+  silentKing?: boolean;
+  /** The player's mana on the road, which grows with powerups. Carried on the setup rather than
+   *  passed alongside it so a saved game replays against the purse it was actually built with;
+   *  a traveller who gained a point mid-save would otherwise fail to reload. Absent means the
+   *  duelling four, which is what every game away from the road uses. */
+  budget?: number;
+  /** Knights turned to Dragons by Dragonblood. Road only, same reasoning as `budget`. */
+  dragons?: number;
+  /** The keeper's cruelties in force for this game. Road only. */
+  trials?: Trial[];
+  /** Which colour the traveller has. White everywhere except The Second Chair, where the keeper
+   *  turns the board round and the seats move first. */
+  player?: Color;
+}
+
+interface Saved extends Setup {
+  actions: Action[];
+}
+
+/** A pending power activation being aimed on the board. */
+type PowerMode =
+  | { kind: 'teleport'; from: number | null }
+  | { kind: 'relocate' }
+  | { kind: 'decree' }
+  | { kind: 'doom' }
+  | { kind: 'revive'; piece: PieceType | null }
+  | { kind: 'chrono' };
+
+/** Before Rolain falls, the traveller's King has no Divine Call at all. The cleanest way to
+ *  say that to an engine that assumes every King has one is to hand him a power he has already
+ *  spent: `powerActions` returns nothing, the button greys out, and mate detection is untouched
+ *  because powers are never legal in check anyway. */
+function silenceKing(state: GameState, color: Color): GameState {
+  return {
+    ...state,
+    powers: { ...state.powers, [color]: { ...state.powers[color], used: true } },
+  };
+}
+
+/** The board a game starts from. `budget` is the *player's* purse, which on the road grows
+ *  with every seat ever beaten; the house always spends the duelling four. */
+function startingState(setup: Setup): GameState {
+  const control = setup.control === 'untimed' ? null : TIME_CONTROLS[setup.control];
+  const base = initialState({
+    ...(setup.back ? { back: setup.back } : {}),
+    clock: control ? newClock(control) : null,
+  });
+  // Who is who. Everything below is written in terms of these rather than of white and black,
+  // because The Second Chair swaps them and the run's flags — mana, Dragonblood, Rolain's loan,
+  // a silent King — belong to the traveller whichever side of the board they sit on.
+  const player: Color = setup.player ?? 'w';
+  const house: Color = player === 'w' ? 'b' : 'w';
+  const ready = applyLoadout(
+    applyLoadout(base, player, player === 'w' ? setup.white : setup.black, setup.budget ?? BUDGET),
+    house,
+    house === 'w' ? setup.white : setup.black,
+  );
+  const profile = isHouse(setup.opponent) ? HOUSE[setup.opponent] : undefined;
+  const mounted = profile?.dragons ? raiseDragons(ready, house, profile.dragons) : ready;
+  const armored = profile?.armored ? armorArmy(mounted, house, profile.armored) : mounted;
+
+  // `boon` and `silentKing` describe a *run*, and `Setup` is reused between games, so a stale
+  // one has leaked into a hotseat duel and into an online match before now. Both call sites
+  // clear them — but relying on every future call site to remember is how this family of bug
+  // keeps happening. They are re-derived from the opponent here instead: no House opposite,
+  // no run, and the flags cannot apply whatever they say.
+  const onTheRoad = profile !== undefined;
+  // Dragonblood first, then Rolain's loan on top: hers is shielded and yours are not, and
+  // `raiseDragons` turns knights nearest the edge inwards, so the counts simply add.
+  const evolved =
+    onTheRoad && setup.dragons
+      ? raiseDragons(armored, player, { count: setup.dragons, taunt: false })
+      : armored;
+  const mounted2 =
+    onTheRoad && setup.boon ? raiseDragons(evolved, player, { count: 1, taunt: true }) : evolved;
+  return onTheRoad && setup.silentKing ? silenceKing(mounted2, player) : mounted2;
+}
+
+function replay(saved: Saved): GameState[] {
+  const states = [startingState(saved)];
+  for (const action of saved.actions) {
+    const next = applyAction(states[states.length - 1], action);
+    if (isError(next)) break;
+    states.push(next);
+  }
+  return states;
+}
+
+function loadSaved(): { setup: Setup; states: GameState[] } | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as Saved;
+    return { setup: saved, states: replay(saved) };
+  } catch {
+    return null;
+  }
+}
+
+export default function App() {
+  const restored = useMemo(loadSaved, []);
+  const [phase, setPhase] = useState<Phase>('home');
+  const [setup, setSetup] = useState<Setup>(
+    restored?.setup ?? {
+      back: null,
+      white: emptyLoadout(),
+      black: emptyLoadout(),
+      control: '3+2',
+      opponent: 'innkeeper',
+    },
+  );
+  const [bench, setBench] = useState<Loadout>(loadBench);
+  const [run, setRun] = useState<RunState>(loadRun);
+  const won = run.progress;
+  const [net, setNet] = useState<OnlineSnapshot>(online.current);
+  const [card, setCard] = useState<{ card: StoryCard; then: () => void } | null>(null);
+  /** The purse landing after a seat falls, shown for a beat before the story card. */
+  const [paid, setPaid] = useState<number | null>(null);
+  /** The three spoils on the table after a seat's first fall, and where to go once one is
+   *  taken. Held here rather than derived because the draw must not be re-rolled on re-render:
+   *  a player watching the options shuffle under the cursor is a player who has been robbed. */
+  const [offer, setOffer] = useState<{ spoils: Powerup[]; then: 'home' | 'house' } | null>(null);
+  useEffect(() => online.subscribe(setNet), []);
+
+  // The server drives an online game: when it sends a position, that is the position.
+  useEffect(() => {
+    if (!net.state) return;
+    const arrived = net.state;
+    // Keep the positions we have seen so the chronicle reads like any other game. The server
+    // is still the only board: we append what it sends, we never derive a position ourselves.
+    setHistory((prev) => {
+      const last = prev[prev.length - 1];
+      return last && arrived.ply > last.ply ? [...prev, arrived] : [arrived];
+    });
+    setPhase((current) => (current === 'reveal' ? current : 'game'));
+  }, [net.state]);
+
+  // Being matched drops you straight into building your army for that board.
+  useEffect(() => {
+    if (net.you) setFlipped(net.you === 'b');
+  }, [net.you]);
+
+  useEffect(() => {
+    if (net.status === 'loadout' && net.you) {
+      setSetup((s) => ({
+        ...s,
+        back: net.back,
+        control: net.control,
+        opponent: 'online',
+        // A stranger's game inherits nothing from the road: what that means, and why this is
+        // the one path that has to say so itself, is in `strangerReset`.
+        ...strangerReset(net.you),
+      }));
+      setPhase(net.you === 'w' ? 'build-w' : 'build-b');
+    }
+  }, [net.status, net.you]);
+  const [history, setHistory] = useState<GameState[]>(restored?.states ?? []);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [powerMode, setPowerMode] = useState<PowerMode | null>(null);
+  const [deny, setDeny] = useState<number | null>(null);
+  // Black at the bottom when the keeper has turned the board round: a traveller should always
+  // be looking at their own men.
+  const [flipped, setFlipped] = useState(false);
+  /** Rewind. An index into `history`, or null for "the board as it stands". Looking back is
+   *  not taking back: the position on screen changes, the game does not. Undo is a playtest
+   *  tool and stays one; this is the thing every traveller wants mid-game — to see the board
+   *  three moves ago without asking anyone's permission. */
+  const [reviewAt, setReviewAt] = useState<number | null>(null);
+  /** `commit` is a stable callback, so it reads the house's colour through a ref rather than
+   *  closing over it and going stale the moment a trial is toggled. */
+  const houseColorRef = useRef<Color>('b');
+  const [muted, setMutedState] = useState(isMuted());
+  const [promo, setPromo] = useState<{ from: number; to: number } | null>(null);
+  const [loader, setLoader] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const keepSelectionRef = useRef(false);
+  // Speech shows as a bubble beside the speaker's portrait and fades after a few seconds.
+  const [bubbles, setBubbles] = useState<{ house: string | null; you: string | null }>({
+    house: null,
+    you: null,
+  });
+  const [retortOpen, setRetortOpen] = useState(false);
+  const bubbleTimers = useRef<{ house?: number; you?: number }>({});
+  const sayRef = useRef<(who: 'house' | 'you', text: string) => void>(() => {});
+  const say = useCallback((who: 'house' | 'you', text: string) => {
+    setBubbles((prev) => ({ ...prev, [who]: text }));
+    window.clearTimeout(bubbleTimers.current[who]);
+    bubbleTimers.current[who] = window.setTimeout(() => {
+      setBubbles((prev) => ({ ...prev, [who]: null }));
+    }, dwellFor(text));
+  }, []);
+  const [drag, setDrag] = useState<{
+    from: number;
+    x: number;
+    y: number;
+    over: number | null;
+  } | null>(null);
+
+  const state = history[history.length - 1] ?? null;
+  /** Every rule, every legal move and every commit reads `state`, which is always the live
+   *  position. Only the display reads `shown`. Keeping those two names apart is what makes
+   *  rewind safe: there is no path by which a rewound board can be played from. */
+  const reviewing = reviewAt !== null && history.length > 0;
+  const shown = reviewing ? (history[headIndex(reviewAt, history.length)] ?? state) : state;
+  const setupRef = useRef(setup);
+  setupRef.current = setup;
+
+  const moves = useMemo(() => (state ? legalMoves(state) : []), [state]);
+  const breaks = useMemo(() => (state ? shieldBreakActions(state) : []), [state]);
+  const powers = useMemo(
+    () => (state && powerMode ? powerActions(state) : []),
+    [state, powerMode],
+  );
+
+  const targets = useMemo(() => {
+    const map = new Map<number, MoveAction[]>();
+    if (selected === null) return map;
+    for (const m of moves) {
+      if (m.from !== selected) continue;
+      map.set(m.to, [...(map.get(m.to) ?? []), m]);
+    }
+    return map;
+  }, [moves, selected]);
+
+  const breakTargets = useMemo(() => {
+    if (selected === null) return new Set<number>();
+    return new Set(breaks.filter((b) => b.from === selected).map((b) => b.target));
+  }, [breaks, selected]);
+
+  const powerTargets = useMemo(() => {
+    if (!powerMode) return new Set<number>();
+    const out = new Set<number>();
+    for (const action of powers) {
+      const args = action.args;
+      if (powerMode.kind === 'teleport' && args.kind === 'teleport') {
+        if (powerMode.from === null) out.add(args.from);
+        else if (args.from === powerMode.from) out.add(args.to);
+      } else if (powerMode.kind === 'relocate' && args.kind === 'relocate') {
+        out.add(args.with);
+      } else if (powerMode.kind === 'decree' && args.kind === 'decree') {
+        out.add(args.target);
+      } else if (powerMode.kind === 'doom' && args.kind === 'doom') {
+        out.add(args.target);
+      } else if (powerMode.kind === 'revive' && args.kind === 'revive') {
+        if (powerMode.piece && args.piece === powerMode.piece) out.add(args.to);
+      }
+    }
+    return out;
+  }, [powerMode, powers]);
+
+  useEffect(() => {
+    if (phase !== 'game' || !history.length) return;
+    const actions = history.slice(1).map((s) => s.log[s.log.length - 1]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...setup, actions } satisfies Saved));
+  }, [history, setup, phase]);
+
+  // Tally every finished game for the balance slate at the bar (spec §7).
+  useEffect(() => {
+    if (!state || state.status.kind === 'ongoing' || phase !== 'game') return;
+    const outcome =
+      state.status.kind === 'checkmate' || state.status.kind === 'resigned'
+        ? state.status.winner
+        : 'draw';
+    const reason =
+      state.status.kind === 'draw' ? state.status.reason : state.status.kind;
+    if (isHouse(setup.opponent)) {
+      const decisive =
+        state.status.kind === 'checkmate' ||
+        state.status.kind === 'resigned' ||
+        state.status.kind === 'flagged';
+      const seat = setup.opponent;
+
+      if (decisive && state.status.winner === 'w') {
+        // The seat falls: it pays its purse, and whatever gate it guards opens for good.
+        // The drop is rolled once, here, and only against a book that does not already hold it.
+        const found = rollDrop(run, seat);
+        // Spoils are offered on a seat's *first* fall only. A powerup you can farm is a chore
+        // with a reward attached — beat the drunk, resign, repeat — so the only way to get more
+        // of them is to get further, which is the direction the game wants the player facing.
+        const spoils = firstBlood(run, seat) ? offerSpoils(run) : [];
+        setRun((r) => (found ? takeRelic(winSeat(r, seat), found) : winSeat(r, seat)));
+        setPaid(purseFor(run, seat));
+        // The Dragonlord tells you a little more each time he falls, and the fifth time he
+        // gives you the name. Read *before* `winSeat` lands, so the count is what it was when
+        // he sat down.
+        const base =
+          seat === 'kyrax' ? kyraxCard(run.beaten.kyrax ?? 0) : STORY[seat].after;
+        const beat = found ? relicCard(base, found) : base;
+        // Beating the last seat ends the attempt, so the epilogue returns to the inn. Sending
+        // it back to the road put the player on a ladder they had just finished, every seat
+        // marked beaten and still clickable, under a counter reading "seat 8/7".
+        // The last seat of *this* traveller's road, which grows by one once the truth is out.
+        const road = roadFor(run);
+        const cleared = seat === road[road.length - 1];
+        const onwards = () => {
+          if (spoils.length) {
+            setOffer({ spoils, then: cleared ? 'home' : 'house' });
+            setPhase('spoils');
+            return;
+          }
+          setPhase(cleared ? 'home' : 'house');
+        };
+        setTimeout(() => setCard({ card: beat, then: onwards }), 1900);
+      } else if (seat === 'kyrax' && canRideBackUp(run)) {
+        // The one defeat the road is built around, and the only one that does not end an
+        // attempt: Rolain is in the road with her dragon off her hand before you have finished
+        // walking out of the hall. Once, ever.
+        setRun((r) => lendDragon(r));
+        setTimeout(() => setCard({ card: ROLAIN_LENDS, then: returnToKyrax }), 900);
+      } else {
+        // Any other defeat, and a draw, ends the attempt. The gold is already banked.
+        const purse = purseSoFar(run);
+        const reached = run.progress.length;
+        // Asked before `loseRun`, which is what actually opens the room.
+        const opening = opensTheShop(run);
+        setRun((r) => loseRun(r));
+        // A draw is not a defeat and must not be narrated as one. A stalemate especially: it is
+        // usually something the player *did*, and telling them "the walk back is short and
+        // nobody comments on it" for a result they engineered reads as the game not watching.
+        const drawn =
+          state.status.kind === 'stalemate'
+            ? drawCard('stalemate', opening)
+            : state.status.kind === 'draw'
+              ? drawCard(state.status.reason, opening)
+              : null;
+        setTimeout(
+          () =>
+            setCard({
+              card: drawn ?? runOverCard(reached, purse, run.sorcerer, opening),
+              then: () => setPhase('home'),
+            }),
+          900,
+        );
+      }
+    }
+    recordGame({
+      at: Date.now(),
+      mode: setup.back ? '960' : 'classic',
+      outcome,
+      reason,
+      sides: {
+        w: sideOf(setup.white, state.powers.w.reserve),
+        b: sideOf(setup.black, state.powers.b.reserve),
+      },
+    });
+    // Only tally the transition into a finished status.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.status.kind]);
+
+  useEffect(() => {
+    if (deny === null) return;
+    const timer = setTimeout(() => setDeny(null), 320);
+    return () => clearTimeout(timer);
+  }, [deny]);
+
+  useEffect(() => {
+    if (paid === null) return;
+    const timer = setTimeout(() => setPaid(null), 1900);
+    return () => clearTimeout(timer);
+  }, [paid]);
+
+  // A finished or abandoned attempt has no ladder to stand on: every seat on the road would be
+  // clickable and would deal a fresh duel outside any run. Belt and braces — the epilogue now
+  // routes to the inn directly, but nothing should be able to strand a player there.
+  useEffect(() => {
+    if (phase === 'house' && !run.active) setPhase('home');
+  }, [phase, run.active]);
+
+  // Follow the pointer while a piece is lifted, and resolve the drop on release.
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e: PointerEvent) => {
+      setDrag((d) =>
+        d ? { ...d, x: e.clientX, y: e.clientY, over: squareUnder(e.clientX, e.clientY) } : d,
+      );
+    };
+    const onUp = (e: PointerEvent) => {
+      const target = squareUnder(e.clientX, e.clientY);
+      setDrag(null);
+      if (target !== null && target !== drag.from) dropOn(drag.from, target);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+  });
+
+  // --- clocks -------------------------------------------------------------
+  const turnStartRef = useRef(Date.now());
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    turnStartRef.current = Date.now();
+    setNow(Date.now());
+  }, [state?.ply, phase]);
+
+  useEffect(() => {
+    if (!state?.clock || state.status.kind !== 'ongoing' || phase !== 'game') return;
+    const timer = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(timer);
+  }, [state?.clock, state?.status.kind, phase]);
+
+  const elapsedMs =
+    state?.clock && state.status.kind === 'ongoing' && phase === 'game'
+      ? Math.max(0, now - turnStartRef.current)
+      : 0;
+
+  const remainingFor = (color: Color): number | null => {
+    if (!state?.clock) return null;
+    return state.clock[color].ms - (state.turn === color ? elapsedMs : 0);
+  };
+
+
+  const refuse = useCallback((square: number | null) => {
+    play('illegal');
+    if (square !== null) setDeny(square);
+  }, []);
+
+  const commit = useCallback(
+    (raw: Action) => {
+      // Every turn-consuming action carries the time the mover burned on it, so the action
+      // log alone replays the clocks exactly.
+      const spentMs = Math.max(0, Date.now() - turnStartRef.current);
+      const action: Action =
+        raw.type === 'move' || raw.type === 'shieldBreak' || raw.type === 'power' || raw.type === 'flag'
+          ? { ...raw, spentMs }
+          : raw;
+      if (setupRef.current.opponent === 'online') {
+        // The server owns the board. Send the intent and wait to be told what happened.
+        online.play(action);
+        if (action.type === 'move') play(state?.board[action.to] ? 'capture' : 'move');
+        setSelected(null);
+        setPowerMode(null);
+        setPromo(null);
+        return;
+      }
+      setHistory((prev) => {
+        const current = prev[prev.length - 1];
+        const next = applyAction(current, action);
+        if (isError(next)) {
+          refuse(action.type === 'move' ? action.to : null);
+          return prev;
+        }
+        if (action.type === 'shieldBreak') play('shieldBreak');
+        else if (action.type === 'power') play('power');
+        else if (action.type === 'move') {
+          if (action.promo) play('promote');
+          else if (current.board[action.to]) play('capture');
+          else play('move');
+        }
+        if (next.status.kind !== 'ongoing') setTimeout(() => play('gameEnd'), 220);
+        else if (inCheck(next, next.turn)) setTimeout(() => play('check'), 150);
+        if (
+          isHouse(setupRef.current.opponent) &&
+          current.turn !== houseColorRef.current &&
+          worthRemarking(current, action, next, HOUSE[setupRef.current.opponent as House].banter)
+        ) {
+          sayRef.current(
+            'house',
+            houseCommentary(
+              current,
+              action,
+              next,
+              houseColorRef.current,
+              setupRef.current.opponent as House,
+            ),
+          );
+        }
+        return [...prev, next];
+      });
+      setSelected(null);
+      setPowerMode(null);
+      setPromo(null);
+    },
+    [refuse],
+  );
+
+  /** The Innkeeper says something about the position it just found itself in. */
+  const houseSpeaks = useCallback(
+    (mood: BanterMood, voice: House) => say('house', houseSays(voice, mood)),
+    [say],
+  );
+
+  // The house plays its own colour on its own, after a short pause so the move can be seen
+  // landing. Black in every ordinary walk; White when the keeper has turned the board round.
+  const houseColor: Color = (setup.player ?? 'w') === 'w' ? 'b' : 'w';
+  houseColorRef.current = houseColor;
+  // A traveller in the second chair looks at their own men, so the board turns with them. Set
+  // when a game begins rather than held as derived state, because the manual flip button has to
+  // keep working afterwards.
+  useEffect(() => {
+    if (phase === 'game') setFlipped((setup.player ?? 'w') === 'b');
+  }, [phase, setup.player]);
+  const thinking = useRef(false);
+  const [pondering, setPondering] = useState(false);
+  useEffect(() => {
+    if (
+      phase !== 'game' ||
+      !state ||
+      !isHouse(setup.opponent) ||
+      state.turn !== houseColor ||
+      state.status.kind !== 'ongoing' ||
+      thinking.current
+    ) {
+      return;
+    }
+    thinking.current = true;
+    setPondering(true);
+    const voice = setup.opponent as House;
+    const profile = HOUSE[voice];
+    let dropped = false;
+
+    // A short beat so the move can be seen landing, then the search, off the main thread.
+    const timer = setTimeout(() => {
+      void think(state, searchOptionsFor(profile)).then((choice) => {
+        thinking.current = false;
+        setPondering(false);
+        if (dropped || !choice) return;
+        const before = state;
+        commit(choice.action);
+        const after = applyAction(before, choice.action);
+        const settled = isError(after) ? before : after;
+        if (profile.random && Math.random() < 0.35) play('drink');
+        if (worthRemarking(before, choice.action, settled, profile.banter)) {
+          say('house', houseCommentary(before, choice.action, settled, houseColor, voice));
+        }
+      });
+    }, profile.pauseMs);
+
+    return () => {
+      dropped = true;
+      clearTimeout(timer);
+      thinking.current = false;
+      setPondering(false);
+    };
+  }, [state, phase, setup.opponent, commit, houseSpeaks]);
+
+  // It also has opinions about how the game ended, and about losing pieces.
+  useEffect(() => {
+    if (phase !== 'game' || !state || !isHouse(setup.opponent)) return;
+    const status = state.status;
+    if (status.kind === 'ongoing') return;
+    const voice = setup.opponent as House;
+    if (voice === 'innkeeper') {
+      // He says nothing all game, and one thing at the end of it.
+      say('house', INNKEEPER_FAREWELL);
+    } else if (status.kind === 'checkmate' || status.kind === 'resigned' || status.kind === 'flagged') {
+      say('house', houseSays(voice, status.winner === 'b' ? 'win' : 'lose'));
+    } else {
+      say('house', houseSays(voice, 'draw'));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.status.kind]);
+
+  useEffect(() => {
+    if (phase === 'game' && isHouse(setup.opponent) && HOUSE[setup.opponent].banter > 0) {
+      houseSpeaks('greeting', setup.opponent);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+
+  // Flag fall: the moment the mover's clock reaches zero the game is over on time.
+  useEffect(() => {
+    if (!state?.clock || state.status.kind !== 'ongoing' || phase !== 'game') return;
+    if (state.clock[state.turn].ms - elapsedMs > 0) return;
+    commit({ type: 'flag' });
+  }, [elapsedMs, state, phase, commit]);
+
+  /** Which board square sits under the pointer right now. */
+  const squareUnder = (x: number, y: number): number | null => {
+    const el = document.elementFromPoint(x, y);
+    const attr = el?.closest('[data-square]')?.getAttribute('data-square');
+    return attr == null ? null : Number(attr);
+  };
+
+  /** Resolve a drop: a move, a promotion prompt, or a shield-break. */
+  const dropOn = (from: number, to: number) => {
+    const candidates = moves.filter((m) => m.from === from && m.to === to);
+    if (candidates.length) {
+      if (candidates.some((m) => m.promo)) setPromo({ from, to });
+      else commit(candidates[0]);
+      return;
+    }
+    if (breaks.some((b) => b.from === from && b.target === to)) {
+      commit({ type: 'shieldBreak', from, target: to });
+      return;
+    }
+    refuse(to);
+  };
+
+  const beginDrag = (square: number, event: ReactPointerEvent) => {
+    if (reviewing) return;
+    if (!state || state.status.kind !== 'ongoing' || powerMode || event.button !== 0) return;
+    const piece = state.board[square];
+    if (!piece || piece.color !== state.turn) return;
+    const hasAction =
+      moves.some((m) => m.from === square) || breaks.some((b) => b.from === square);
+    if (!hasAction) return;
+    if (selected !== square) play('select');
+    keepSelectionRef.current = true;
+    setSelected(square);
+    setDrag({ from: square, x: event.clientX, y: event.clientY, over: square });
+  };
+
+  const onSquare = (square: number) => {
+    // A rewound board is a picture, not a table. Touching it returns you to the game rather
+    // than doing nothing, because a board that ignores you reads as broken.
+    if (reviewing) {
+      setReviewAt(null);
+      return;
+    }
+    if (!state || state.status.kind !== 'ongoing') return;
+
+    if (powerMode) {
+      if (!powerTargets.has(square)) {
+        refuse(square);
+        return;
+      }
+      switch (powerMode.kind) {
+        case 'teleport':
+          if (powerMode.from === null) {
+            play('select');
+            setPowerMode({ kind: 'teleport', from: square });
+          } else {
+            commit({
+              type: 'power',
+              power: 'teleport',
+              args: { kind: 'teleport', from: powerMode.from, to: square },
+            });
+          }
+          return;
+        case 'relocate':
+          commit({ type: 'power', power: 'relocate', args: { kind: 'relocate', with: square } });
+          return;
+        case 'decree':
+          commit({ type: 'power', power: 'decree', args: { kind: 'decree', target: square } });
+          return;
+        case 'doom':
+          commit({ type: 'power', power: 'doom', args: { kind: 'doom', target: square } });
+          return;
+        case 'revive':
+          if (powerMode.piece) {
+            commit({
+              type: 'power',
+              power: 'revive',
+              args: { kind: 'revive', piece: powerMode.piece, to: square },
+            });
+          }
+          return;
+      }
+    }
+
+    const candidates = targets.get(square);
+    if (candidates?.length) {
+      if (candidates.some((m) => m.promo)) setPromo({ from: candidates[0].from, to: square });
+      else commit(candidates[0]);
+      return;
+    }
+    if (breakTargets.has(square) && selected !== null) {
+      commit({ type: 'shieldBreak', from: selected, target: square });
+      return;
+    }
+
+    const piece = state.board[square];
+    if (piece && piece.color === state.turn) {
+      const hasAction =
+        moves.some((m) => m.from === square) || breaks.some((b) => b.from === square);
+      if (!hasAction) {
+        refuse(square);
+        setSelected(null);
+        return;
+      }
+      // A press that started a drag already selected this square; don't toggle it back off.
+      const keep = keepSelectionRef.current && square === selected;
+      keepSelectionRef.current = false;
+      if (keep) return;
+      play('select');
+      setSelected(square === selected ? null : square);
+      return;
+    }
+    if (selected !== null) refuse(square);
+    setSelected(null);
+  };
+
+  const startPower = () => {
+    if (!state) return;
+    const reason = powerUnavailableReason(state, state.turn);
+    if (reason) {
+      refuse(null);
+      return;
+    }
+    play('select');
+    setSelected(null);
+    const power = state.powers[state.turn].power;
+    if (power === 'chrono') {
+      commit({ type: 'power', power: 'chrono', args: { kind: 'chrono' } });
+      return;
+    }
+    setPowerMode(
+      power === 'teleport'
+        ? { kind: 'teleport', from: null }
+        : power === 'revive'
+          ? { kind: 'revive', piece: null }
+          : { kind: power },
+    );
+  };
+
+  const sanList = useMemo(
+    () => history.slice(1).map((s, i) => toSan(history[i], s.log[s.log.length - 1])),
+    [history],
+  );
+
+  /** The keyboard handler is bound once and must not go stale as the game grows, so it reads
+   *  the length through a ref rather than closing over the array. */
+  const historyRef = useRef(history);
+  historyRef.current = history;
+
+  /** Jump the review head to the position a chronicle entry produced. */
+  const jumpTo = useCallback((ply: number) => {
+    setReviewAt(jumpHead(ply, historyRef.current.length));
+    setSelected(null);
+    setPowerMode(null);
+  }, []);
+
+  /** Walk the review head by whole plies. */
+  const stepReview = useCallback((delta: number) => {
+    setReviewAt((at) => stepHead(at, delta, historyRef.current.length));
+    setSelected(null);
+    setPowerMode(null);
+  }, []);
+
+  useEffect(() => {
+    if (phase !== 'game') return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const tag = (event.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        stepReview(-1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        stepReview(1);
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        setReviewAt(historyRef.current.length > 1 ? 0 : null);
+        setSelected(null);
+        setPowerMode(null);
+      } else if (event.key === 'End' || event.key === 'Escape') {
+        if (reviewAt === null) return;
+        event.preventDefault();
+        setReviewAt(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [phase, stepReview, reviewAt]);
+
+  /** The board-style screen. At this table it just starts the duel; on the road it starts the
+   *  whole attempt, because the style is the walk's and asking again at every seat was seven
+   *  identical decisions per run. */
+  /** The board question only exists for the two-player boards now. The road is always classic
+   *  and never asks. */
+  const chooseBoard = (mode: BoardMode) => {
+    beginBuild(mode);
+  };
+
+  /** `overrides` exists because of a stale-closure trap: the road calls this from a story
+   *  card's callback, and that callback was created during the render where the seat was
+   *  clicked — before `setSetup` had landed. Reading `setup` here would therefore see the
+   *  *previous* seat's settings, which is how a road duel once handed the Drunken Knight Time
+   *  Manipulation in a game with no clock. Anything the caller already knows, it passes. */
+  const beginBuild = (mode: 'classic' | '960', overrides: Partial<Setup> = {}) => {
+    play('select');
+    const merged = { ...setup, ...overrides };
+    const back = mode === '960' ? random960Back() : null;
+    const base = initialState(back ? { back } : {});
+    // The Second Chair puts the traveller on the black side, so the seat builds White's army.
+    const asBlack = isHouse(merged.opponent) && run.trials.includes('black');
+    const playerColor: Color = asBlack ? 'b' : 'w';
+    const seatColor: Color = asBlack ? 'w' : 'b';
+    const seatLoadout = isHouse(merged.opponent)
+      ? innkeeperLoadout(base, seatColor, {
+          timed: merged.control !== 'untimed',
+          power: HOUSE[merged.opponent as House].power,
+        })
+      : mirrorLoadout(bench);
+    const next: Setup = {
+      back,
+      white: asBlack ? seatLoadout : bench,
+      black: asBlack ? mirrorLoadout(bench) : seatLoadout,
+      player: playerColor,
+      // The Glass puts five minutes on every board, all the way to the wings.
+      control:
+        isHouse(merged.opponent) && run.trials.includes('timed') ? '5+5' : merged.control,
+      opponent: merged.opponent,
+      // Both of these are facts about a *road* run — Rolain's lent dragon, and a King who has
+      // not yet learned the Divine Call. They live on `setup`, which is reused between games,
+      // so without this they leak: a hotseat duel or an online match played after a campaign
+      // game inherited the silenced King and told the player to go and beat Princess Rolain.
+      boon: isHouse(merged.opponent) ? merged.boon : false,
+      silentKing: isHouse(merged.opponent) ? merged.silentKing : false,
+      // The road's traveller spends mana and rides whatever Dragonblood has made of his
+      // knights. A duel between strangers gets neither: four points each, knights are knights.
+      budget: isHouse(merged.opponent) ? campaignBudget(run) : BUDGET,
+      dragons: isHouse(merged.opponent) ? run.dragons : 0,
+      trials: isHouse(merged.opponent) ? run.trials : [],
+    };
+    setSetup(next);
+
+    // A builder with nothing in it is a screen you click past. On the road, a traveller who has
+    // learned no enchantment and has no Divine Call has literally no decision to make there:
+    // 0/4 points, every row greyed, the King silent. Skip straight to the reveal, which is the
+    // screen that actually tells them something — what the seat opposite brought.
+    const nothingToSpend =
+      isHouse(merged.opponent) && !availableEnchantments(run).length && !run.divineCall;
+    if (nothingToSpend) {
+      setHistory([startingState(next)]);
+      setPhase('reveal');
+      return;
+    }
+    setPhase('build-w');
+  };
+
+  /** Play the same pairing again, either straight away or back through the builders. */
+  const rematch = (reEdit: boolean) => {
+    play('select');
+    localStorage.removeItem(STORAGE_KEY);
+    setSelected(null);
+    setPowerMode(null);
+    if (reEdit) {
+      setHistory([]);
+      setPhase('build-w');
+    } else {
+      setHistory([startingState(setup)]);
+      setPhase('game');
+    }
+  };
+
+  /** Back up the mountain, this time with Rolain's dragon on your side. Same seat, same army
+   *  you built, one shielded dragon more. */
+  const returnToKyrax = () => {
+    play('select');
+    localStorage.removeItem(STORAGE_KEY);
+    setSelected(null);
+    setPowerMode(null);
+    const next: Setup = {
+      ...setup,
+      opponent: 'kyrax',
+      control: 'untimed',
+      boon: true,
+      // Reaching Kyrax at all means Rolain has fallen, so the King can speak. Spelled out
+      // rather than inherited: this was previously right only because of what `setup` happened
+      // to be carrying.
+      silentKing: false,
+    };
+    setSetup(next);
+    setHistory([startingState(next)]);
+    setPhase('game');
+  };
+
+  /** Scenario loader: accepts either an exported action log or a serialized GameState, and
+   *  continues play from it. Every balance question becomes a 30-second experiment (§3.3). */
+  const loadPosition = (text: string) => {
+    try {
+      const parsed = JSON.parse(text) as Partial<Saved> & Partial<GameState>;
+      if (Array.isArray(parsed.board)) {
+        setHistory([parsed as GameState]);
+      } else if (Array.isArray(parsed.actions)) {
+        const loaded: Setup = {
+          back: parsed.back ?? null,
+          white: parsed.white ?? emptyLoadout(),
+          black: parsed.black ?? emptyLoadout(),
+          control: parsed.control ?? 'untimed',
+          opponent: parsed.opponent ?? 'table',
+        };
+        setSetup(loaded);
+        setHistory(replay({ ...loaded, actions: parsed.actions }));
+      } else {
+        setLoadError('Expected an exported log (with "actions") or a serialized state.');
+        play('illegal');
+        return;
+      }
+      setSelected(null);
+      setPowerMode(null);
+      setLoadError(null);
+      setLoader(null);
+      setPhase('game');
+      play('power');
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : 'could not parse that');
+      play('illegal');
+    }
+  };
+
+  const saveBench = (next: Loadout) => {
+    setBench(next);
+    localStorage.setItem(BENCH_KEY, JSON.stringify(next));
+  };
+
+  const resumable = Boolean(state && state.status.kind === 'ongoing');
+  // A duel already under way on the road *is* the attempt. Offering "continue the attempt"
+  // above it sends the player to the ladder, where clicking the same seat starts a fresh
+  // game and throws the live one away without asking. Resuming has to be the primary action.
+  const midRoadDuel = resumable && isHouse(setup.opponent) && run.active;
+
+  if (phase === 'home') {
+    return (
+      <Shell bare muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <div className="home">
+          <h2 className="home-title">Enchanted Chess</h2>
+          <p className="home-sub">Magic here has rules, a price, and no secrets.</p>
+          {/* No standing explanation here. How the run economy works is told once, on the
+              prologue card, when a campaign begins — a home screen is a place to choose from,
+              and prose sitting on it permanently gets read once and then becomes furniture. */}
+          {(run.gold > 0 || run.attempts > 0) && (
+            <div className="run-strip">
+              <span className="coin-pill coin-pill-dark">
+                <span className="coin-mark">◈</span>
+                {run.gold}
+              </span>
+              <span>
+                attempt <strong>{run.attempts + (run.active ? 0 : 1)}</strong>
+              </span>
+              <span>
+                mana <strong>{campaignBudget(run)}</strong>/{MANA_CAP}
+              </span>
+              <span>
+                deepest <strong>{run.best}</strong>/{roadFor(run).length}
+              </span>
+            {run.trials.length > 0 && (
+              /* What you agreed to, kept visible for the whole walk. A player who took three
+                 cruelties a week ago and came back to a turned board deserves to be told why
+                 rather than left to work it out from the pieces. */
+              <span className="trial-strip">
+                {run.trials.map((t) => (
+                  <span className="trial-chip" key={t}>
+                    {TRIAL[t].name}
+                  </span>
+                ))}
+              </span>
+            )}
+
+              {run.clears > 0 && (
+                <span>
+                  cleared <strong>{run.clears}×</strong>
+                </span>
+              )}
+            </div>
+          )}
+          <div className="home-buttons">
+            {midRoadDuel ? (
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  play('select');
+                  setPhase('game');
+                }}
+              >
+                Back to the table
+                <span className="soon">
+                  {HOUSE[setup.opponent as House].label} · game in progress
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  play('select');
+                  // An attempt is one unbroken walk. Starting one is a decision, not a resume,
+                  // and the board style is part of that decision rather than of every seat.
+                  if (!run.active) {
+                    setSetup((x) => ({ ...x, opponent: nextSeat(run) ?? 'drunkard' }));
+                    const walking = beginRun(run);
+                    setRun(walking);
+                    // The road is always a classic start, so setting out asks nothing: the
+                    // first traveller gets the prologue and then the ladder. It used to route
+                    // through the board question, which put a Chess960 decision in front of a
+                    // player before anything had told them where they were or who holds the
+                    // valley.
+                    if (walking.attempts === 1) {
+                      setCard({ card: PROLOGUE, then: () => setPhase('house') });
+                      setPhase('story');
+                      return;
+                    }
+                    setPhase('house');
+                    return;
+                  }
+                  setPhase('house');
+                }}
+              >
+                {run.active ? 'Continue the attempt' : 'Set out on the road'}
+                {run.active && nextSeat(run) ? (
+                  <span className="soon">next: {HOUSE[nextSeat(run)!].label}</span>
+                ) : (
+                  <span className="soon">
+                    {run.attempts === 0 ? 'one walk, from the taps up' : 'from the taps, again'}
+                  </span>
+                )}
+              </button>
+            )}
+            {midRoadDuel && (
+              <button
+                type="button"
+                onClick={() => {
+                  play('select');
+                  setPhase('house');
+                }}
+              >
+                The road
+                <span className="soon">see how far you have come</span>
+              </button>
+            )}
+            {run.sorcerer ? (
+              <button
+                type="button"
+                // Glistens once, the first time the back room is open, and never again.
+                className={run.sorcererSeen ? undefined : 'is-new'}
+                onClick={() => {
+                  play('select');
+                  setRun((r) => seeSorcerer(r));
+                  setPhase('shop');
+                }}
+              >
+                The Sorcerer
+                <span className="soon">
+                  {run.gold} gold · {run.taught.length}/{SPELLBOOK.length} learned
+                  {run.gold >= cheapestUnlearned(run) ? ' · he has something you can afford' : ''}
+                </span>
+              </button>
+            ) : null}
+            {run.freed && (
+              <button type="button" onClick={() => { play('select'); setPhase('trials'); }}>
+                The Keeper's Offer
+                <span className="soon">
+                  {run.trials.length
+                    ? `${run.trials.length} of 3 taken`
+                    : 'make the road worse'}
+                </span>
+              </button>
+            )}
+            <button type="button" onClick={() => { play('select'); setPhase('chest'); }}>
+              The Sorting Chest
+              <span className="soon">
+                {run.taught.length === 0
+                  ? 'nothing to sort yet'
+                  : `lay out your ${run.taught.length === 1 ? 'enchantment' : 'enchantments'} · ${campaignBudget(run)} mana`}
+              </span>
+            </button>
+            {/* Everything below the rule is a different game from the road: two captains, every
+                enchantment on the table from the first move, and nothing you do here touches
+                the run. Separated so it cannot be mistaken for progress. */}
+            <div className="menu-rule">
+              <span>Away from the road</span>
+            </div>
+            <button type="button" onClick={() => { play('select'); setPhase('friendly'); }}>
+              Duel another captain
+              <span className="soon">
+                all six enchantments, no gold, no ladder
+              </span>
+            </button>
+            <button type="button" onClick={() => { play('select'); setPhase('rules'); }}>
+              Rules
+            </button>
+            <button type="button" onClick={() => { play('select'); setPhase('ledger'); }}>
+              The Ledger
+              <span className="soon">what has been winning, and how often</span>
+            </button>
+            {resumable && !midRoadDuel && (
+              <button type="button" onClick={() => { play('select'); setPhase('game'); }}>
+                Resume duel
+              </button>
+            )}
+            {(run.attempts > 0 || run.gold > 0) && (
+              <button
+                type="button"
+                className="quiet"
+                onClick={() => {
+                  play('select');
+                  // Wipes the book as well as the road: a genuinely new traveller, and one who
+                  // gets the same opening as any other — prologue, then the board question.
+                  // It used to call `beginRun` here and jump straight to the ladder, which
+                  // silently kept whichever board style the last traveller had chosen.
+                  setRun(beginRun(resetRun()));
+                  setSetup((x) => ({ ...x, opponent: 'drunkard' }));
+                  setCard({ card: PROLOGUE, then: () => setPhase('house') });
+                  setPhase('story');
+                }}
+              >
+                Begin a new adventure
+                <span className="soon">forget the gold and the book too</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  /** One card, rendered the same way whether it fills the screen between encounters or lands
+   *  over a board that has just finished. */
+  const storyBody = card && (
+    <div className="story">
+      <h2 className="story-title">{card.card.title}</h2>
+      {card.card.lines.map((line, i) => (
+        <p key={i} className="story-line">
+          {line}
+        </p>
+      ))}
+      {card.card.lesson && <p className="story-lesson">{card.card.lesson}</p>}
+      <div className="menu-actions">
+        <button
+          type="button"
+          className="primary"
+          onClick={() => {
+            play('select');
+            const go = card.then;
+            setCard(null);
+            go();
+          }}
+        >
+          {card.card.cta ?? 'Onward →'}
+        </button>
+      </div>
+    </div>
+  );
+
+  if (phase === 'story' && card) {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        {storyBody}
+      </Shell>
+    );
+  }
+
+  if (phase === 'online') {
+    const busy = net.status === 'seeking';
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <div className="menu">
+          <h2 className="menu-title">Find a traveller</h2>
+          <p className="menu-copy">
+            {net.status === 'offline'
+              ? 'Looking for the tavern…'
+              : busy
+                ? `Waiting at the door. ${net.waiting} other${net.waiting === 1 ? '' : 's'} in this queue.`
+                : 'Pick a board and a clock. You will be paired with whoever wants the same.'}
+          </p>
+          {net.error && <p className="load-error">{net.error}</p>}
+
+          <div className="control-row">
+            {(['3+2', '5+5', '10+0', 'untimed'] as TimeControlId[]).map((id) => (
+              <button
+                type="button"
+                key={id}
+                className={`control-pick ${setup.control === id ? 'is-active' : ''}`}
+                disabled={busy}
+                onClick={() => {
+                  play('select');
+                  setSetup((s) => ({ ...s, control: id }));
+                }}
+              >
+                <span className="control-label">
+                  {id === 'untimed' ? 'No clock' : TIME_CONTROLS[id].label}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="menu-actions">
+            {busy ? (
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  play('select');
+                  online.cancelSeek();
+                }}
+              >
+                Stop looking
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => {
+                    play('select');
+                    online.seek('classic', setup.control);
+                  }}
+                >
+                  Classic
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    play('select');
+                    online.seek('960', setup.control);
+                  }}
+                >
+                  Chess960
+                </button>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                online.leave();
+                setPhase('home');
+              }}
+            >
+              ← Back
+            </button>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (phase === 'house') {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <div className="menu">
+          <h2 className="menu-title">The road</h2>
+          <p className="menu-copy">
+            One unbroken walk from the taps to the wings. Lose anywhere and it starts at the
+            taps again, with everyone on it carrying something different.
+          </p>
+          <div className="run-strip">
+            <span className="coin-pill coin-pill-dark">
+              <span className="coin-mark">◈</span>
+              {run.gold}
+            </span>
+            <span>
+              seat <strong>{Math.min(won.length + 1, roadFor(run).length)}</strong>/
+              {roadFor(run).length}
+            </span>
+            <span>
+              mana <strong>{campaignBudget(run)}</strong>/{MANA_CAP}
+            </span>
+            <span>
+              this walk <strong>+{purseSoFar(run)}</strong>
+            </span>
+            {run.trials.length > 0 && (
+              /* What you agreed to, kept visible for the whole walk. A player who took three
+                 cruelties a week ago and came back to a turned board deserves to be told why
+                 rather than left to work it out from the pieces. */
+              <span className="trial-strip">
+                {run.trials.map((t) => (
+                  <span className="trial-chip" key={t}>
+                    {TRIAL[t].name}
+                  </span>
+                ))}
+              </span>
+            )}
+
+          </div>
+          <div className="cast">
+            {roadFor(run).map((who, i) => {
+              const open = isOpen(run, who);
+              const done = won.includes(who);
+              return (
+              <button
+                type="button"
+                key={who}
+                disabled={!open}
+                className={`cast-card ${HOUSE[who].boss ? 'cast-boss' : ''} ${
+                  done ? 'cast-done' : ''
+                } ${open || done ? '' : 'cast-locked'}`}
+                onClick={() => {
+                  play('select');
+                  // Already sitting at this table? Go back to it. Rebuilding the game here
+                  // would discard a live duel without asking, and on the road that duel is
+                  // the attempt.
+                  if (who === setup.opponent && state && state.status.kind === 'ongoing') {
+                    setPhase('game');
+                    return;
+                  }
+                  // Only Kyrax is ridden into, and only after he has put you on the road once.
+                  const boon = who === 'kyrax' && run.dragon;
+                  // No clocks on the road. Take as long as the dragon will allow.
+                  setSetup((s) => ({
+                    ...s,
+                    opponent: who,
+                    control: 'untimed',
+                    boon,
+                    silentKing: !run.divineCall,
+                  }));
+                  setCard({
+                    // The style was settled when you set out; the seat only needs its story
+                    // card and then a board. A 960 walk still deals a fresh back rank here.
+                    // Once he has said the name, sitting down opposite him is a different
+                    // scene: he is on your side and it changes nothing about the game.
+                    card: boon
+                      ? KYRAX_RETURN
+                      : who === 'kyrax' && knowsTheTruth(run)
+                        ? KYRAX_BOUND_STILL
+                        : STORY[who].before,
+                    then: () =>
+                      beginBuild(run.mode, {
+                        opponent: who,
+                        control: 'untimed',
+                        boon,
+                        silentKing: !run.divineCall,
+                      }),
+                  });
+                  setPhase('story');
+                }}
+              >
+                <img
+                  alt=""
+                  className="cast-face"
+                  src={spriteUrl(FACE[who].rows, FACE[who].palette, FACE[who].key)}
+                />
+                <span className="cast-name">
+                  <span className="cast-step">{i + 1}</span>
+                  {HOUSE[who].label}
+                  {done && <span className="cast-tag cast-tag-done">beaten</span>}
+                  {!open && !done && <span className="cast-tag">locked</span>}
+                  {who === setup.opponent && state?.status.kind === 'ongoing' && (
+                    <span className="cast-tag cast-tag-live">at this table</span>
+                  )}
+                </span>
+                <span className="cast-blurb">
+                  {open || done ? HOUSE[who].blurb : 'Beat the one before to earn this seat.'}
+                </span>
+                {open && !done && (
+                  <span className="cast-purse">
+                    <span className="coin-mark">◈</span> {purseFor(run, who)}
+                  </span>
+                )}
+                {/* Shown on locked seats too — that is the whole point. A relic you cannot
+                    reach yet is the reason to walk far enough to reach it. */}
+                {carriedBy(run, who).map(({ relic, chance }) => (
+                  <span className="cast-carries" key={relic}>
+                    <EnchRune ench="immolation" />
+                    <span className="cast-carries-name">{RELIC[relic].name}</span>
+                    <span className="cast-carries-odds">{oddsInWords(chance)}</span>
+                  </span>
+                ))}
+              </button>
+              );
+            })}
+          </div>
+          <p className="run-locked">
+            {run.taught.length === 0
+              ? run.keeper
+                ? 'You carry no enchantments yet, and the Sorcerer is open. Spend what the road paid you before you walk it again.'
+                : 'You carry no enchantments yet. The road can be walked without any — beat the keeper, and the room behind the bar opens the next time a walk ends.'
+              : `Your book: ${availableEnchantments(run).map((e) => ENCH_NAME[e]).join(', ')}.` +
+                (run.divineCall ? ' Your King may call.' : ' Your King has no power until Rolain falls.')}
+          </p>
+          <div className="menu-actions">
+            <button type="button" onClick={() => setPhase('home')}>
+              ← Back
+            </button>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (phase === 'ledger') {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <Stats onBack={() => setPhase('home')} />
+      </Shell>
+    );
+  }
+
+  if (phase === 'shop') {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <Shop
+          run={run}
+          onBuy={(ench) => setRun((r) => learn(r, ench))}
+          onBack={() => {
+            play('select');
+            setPhase('home');
+          }}
+        />
+      </Shell>
+    );
+  }
+
+  if (phase === 'rules') {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <Rules onBack={() => setPhase('home')} />
+      </Shell>
+    );
+  }
+
+  if (phase === 'spoils' && offer) {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <div className="menu">
+          <h2 className="menu-title">The Spoils</h2>
+          <p className="menu-copy">
+            He had these on him, and he will not be needing them. Take one. Whatever you leave
+            here, you leave for good — this seat has fallen to you now, and it will not offer
+            again.
+          </p>
+          <div className="spoils">
+            {offer.spoils.map((up) => (
+              <button
+                key={up}
+                type="button"
+                className="spoil"
+                onClick={() => {
+                  play('power');
+                  setRun((r) => takePowerup(r, up));
+                  setOffer(null);
+                  setPhase(offer.then);
+                }}
+              >
+                <span className="spoil-name">{POWERUP[up].name}</span>
+                <span className="spoil-flavour">{POWERUP[up].flavour}</span>
+                <span className="spoil-effect">{powerupEffect(run, up)}</span>
+              </button>
+            ))}
+          </div>
+          <p className="run-locked">
+            Mana {campaignBudget(run)} of {MANA_CAP} · gold {run.gold}
+          </p>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (phase === 'trials') {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <div className="menu">
+          <h2 className="menu-title">The Keeper's Offer</h2>
+          <p className="menu-copy">
+            The valley is awake and the story is over, and the keeper is still drying the same
+            glass. "It is still there," he says, "the road, if you want it. I can make it worse.
+            That is the only thing I have left to give you."
+          </p>
+          <div className="spoils">
+            {TRIALS.map((trial) => {
+              const on = run.trials.includes(trial);
+              return (
+                <button
+                  key={trial}
+                  type="button"
+                  className={`spoil ${on ? 'spoil-taken' : ''}`}
+                  onClick={() => {
+                    play('select');
+                    setRun((r) => toggleTrial(r, trial));
+                  }}
+                >
+                  <span className="spoil-name">
+                    {TRIAL[trial].name}
+                    {on && <span className="cast-tag cast-tag-done">taken</span>}
+                  </span>
+                  <span className="spoil-flavour">{TRIAL[trial].flavour}</span>
+                  <span className="spoil-effect">{TRIAL[trial].effect}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="run-locked">
+            They stack, and nothing stops you taking all three. Changed between walks, never
+            during one.
+          </p>
+          <div className="menu-actions">
+            <button type="button" onClick={() => setPhase('home')}>
+              ← Back
+            </button>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (phase === 'friendly') {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <div className="menu">
+          <h2 className="menu-title">Away from the road</h2>
+          <p className="menu-copy">
+            A duel between captains is not part of the campaign. Both sides get all six
+            enchantments and every King power from the first move, there is no gold in it, and
+            nothing that happens here moves you up or down the ladder.
+          </p>
+          <div className="home-buttons">
+            <button
+              type="button"
+              className="primary"
+              onClick={() => {
+                play('select');
+                setSetup((s) => ({ ...s, opponent: 'table' }));
+                setPhase('mode');
+              }}
+            >
+              At this table
+              <span className="soon">both captains on this device, one after the other</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                play('select');
+                online.connect();
+                setPhase('online');
+              }}
+            >
+              Against a stranger
+              <span className="soon">find another traveller online</span>
+            </button>
+            {resumable && !midRoadDuel && (
+              <button type="button" onClick={() => { play('select'); setPhase('game'); }}>
+                Resume duel
+                <span className="soon">the board you left standing</span>
+              </button>
+            )}
+            <button type="button" onClick={() => { play('select'); setPhase('ledger'); }}>
+              The Ledger
+              <span className="soon">what has been winning, and how often</span>
+            </button>
+            <button type="button" className="quiet" onClick={() => setPhase('home')}>
+              ← Back
+            </button>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (phase === 'chest') {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <LoadoutBuilder
+          state={initialState()}
+          color="w"
+          loadout={bench}
+          onChange={saveBench}
+          onBack={() => setPhase('home')}
+          onDone={() => {
+            play('power');
+            setPhase('home');
+          }}
+          heading="The Sorting Chest"
+          doneLabel="Keep this loadout →"
+          // Gated by the campaign book. The chest used to offer all six whatever you owned,
+          // which made the Sorcerer look pointless: a traveller who has bought nothing could
+          // lay out Poison and Herald here and reasonably conclude the shop was decoration.
+          book={availableEnchantments(run)}
+          budget={campaignBudget(run)}
+          subtitle={
+            availableEnchantments(run).length
+              ? `Your standing loadout, laid out from what the Sorcerer has taught you. ${campaignBudget(run)} mana, one enchantment per piece. It is copied onto both sides when a duel begins, and you can still change it at the board.`
+              : 'The chest is empty: the Sorcerer has taught you nothing yet. Beat the Innkeeper, then buy from him, and what you own turns up here to be laid out across your mana.'
+          }
+        />
+      </Shell>
+    );
+  }
+
+  if (phase === 'mode') {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <div className="menu">
+          <h2 className="menu-title">
+            {setup.opponent === 'table' ? 'Which board tonight?' : 'Which board?'}
+          </h2>
+          <p className="menu-copy">
+            {setup.opponent === 'table'
+              ? 'Both captains build their loadouts on this device, one after the other. Everything is shown before White moves.'
+              : 'Both sides see the same start, and both see the whole loadout before White moves.'}
+          </p>
+          {setup.opponent === 'table' && (
+          <div className="control-row">
+            {(['3+2', '5+5', '10+0', 'untimed'] as TimeControlId[]).map((id) => (
+              <button
+                type="button"
+                key={id}
+                className={`control-pick ${setup.control === id ? 'is-active' : ''}`}
+                onClick={() => {
+                  play('select');
+                  setSetup((s) => ({ ...s, control: id }));
+                }}
+              >
+                <span className="control-label">
+                  {id === 'untimed' ? 'No clock' : TIME_CONTROLS[id].label}
+                </span>
+                <span className="control-note">
+                  {id === '3+2'
+                    ? 'blitz. 3 min, 2 s increment'
+                    : id === '5+5'
+                      ? '5 min, 5 s increment'
+                      : id === '10+0'
+                        ? '10 min, no increment'
+                        : 'unlimited thinking time'}
+                </span>
+                <span className="control-power">
+                  Time Manipulation:{' '}
+                  {id === 'untimed'
+                    ? 'unusable'
+                    : TIME_CONTROLS[id].incrementMs > 0
+                      ? '+1 s per move'
+                      : '+30 s once'}
+                </span>
+              </button>
+            ))}
+          </div>
+          )}
+          <div className="menu-actions">
+            <button type="button" className="primary" onClick={() => chooseBoard('classic')}>
+              Classic start
+            </button>
+            <button type="button" onClick={() => chooseBoard('960')}>
+              Chess960 start
+            </button>
+            <button type="button" onClick={() => setPhase('home')}>
+              ← Back
+            </button>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (!state && phase !== 'build-w' && phase !== 'build-b') {
+    setPhase('home');
+    return null;
+  }
+
+  if (phase === 'build-w' || phase === 'build-b') {
+    const color: Color = phase === 'build-w' ? 'w' : 'b';
+    const base = initialState(setup.back ? { back: setup.back } : {});
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <LoadoutBuilder
+          state={base}
+          color={color}
+          loadout={color === 'w' ? setup.white : setup.black}
+          onChange={(next) =>
+            setSetup((s) => (color === 'w' ? { ...s, white: next } : { ...s, black: next }))
+          }
+          // On the road you may only spend what the Sorcerer has taught, and your King is
+          // silent until Rolain falls. At this table and online, everything is open.
+          book={color === 'w' && isHouse(setup.opponent) ? availableEnchantments(run) : undefined}
+          // The traveller spends mana on the road; Black and every duel spend the flat four.
+          budget={color === 'w' ? (setup.budget ?? BUDGET) : BUDGET}
+          powers={
+            color === 'w' && isHouse(setup.opponent) && !run.divineCall ? [] : undefined
+          }
+          onBack={() => {
+            // Black backs up to White's builder in a hotseat duel. White backs out to wherever
+            // the game was chosen from — and on the road that is the ladder, not the
+            // board-style screen: the style is settled once when you set out, so sending a
+            // traveller back there offers them a decision they already made.
+            if (color === 'b') {
+              setPhase('build-w');
+              return;
+            }
+            setPhase(isHouse(setup.opponent) ? 'house' : 'mode');
+          }}
+          doneLabel={
+            setup.opponent === 'online'
+              ? 'Seal your army →'
+              : color === 'w' && isHouse(setup.opponent)
+                ? `See what ${HOUSE[setup.opponent as House].label} brought →`
+                : undefined
+          }
+          onDone={() => {
+            play('power');
+            if (setup.opponent === 'online') {
+              online.submitLoadout(color === 'w' ? setup.white : setup.black);
+              setPhase('reveal');
+              return;
+            }
+            if (color === 'w' && isHouse(setup.opponent)) {
+              setHistory([startingState(setup)]);
+              setPhase('reveal');
+            } else if (color === 'w') setPhase('build-b');
+            else {
+              setHistory([startingState(setup)]);
+              setPhase('reveal');
+            }
+          }}
+        />
+      </Shell>
+    );
+  }
+
+  if (phase === 'reveal') {
+    const base = initialState(setup.back ? { back: setup.back } : {});
+    const netReveal = setup.opponent === 'online' ? net.loadouts : null;
+    if (setup.opponent === 'online' && (!netReveal?.white || !netReveal.black)) {
+      return (
+        <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+          <div className="menu">
+            <h2 className="menu-title">Army sealed</h2>
+            <p className="menu-copy">
+              {net.status === 'abandoned'
+                ? 'Your opponent left the table.'
+                : `Waiting for ${net.opponent ?? 'your opponent'} to finish building.`}
+            </p>
+            <div className="menu-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  online.leave();
+                  setPhase('home');
+                }}
+              >
+                ← Leave the table
+              </button>
+            </div>
+          </div>
+        </Shell>
+      );
+    }
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <div className="reveal">
+          <h2 className="screen-title">The Open Board</h2>
+          <p className="screen-sub">
+            Both loadouts in full, before White moves. {setup.back ? 'Chess960 start.' : 'Classic start.'}
+          </p>
+          <div className="reveal-grid">
+            {(['w', 'b'] as Color[]).map((color) => {
+              const loadout =
+                netReveal?.white && netReveal.black
+                  ? color === 'w'
+                    ? netReveal.white
+                    : netReveal.black
+                  : color === 'w'
+                    ? setup.white
+                    : setup.black;
+              const check = validateLoadout(
+                base,
+                color,
+                loadout,
+                color === 'w' ? (setup.budget ?? BUDGET) : BUDGET,
+              );
+              return (
+                <div className="panel reveal-side" key={color}>
+                  <h3>
+                    {color === 'w'
+                      ? 'White'
+                      : isHouse(setup.opponent)
+                        ? `Black, ${HOUSE[setup.opponent].label}`
+                        : setup.opponent === 'online' && net.you === 'w'
+                          ? `Black, ${net.opponent ?? 'a traveller'}`
+                          : 'Black'}
+                  </h3>
+                  <ul className="reveal-list">
+                    {loadoutSummary(base, loadout).map((row) => (
+                      <li key={row.square}>
+                        <EnchRune ench={row.ench} shield={row.ench === 'taunt' ? 'dormant' : undefined} />
+                        <span className="reveal-piece">
+                          <PieceGlyph type={row.piece} color={color} ench={row.ench} />
+                        </span>
+                        <span>
+                          <strong>{ENCH_NAME[row.ench]}</strong> on {PIECE_NAME[row.piece]} ({row.square})
+                        </span>
+                        <span className="reveal-cost">{row.cost}</span>
+                      </li>
+                    ))}
+                    {!Object.keys(loadout.enchantments).length && (
+                      <li className="muted">No enchantments. A plain army.</li>
+                    )}
+                  </ul>
+                  {color === 'b' && isHouse(setup.opponent) && HOUSE[setup.opponent].dragons && (
+                    <p className="reveal-dragons">
+                      Rides with{' '}
+                      {HOUSE[setup.opponent].dragons!.count === 1
+                        ? 'a dragon'
+                        : `${HOUSE[setup.opponent].dragons!.count} dragons`}{' '}
+                      in place of {HOUSE[setup.opponent].dragons!.count === 1 ? 'a knight' : 'knights'}
+                      {HOUSE[setup.opponent].dragons!.taunt ? ', shielded by Taunt' : ''}. A dragon
+                      moves as knight and bishop both.
+                    </p>
+                  )}
+                  {/* The armour is not in the loadout list, because it is not bought — it is
+                      strapped on afterwards by `armorArmy`. Leaving it off the reveal makes the
+                      single most important fact about this opponent a surprise, which is exactly
+                      what the Open Board forbids. */}
+                  {color === 'b' && isHouse(setup.opponent) && HOUSE[setup.opponent].armored && (
+                    <p className="reveal-dragons">
+                      {HOUSE[setup.opponent].armored === 'pawns'
+                        ? 'Every pawn he owns is armoured: each carries Taunt on top of whatever is listed above, and it costs him nothing from the four. '
+                        : 'Every piece he owns is armoured: each one carries Taunt on top of whatever is listed above, and it costs him nothing from the four. '}
+                      While one of them is defended and standing in his own half, you cannot take
+                      it at all — you must spend a whole turn breaking the shield first. Plate is
+                      for standing in: the moment one of his crosses the middle, it is wearing
+                      weight and nothing else.
+                    </p>
+                  )}
+                  {color === 'w' && setup.boon && (
+                    <p className="reveal-dragons">
+                      Rides Princess Rolain’s dragon in place of a knight, shielded by Taunt. A
+                      dragon moves as knight and bishop both. Lent, not bought: it costs you
+                      nothing from the four.
+                    </p>
+                  )}
+                  <div className="reveal-power">
+                    {color === 'w' && setup.silentKing ? (
+                      <>
+                        <strong>No power</strong>
+                        <span className="muted">
+                          {' '}
+                          Your King has no Divine Call yet. Beat Princess Rolain and he learns
+                          to speak once a game; until then he only moves.
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <strong>{POWER_NAME[loadout.power]}</strong>
+                        <span className="muted"> {POWER_TEXT[loadout.power]}</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="reveal-budget">
+                    {check.spent}/{color === 'w' ? (setup.budget ?? BUDGET) : BUDGET} spent ·{' '}
+                    {check.reserve} reserve
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <button type="button" className="primary" onClick={() => { play('power'); setPhase('game'); }}>
+            Begin the game →
+          </button>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (!state) return null;
+
+  const checkedKing = inCheck(shown, shown.turn) ? findKing(shown, shown.turn) : null;
+  const last = shown.log[shown.log.length - 1];
+  const lastMove =
+    last && last.type === 'move'
+      ? { from: last.from, to: last.to }
+      : last && last.type === 'shieldBreak'
+        ? { from: last.from, to: last.target }
+        : null;
+  const reviewHead = headIndex(reviewAt, history.length);
+  const online_ = setup.opponent === 'online';
+
+  return (
+    <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+      <div className={`layout ${isHouse(setup.opponent) ? 'layout-run' : ''}`}>
+        {/* The ladder, visible the whole time you are on it. A run should never make you
+            go and look up how far you have come. */}
+        {isHouse(setup.opponent) && (
+          <aside className="rail" aria-label="the road">
+            <span className="rail-purse">
+              <span className="coin-mark">◈</span>
+              {run.gold}
+            </span>
+            {CAMPAIGN.map((who) => {
+              const done = won.includes(who);
+              const here = who === setup.opponent;
+              return (
+                <span
+                  key={who}
+                  className={`rail-seat ${done ? 'rail-done' : ''} ${here ? 'rail-here' : ''}`}
+                  title={`${HOUSE[who].label}${done ? ' — beaten' : here ? ' — at this table' : ''} · pays ${purseFor(run, who)}`}
+                >
+                  <img alt="" src={spriteUrl(FACE[who].rows, FACE[who].palette, FACE[who].key)} />
+                </span>
+              );
+            })}
+          </aside>
+        )}
+        <section className="board-column">
+          <PlayerBar
+            state={shown}
+            reviewing={reviewing}
+            color={flipped ? 'w' : 'b'}
+            onPower={startPower}
+            powerMode={powerMode}
+            setPowerMode={setPowerMode}
+            remainingMs={remainingFor(flipped ? 'w' : 'b')}
+            house={isHouse(setup.opponent) && (flipped ? 'w' : 'b') === houseColor && setup.opponent}
+            silent={Boolean(setup.silentKing) && (flipped ? 'w' : 'b') !== houseColor}
+            pondering={pondering && (flipped ? 'w' : 'b') === houseColor}
+            bubble={(flipped ? 'w' : 'b') === houseColor ? bubbles.house : bubbles.you}
+            bubbleSide="below"
+            retorts={
+              setup.opponent === 'table' || (flipped ? 'w' : 'b') !== houseColor
+                ? { open: retortOpen, setOpen: setRetortOpen, say: (t: string) => say('you', t) }
+                : undefined
+            }
+          />
+          <Board
+            state={shown}
+            selected={selected}
+            hoverSquare={drag?.over ?? null}
+            draggingFrom={drag?.from ?? null}
+            onLift={beginDrag}
+            targets={targets}
+            breakTargets={breakTargets}
+            powerTargets={powerTargets}
+            lastMove={lastMove}
+            checkedKing={checkedKing}
+            denySquare={deny}
+            flipped={flipped}
+            onSquare={onSquare}
+          />
+          <PlayerBar
+            state={shown}
+            reviewing={reviewing}
+            color={flipped ? 'b' : 'w'}
+            onPower={startPower}
+            powerMode={powerMode}
+            setPowerMode={setPowerMode}
+            remainingMs={remainingFor(flipped ? 'b' : 'w')}
+            house={isHouse(setup.opponent) && (flipped ? 'b' : 'w') === houseColor && setup.opponent}
+            silent={Boolean(setup.silentKing) && (flipped ? 'b' : 'w') !== houseColor}
+            pondering={pondering && (flipped ? 'b' : 'w') === houseColor}
+            bubble={(flipped ? 'b' : 'w') === houseColor ? bubbles.house : bubbles.you}
+            bubbleSide="above"
+            retorts={
+              setup.opponent === 'table' || (flipped ? 'b' : 'w') !== houseColor
+                ? { open: retortOpen, setOpen: setRetortOpen, say: (t: string) => say('you', t) }
+                : undefined
+            }
+          />
+          {reviewing && (
+            <div className="review-bar" role="status">
+              <span className="review-mark">◷</span>
+              <span>Looking back — {describeHead(reviewHead)}</span>
+              <button type="button" onClick={() => setReviewAt(null)}>
+                Back to the game
+              </button>
+            </div>
+          )}
+        </section>
+
+        <aside className="side">
+          {setup.opponent === 'online' && (
+            <div className={`panel ${net.status === 'abandoned' ? 'status-over' : ''}`}>
+              <h3>Across the board</h3>
+              <p className="status-text">{net.opponent ?? 'a traveller'}</p>
+              <p className="muted">
+                {net.status === 'abandoned'
+                  ? 'They left the table.'
+                  : net.error
+                    ? net.error
+                    : `You are ${net.you === 'w' ? 'White' : 'Black'}.`}
+              </p>
+            </div>
+          )}
+          <StatusPanel state={shown} powerMode={reviewing ? null : powerMode} />
+          <div className="panel moves">
+            <h3>
+              Chronicle
+              {/* Rewind lives beside the record of the game, which is where a traveller looks
+                  when they want to go back. The arrow keys do the same thing. */}
+              <span className="rewind">
+                <button
+                  type="button"
+                  aria-label="back to the opening"
+                  title="the opening (Home)"
+                  disabled={history.length < 2 || reviewHead === 0}
+                  onClick={() => {
+                    setReviewAt(0);
+                    setSelected(null);
+                    setPowerMode(null);
+                  }}
+                >
+                  ⏮
+                </button>
+                <button
+                  type="button"
+                  aria-label="one move back"
+                  title="one move back (←)"
+                  disabled={history.length < 2 || reviewHead === 0}
+                  onClick={() => stepReview(-1)}
+                >
+                  ◀
+                </button>
+                <button
+                  type="button"
+                  aria-label="one move on"
+                  title="one move on (→)"
+                  disabled={!reviewing}
+                  onClick={() => stepReview(1)}
+                >
+                  ▶
+                </button>
+                <button
+                  type="button"
+                  aria-label="back to the game"
+                  title="back to the game (End)"
+                  disabled={!reviewing}
+                  onClick={() => setReviewAt(null)}
+                >
+                  ⏭
+                </button>
+              </span>
+            </h3>
+            <ol className="movelist">
+              {Array.from({ length: Math.ceil(sanList.length / 2) }, (_, i) => (
+                <li key={i}>
+                  <span className="num">{i + 1}.</span>
+                  <San
+                    text={sanList[i * 2]}
+                    onGo={() => jumpTo(i * 2 + 1)}
+                    here={reviewHead === i * 2 + 1}
+                  />
+                  <San
+                    text={sanList[i * 2 + 1] ?? ''}
+                    onGo={() => jumpTo(i * 2 + 2)}
+                    here={reviewHead === i * 2 + 2}
+                  />
+                </li>
+              ))}
+              {!sanList.length && <li className="muted">No moves yet.</li>}
+            </ol>
+          </div>
+          {/* Against a stranger these stop being playtest tools and start being cheating.
+              Taking a move back is meaningless when the server holds the position, and pasting
+              a state is an attempt to overwrite a game somebody else is also playing — the
+              server rejects both, but offering them at all is wrong. Rewind stays: looking
+              back at a position is not changing it. */}
+          <div className="panel tools">
+            <h3>{online_ ? 'Table' : 'Playtest tools'}</h3>
+            <div className="tool-row">
+              {!online_ && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    forgetPendingThoughts();
+                    setHistory((h) => (h.length > 1 ? h.slice(0, -1) : h));
+                    setSelected(null);
+                    setPowerMode(null);
+                    setReviewAt(null);
+                  }}
+                  disabled={history.length < 2}
+                >
+                  Undo
+                </button>
+              )}
+              <button type="button" onClick={() => setFlipped((f) => !f)}>
+                Flip
+              </button>
+              <button type="button" onClick={() => exportLog(setup, history)}>
+                Export
+              </button>
+              {!online_ && (
+                <button type="button" onClick={() => setLoader('')}>
+                  Load position
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem(STORAGE_KEY);
+                  setHistory([]);
+                  setReviewAt(null);
+                  setPhase('home');
+                }}
+              >
+                Leave
+              </button>
+            </div>
+            {state.status.kind === 'ongoing' && (
+              <div className="tool-row tool-row-quiet">
+                <button type="button" onClick={() => commit({ type: 'resign' })}>
+                  Resign
+                </button>
+                {state.drawOfferedBy && state.drawOfferedBy !== state.turn ? (
+                  <button type="button" onClick={() => commit({ type: 'drawAccept' })}>
+                    Accept draw
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => commit({ type: 'drawOffer' })}
+                    disabled={state.drawOfferedBy === state.turn}
+                  >
+                    {state.drawOfferedBy === state.turn ? 'Draw offered' : 'Offer draw'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {state.status.kind !== 'ongoing' && (
+            <div className="panel status-over">
+              <h3>
+                {isHouse(setup.opponent)
+                  ? run.active
+                    ? 'The road goes on'
+                    : 'The attempt ends'
+                  : 'Game over'}
+              </h3>
+              {isHouse(setup.opponent) ? (
+                // No rematch on the road. A seat you have sat at is behind you either way, and
+                // being able to replay a defeat would make the whole economy meaningless.
+                <div className="tool-row">
+                  {run.active ? (
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={() => {
+                        play('select');
+                        setPhase('house');
+                      }}
+                    >
+                      Continue the journey →
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={() => {
+                        play('select');
+                        setPhase('home');
+                      }}
+                    >
+                      Back to the inn →
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="tool-row">
+                  <button type="button" className="primary" onClick={() => rematch(false)}>
+                    Rematch, same loadouts
+                  </button>
+                  <button type="button" onClick={() => rematch(true)}>
+                    Rematch, re-edit
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </aside>
+      </div>
+
+      {paid !== null && (
+        <div className="gold-pop">
+          <span className="coin-mark">◈</span> +{paid}
+        </div>
+      )}
+
+      {/* A beat of the road landing on a finished board: the position stays behind it. */}
+      {card && (
+        <div className="modal-backdrop">
+          <div className="modal modal-wide story-modal">{storyBody}</div>
+        </div>
+      )}
+
+      {drag && state.board[drag.from] && (
+        <div className="drag-ghost" style={{ left: drag.x, top: drag.y }}>
+          <PieceGlyph
+            type={state.board[drag.from]!.type}
+            color={state.board[drag.from]!.color}
+            ench={state.board[drag.from]!.ench}
+          />
+        </div>
+      )}
+
+      {loader !== null && (
+        <div className="modal-backdrop" onClick={() => setLoader(null)}>
+          <div className="modal modal-wide" onClick={(e) => e.stopPropagation()}>
+            <h3>Load a position</h3>
+            <p className="muted">
+              Paste an exported log or a serialized game state, then play on from there.
+            </p>
+            <textarea
+              className="loader-box"
+              value={loader}
+              spellCheck={false}
+              onChange={(e) => setLoader(e.target.value)}
+              placeholder='{"back":null,"white":{...},"black":{...},"control":"3+2","actions":[...]}'
+            />
+            {loadError && <p className="load-error">{loadError}</p>}
+            <div className="tool-row">
+              <button type="button" className="primary" onClick={() => loadPosition(loader)}>
+                Load
+              </button>
+              <button type="button" onClick={() => setLoader(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {promo && (
+        <div className="modal-backdrop" onClick={() => setPromo(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Promote to</h3>
+            <div className="promo-row">
+              {PROMO_ORDER.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className="promo-pick"
+                  onClick={() => commit({ type: 'move', from: promo.from, to: promo.to, promo: t })}
+                >
+                  <PieceGlyph type={t} color={state.turn} />
+                  <span>{PIECE_NAME[t]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </Shell>
+  );
+}
+
+/** The house keeps its mouth shut on quiet moves. It speaks on a capture, a power or a check,
+ *  and even then only half the time. A finished game always gets the last word. */
+function worthRemarking(
+  before: GameState,
+  action: Action,
+  after: GameState,
+  chance: number,
+): boolean {
+  if (after.status.kind !== 'ongoing') return chance > 0;
+  const notable =
+    (action.type === 'move' && before.board[action.to] != null) ||
+    action.type === 'power' ||
+    action.type === 'shieldBreak' ||
+    inCheck(after, after.turn);
+  return notable && Math.random() < chance;
+}
+
+function toggleMute(muted: boolean, set: (v: boolean) => void) {
+  setMuted(!muted);
+  set(!muted);
+  if (muted) play('select');
+}
+
+function exportLog(setup: Setup, history: GameState[]) {
+  const actions = history.slice(1).map((s) => s.log[s.log.length - 1]);
+  const blob = new Blob([JSON.stringify({ ...setup, actions }, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `enchanted-chess-${Date.now()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** A speaker, and the same speaker with a line through it. Two paths, no text, no library. */
+function SoundIcon({ muted }: { muted: boolean }) {
+  return (
+    <svg className="mute-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9h4l5-4v14l-5-4H4z" />
+      {muted ? (
+        <path className="mute-slash" d="M16 9l5 6M21 9l-5 6" />
+      ) : (
+        <path className="mute-waves" d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12" />
+      )}
+    </svg>
+  );
+}
+
+/** The chrome around every screen. Deliberately almost nothing: a mark, the name, and the
+ *  sound toggle. The home screen sets the title in type three times this size, so the bar does
+ *  not repeat it there — one wordmark per screen is the whole rule. */
+function Shell({
+  children,
+  muted,
+  onMute,
+  bare,
+}: {
+  children: React.ReactNode;
+  muted: boolean;
+  onMute: () => void;
+  /** Home: the big title carries the name, so the bar shows only the mark. */
+  bare?: boolean;
+}) {
+  return (
+    <div className="app">
+      <header className="topbar">
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            ♜
+          </span>
+          {!bare && <h1>Enchanted Chess</h1>}
+        </div>
+        <button
+          type="button"
+          className={`mute ${muted ? 'is-muted' : ''}`}
+          onClick={onMute}
+          aria-pressed={muted}
+          aria-label={muted ? 'Sound off. Turn it on' : 'Sound on. Turn it off'}
+          title={muted ? 'Sound off' : 'Sound on'}
+        >
+          <SoundIcon muted={muted} />
+        </button>
+      </header>
+      {children}
+    </div>
+  );
+}
+
+/** One entry in the chronicle.
+ *
+ *  The engine annotates shield-breaks with ⊘ and powers with ⚡, and those two characters are
+ *  part of the exported log, so they stay exactly as they are in `notation.ts`. They are also
+ *  the two characters in the whole app most likely to be missing from whatever font the panel
+ *  resolves to: at 12.5px a fallback ⊘ is indistinguishable from a letter ø, which reads as a
+ *  typo rather than as "this move broke a shield". So the marker is pulled out and rendered in
+ *  its own span, bigger and in the accent colour, with a stack chosen for glyph coverage.
+ */
+const MARKERS = /([⊘⚡])/;
+
+/** One move in the chronicle. Clicking it rewinds the board to the position it produced,
+ *  which is the shortest path from "what happened on move nine" to seeing move nine. */
+function San({ text, onGo, here }: { text: string; onGo?: () => void; here?: boolean }) {
+  const body = !MARKERS.test(text)
+    ? text
+    : text.split(MARKERS).map((part, i) =>
+        MARKERS.test(part) ? (
+          <b key={i} className="san-mark">
+            {part}
+          </b>
+        ) : (
+          part
+        ),
+      );
+  if (!text || !onGo) return <span className="san">{body}</span>;
+  return (
+    <button type="button" className={`san san-go ${here ? 'san-here' : ''}`} onClick={onGo}>
+      {body}
+    </button>
+  );
+}
+
+function StatusPanel({ state, powerMode }: { state: GameState; powerMode: PowerMode | null }) {
+  const s = state.status;
+  const text =
+    s.kind === 'checkmate'
+      ? `Checkmate. ${s.winner === 'w' ? 'White' : 'Black'} wins`
+      : s.kind === 'stalemate'
+        ? 'Stalemate. The game is drawn'
+        : s.kind === 'draw'
+          ? `Draw by ${s.reason}`
+          : s.kind === 'resigned'
+            ? `${s.winner === 'w' ? 'White' : 'Black'} wins by resignation`
+            : s.kind === 'flagged'
+              ? `${s.winner === 'w' ? 'White' : 'Black'} wins on time`
+            : `${state.turn === 'w' ? 'White' : 'Black'} to move${
+                inCheck(state, state.turn) ? ', in check' : ''
+              }`;
+  const hint =
+    powerMode?.kind === 'teleport'
+      ? powerMode.from === null
+        ? 'Teleport: choose a piece to send.'
+        : 'Teleport: choose an unattacked empty square.'
+      : powerMode?.kind === 'relocate'
+        ? 'Relocate: choose the friendly piece to swap with your King.'
+        : powerMode?.kind === 'decree'
+          ? 'Decree: name the enemy piece to still.'
+          : powerMode?.kind === 'doom'
+            ? 'Destined Death: name the piece that will not see the end of this.'
+          : powerMode?.kind === 'revive'
+            ? powerMode.piece
+              ? 'Revive: choose an unattacked square in your own half.'
+              : 'Revive: choose a piece from your graveyard.'
+            : null;
+
+  return (
+    <div className={`panel status ${s.kind !== 'ongoing' ? 'status-over' : ''}`}>
+      <h3>Status</h3>
+      <p className="status-text">{text}</p>
+      {hint && <p className="status-hint">{hint}</p>}
+      <p className="muted">
+        move {state.fullmove} · fifty-move clock {state.halfmove}
+        {state.ep !== null ? ` · en passant ${squareName(state.ep)}` : ''}
+      </p>
+    </div>
+  );
+}
+
+function PlayerBar({
+  state,
+  color,
+  onPower,
+  powerMode,
+  setPowerMode,
+  remainingMs,
+  house,
+  pondering,
+  bubble,
+  bubbleSide = 'below',
+  retorts,
+  silent,
+  reviewing,
+}: {
+  state: GameState;
+  color: Color;
+  onPower: () => void;
+  powerMode: PowerMode | null;
+  setPowerMode: (m: PowerMode | null) => void;
+  remainingMs: number | null;
+  house?: House | false;
+  pondering?: boolean;
+  bubble?: string | null;
+  bubbleSide?: 'above' | 'below';
+  retorts?: { open: boolean; setOpen: (v: boolean) => void; say: (text: string) => void };
+  /** This side's King has not learned the Divine Call yet (road only, before Rolain). */
+  silent?: boolean;
+  /** The board is rewound: this bar describes a position that has already been played, so
+   *  nothing on it may be acted upon. */
+  reviewing?: boolean;
+}) {
+  const ps = state.powers[color];
+  const lost = state.graveyard[color];
+  const taken = [...state.graveyard[opposite(color)]].sort(
+    (a, b) => PIECE_VALUE[b] - PIECE_VALUE[a],
+  );
+  const value = (list: readonly PieceType[]) =>
+    list.reduce((sum, t) => sum + PIECE_VALUE[t], 0);
+  const edge = value(taken) - value(lost);
+  const active = state.turn === color && state.status.kind === 'ongoing' && !reviewing;
+  // A King with no Divine Call is modelled as one who has already spent it, so relabel the
+  // "used" it would otherwise report into the truth: he was never taught to speak.
+  const rawReason = powerUnavailableReason(state, color);
+  // While the board is rewound this bar is describing a position that has already been played,
+  // so the chip must not read as an offer — "not your turn" is wrong too, since in the position
+  // being looked at it may well have been.
+  const reason = reviewing
+    ? 'looking back'
+    : silent && rawReason === 'used'
+      ? 'no Divine Call'
+      : rawReason;
+  const face = FACE[house ? house : 'you'];
+  // Named by who they are, not by which colour they drew. The Second Chair turns the board
+  // round, and the seat opposite is White then — labelling it "White" hid the Drunken Knight
+  // behind his own colour.
+  const name = house ? HOUSE[house].label : color === 'w' ? 'White' : 'Black';
+  const choosingRevive = powerMode?.kind === 'revive' && !powerMode.piece && active;
+
+  return (
+    <div className={`player ${active ? 'player-active' : ''}`}>
+      {(house || retorts) && (
+        <span
+          className={`portrait ${house ? 'portrait-house' : 'portrait-you'} ${
+            house === 'kyrax' ? 'portrait-kyrax' : ''
+          }`}
+          onClick={() => retorts?.setOpen(!retorts.open)}
+          onContextMenu={(e) => {
+            if (!retorts) return;
+            e.preventDefault();
+            retorts.setOpen(!retorts.open);
+          }}
+          title={retorts ? 'Right click to say something' : 'The Innkeeper'}
+        >
+          <img
+            alt=""
+            src={spriteUrl(face.rows, face.palette, face.key)}
+          />
+          {bubble && <span className={`bubble bubble-${bubbleSide}`}>{bubble}</span>}
+          {retorts?.open && (
+            <span
+              className={`retort-tray retort-${bubbleSide}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {TRAVELLER_LINES.map((quip) => (
+                <button
+                  key={quip}
+                  type="button"
+                  className="retort-bubble"
+                  onClick={() => {
+                    play('select');
+                    retorts.say(quip);
+                    retorts.setOpen(false);
+                  }}
+                >
+                  {quip}
+                </button>
+              ))}
+            </span>
+          )}
+        </span>
+      )}
+      <span className="player-name">{name}</span>
+      {pondering && <span className="pondering" title="thinking" />}
+
+      {remainingMs !== null && (
+        <span
+          className={`clock ${active ? 'clock-running' : ''} ${
+            remainingMs < 20_000 ? 'clock-low' : ''
+          }`}
+          title={
+            state.clock
+              ? `${state.clock.control.label}${
+                  state.clock[color].bonusIncrementMs
+                    ? ` · +${state.clock[color].bonusIncrementMs / 1000}s bonus increment`
+                    : ''
+                }`
+              : ''
+          }
+        >
+          {formatClock(remainingMs)}
+        </span>
+      )}
+
+      <button
+        type="button"
+        className={`power-btn ${powerMode && active ? 'is-armed' : ''}`}
+        onClick={onPower}
+        disabled={!active || Boolean(reason)}
+        title={`${POWER_NAME[ps.power]}: ${POWER_TEXT[ps.power]}${
+          ps.power === 'chrono' ? `\n\nWorth here: ${timePowerEffect(state.clock)}` : ''
+        }${
+          reason ? `\n\nUnavailable: ${reason}` : ''
+        }\n\nReserve: ${ps.reserve} point${ps.reserve === 1 ? '' : 's'}\n\nThe King bows to no enchantment.`}
+      >
+        ⚡ {silent ? 'No power' : POWER_NAME[ps.power]}
+        {reason ? <span className="power-reason"> · {reason}</span> : null}
+      </button>
+
+      <span className="reserve" title="Unspent enchantment points, usable only by Revive">
+        reserve {ps.reserve}
+      </span>
+
+      <span className="tray" title="Pieces you have captured">
+        {taken.map((t, i) => (
+          <span className="tomb" key={i}>
+            <PieceGlyph type={t} color={opposite(color)} />
+          </span>
+        ))}
+        {edge > 0 && <span className="edge">+{edge}</span>}
+      </span>
+
+      {choosingRevive && (
+        <span className="revive-pick">
+          {[...new Set(lost)]
+            .filter((t) => REVIVE_COST[t] <= ps.reserve)
+            .map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => {
+                  play('select');
+                  setPowerMode({ kind: 'revive', piece: t });
+                }}
+              >
+                <PieceGlyph type={t} color={color} />
+                <span>{REVIVE_COST[t]}</span>
+              </button>
+            ))}
+        </span>
+      )}
+    </div>
+  );
+}
