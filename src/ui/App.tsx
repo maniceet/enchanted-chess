@@ -433,6 +433,12 @@ export default function App() {
     you: null,
   });
   const [retortOpen, setRetortOpen] = useState(false);
+  /** A story card sitting on a finished board can be pushed aside to look at the position. */
+  const [cardAside, setCardAside] = useState(false);
+  // A new beat always arrives in front of the board, never behind it.
+  useEffect(() => {
+    setCardAside(false);
+  }, [card]);
   const bubbleTimers = useRef<{ house?: number; you?: number }>({});
   const sayRef = useRef<(who: 'house' | 'you', text: string) => void>(() => {});
   const say = useCallback((who: 'house' | 'you', text: string) => {
@@ -1403,31 +1409,40 @@ export default function App() {
 
   /** One card, rendered the same way whether it fills the screen between encounters or lands
    *  over a board that has just finished. */
-  const storyBody = card && (
-    <div className="story">
-      <h2 className="story-title">{card.card.title}</h2>
-      {card.card.lines.map((line, i) => (
-        <p key={i} className="story-line">
-          {line}
-        </p>
-      ))}
-      {card.card.lesson && <p className="story-lesson">{card.card.lesson}</p>}
-      <div className="menu-actions">
-        <button
-          type="button"
-          className="primary"
-          onClick={() => {
-            play('select');
-            const go = card.then;
-            setCard(null);
-            go();
-          }}
-        >
-          {card.card.cta ?? 'Onward →'}
-        </button>
+  /** `onSeeBoard` is only passed by the copy that is sitting on top of a finished board. A
+   *  story card between screens has no position behind it to look at. */
+  const storyCard = (onSeeBoard?: () => void) =>
+    card && (
+      <div className="story">
+        <h2 className="story-title">{card.card.title}</h2>
+        {card.card.lines.map((line, i) => (
+          <p key={i} className="story-line">
+            {line}
+          </p>
+        ))}
+        {card.card.lesson && <p className="story-lesson">{card.card.lesson}</p>}
+        <div className="menu-actions">
+          <button
+            type="button"
+            className="primary"
+            onClick={() => {
+              play('select');
+              const go = card.then;
+              setCard(null);
+              go();
+            }}
+          >
+            {card.card.cta ?? 'Onward →'}
+          </button>
+          {onSeeBoard && (
+            <button type="button" className="quiet" onClick={onSeeBoard}>
+              See the board
+            </button>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  const storyBody = storyCard();
 
   if (phase === 'story' && card) {
     return (
@@ -2471,10 +2486,25 @@ export default function App() {
         </div>
       )}
 
-      {/* A beat of the road landing on a finished board: the position stays behind it. */}
-      {card && (
+      {/* A beat of the road landing on a finished board: the position stays behind it.
+          It used to stay behind it permanently — the card covered the final position and the
+          only button led away from the table, so a game you had just won or lost could not be
+          looked at. The card steps aside now instead of being dismissed: the run's next step
+          lives on `card.then`, so losing the card would mean losing the spoils screen and the
+          seat you just earned. Stepping aside keeps it one click away. */}
+      {card && !cardAside && (
         <div className="modal-backdrop">
-          <div className="modal modal-wide story-modal">{storyBody}</div>
+          <div className="modal modal-wide story-modal">{storyCard(() => setCardAside(true))}</div>
+        </div>
+      )}
+
+      {card && cardAside && (
+        <div className="card-peek" role="status">
+          <span className="review-mark">◷</span>
+          <span>The board as it finished. The arrows walk back through it.</span>
+          <button type="button" className="primary" onClick={() => setCardAside(false)}>
+            {card.card.cta ?? 'Onward →'}
+          </button>
         </div>
       )}
 

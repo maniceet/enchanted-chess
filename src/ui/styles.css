@@ -2758,3 +2758,34 @@ h1 {
   visibility: hidden;
   animation: none;
 }
+
+/* The story card stepped aside, so the finished position can be looked at. Pinned rather than
+   floating in the flow: it must be reachable wherever the board has been scrolled to, because
+   the run's next step is behind that button. */
+.card-peek {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(92vw, 640px);
+  padding: 9px 14px;
+  border: 1px solid var(--edge-soft);
+  border-radius: 3px;
+  background: rgb(30 20 10 / 94%);
+  box-shadow: 0 8px 26px rgb(0 0 0 / 60%);
+  font-size: 12.5px;
+  color: var(--brass);
+}
+
+@media (max-width: 940px) {
+  .card-peek {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+    row-gap: 7px;
+  }
+}

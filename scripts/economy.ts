@@ -78,4 +78,8 @@ for (let depth = 1; depth <= CAMPAIGN.length; depth++) {
     ].join('\t'),
   );
 }
-console.log('\nSpoils land on a seat\'s first fall only, so the middle two columns are\nthe same handful of choices spent two different ways.\n');
+console.log(
+  '\nSpoils land on a seat\'s first fall only, so the middle two columns are\n' +
+    'the same handful of choices spent two different ways. The mana column assumes\n' +
+    'the common +1 spoil; a Whetstone is +2, so the cap is reachable above these.\n',
+);

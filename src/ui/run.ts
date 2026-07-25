@@ -21,9 +21,15 @@ const KEY = 'enchanted-chess:run';
 
 /** A traveller sits down at the first table with two, and a duel between strangers is always
  *  four. Starting *below* the duelling budget is the point: the campaign is the story of
- *  someone who has nothing, and eight is what they end up with. */
+ *  someone who has nothing, and ten is what they end up with.
+ *
+ *  Raised from eight after playtesting the Wit: he is a wall the first several times you meet
+ *  him, and the answer to a wall should be that you come back carrying more, not that you play
+ *  the same army better. Two more points is another armoured knight, or a Taunt queen with a
+ *  pawn's worth left over — enough that the fifth seat feels like a different fight rather than
+ *  the same one with better luck. */
 export const MANA_START = 2;
-export const MANA_CAP = 8;
+export const MANA_CAP = 10;
 
 /** What each seat pays the *first* time it is beaten, whether or not the run survives
  *  afterwards. The deeper the seat, the better the purse, so a run that dies at the gate still
