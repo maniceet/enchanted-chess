@@ -371,6 +371,10 @@ export interface InnkeeperOptions {
   /** Narrow seats keep every capture in their sample and roll the dice on quiet moves only.
    *  Defaults on; false restores uniform sampling. */
   keepTactics?: boolean;
+  /** How much better a King power must look than the best ordinary move before a seat spends
+   *  it. Defaults to 60. A once-per-game resource is worth a real bar, but the number itself
+   *  was never measured — this exists so it can be. */
+  powerMargin?: number;
   /** Skip the search entirely and reach for a piece at random. */
   random?: boolean;
   /** Capture-only search at the leaves. Defaults on for the wide seats. */
@@ -758,7 +762,7 @@ export function chooseAction(
         ? evaluate(position, position.turn, options.passedPawns ?? true)
         : positional(position, position.turn),
     table: options.table,
-    powerMargin: 60,
+    powerMargin: options.powerMargin ?? 60,
   });
 
   const found = searcher.run(state);

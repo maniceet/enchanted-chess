@@ -270,3 +270,35 @@ describe('Armour', () => {
     expect(shieldBreakActions(state, 'w').some((a) => a.target === parseSquare('c6'))).toBe(true);
   });
 });
+
+describe('When a seat spends its King power', () => {
+  /* A power is worth a real bar — it is once per game, and a seat that burns Relocate on move
+   * seven for a tempo looks foolish in a way no win rate reports. `powerMargin` is that bar.
+   *
+   * It is tested from both ends because of how this was found. The balance harness grew a
+   * `--power-margin` flag, an A/B at 0 against the shipped 60 came back *byte-identical*, and
+   * the tempting reading was "the margin does not matter". It was not: `chooseAction` built
+   * its Searcher with a hard-coded 60 and never read the option, so the experiment had been
+   * measuring the same thing twice. An option that silently does nothing is worse than no
+   * option, because it answers questions wrongly. This asserts the knob turns. */
+  const seat = () => {
+    const base = initialState();
+    const ready = applyLoadout(
+      applyLoadout(base, 'w', { enchantments: {}, power: 'teleport' }, 4),
+      'b',
+      { enchantments: {}, power: 'decree' }, 4,
+    );
+    return { ...ready, turn: 'b' as const };
+  };
+
+  const pick = (margin: number) =>
+    chooseAction(seat(), { depth: 2, sample: 40, powerMargin: margin, rng: () => 0.5 });
+
+  it('spends one when the bar is on the floor', () => {
+    expect(pick(-100_000)?.action.type).toBe('power');
+  });
+
+  it('never spends one when the bar is out of reach', () => {
+    expect(pick(100_000)?.action.type).not.toBe('power');
+  });
+});

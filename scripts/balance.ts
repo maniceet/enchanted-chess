@@ -123,6 +123,10 @@ interface Caps {
   /** A/B: restore uniform sampling, so the narrow seats can drop a free capture again. Only
    *  the sampling seats (drunkard aside, the ones below the Wit) can move on this at all. */
   uniform?: boolean;
+  /** A/B: how much better a King power must look than the best ordinary move before a seat
+   *  spends it. Shipped is 60. The question this exists to answer is why two seats never call
+   *  one at all. */
+  powerMargin?: number;
 }
 
 function playOne(
@@ -150,6 +154,7 @@ function playOne(
           budgetMs: untimed ? undefined : profile.budgetMs,
           maxNodes: caps.override ?? searchOptionsFor(profile, caps.deadly).maxNodes,
           ...(caps.uniform ? { keepTactics: false } : {}),
+          ...(caps.powerMargin !== undefined ? { powerMargin: caps.powerMargin } : {}),
           rng,
           table: houseTable,
         })
@@ -207,6 +212,8 @@ function main(): void {
   const shippedNodes = args.includes('--nodes');
   const deadly = args.includes('--deadly');
   const uniform = args.includes('--uniform');
+  const pmIndex = args.findIndex((a) => a === '--power-margin');
+  const powerMargin = pmIndex >= 0 ? Number(args[pmIndex + 1]) : undefined;
   const hIndex = args.findIndex((a) => a === '--hero');
   const named2 = hIndex >= 0 ? args[hIndex + 1] : 'plain';
   const heroBuild: HeroBuild = named2 in HERO_BUILDS ? (named2 as HeroBuild) : 'plain';
@@ -225,6 +232,7 @@ function main(): void {
           ? `${HERO_NODES} nodes · seats on their own caps, no clock${deadly ? ' · DEADLY DUEL' : ''}`
           : `${HERO.budgetMs}ms`) +
       (uniform ? ' · UNIFORM SAMPLING (captures droppable)' : '') +
+      (powerMargin !== undefined ? ` · power margin ${powerMargin}` : '') +
       '\n',
   );
   console.log(
@@ -239,7 +247,7 @@ function main(): void {
           who,
           1000 + i * 7919,
           maxPlies,
-          { override: nodeOverride, shippedNodes, deadly, uniform },
+          { override: nodeOverride, shippedNodes, deadly, uniform, powerMargin },
           heroBuild,
         ),
       );

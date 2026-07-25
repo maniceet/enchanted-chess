@@ -595,26 +595,58 @@ export default function App() {
     if (phase === 'house' && !run.active) setPhase('home');
   }, [phase, run.active]);
 
-  // Follow the pointer while a piece is lifted, and resolve the drop on release.
+  /** The lifted piece follows the finger through the DOM rather than through React state.
+   *
+   *  Reported from a phone as "jitter on the board", and it was two separate things. The
+   *  browser was running its own pan gesture at the same time as the drag, so the board scrolled
+   *  under the finger while the piece tracked it — that half is `touch-action: none` in the
+   *  stylesheet. The other half was here: every `pointermove` called `setDrag`, re-rendering
+   *  sixty-four squares and every overlay on them, at pointer rate — which on a modern phone is
+   *  faster than the display can draw. Now the ghost's position is written straight to its own
+   *  element, and React is only told when the square *under* the finger changes, which is the
+   *  only part of the drag it actually renders. */
+  const ghostRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!drag) return;
+    const from = drag.from;
+    let frame = 0;
+    let last: { x: number; y: number } | null = null;
+
+    const paint = () => {
+      frame = 0;
+      if (!last || !ghostRef.current) return;
+      ghostRef.current.style.transform = `translate3d(${last.x}px, ${last.y}px, 0)`;
+      const over = squareUnder(last.x, last.y);
+      // Only a change of square is worth a render; the pixels are already on screen.
+      setDrag((d) => (d && d.over !== over ? { ...d, over } : d));
+    };
+
     const onMove = (e: PointerEvent) => {
-      setDrag((d) =>
-        d ? { ...d, x: e.clientX, y: e.clientY, over: squareUnder(e.clientX, e.clientY) } : d,
-      );
+      last = { x: e.clientX, y: e.clientY };
+      // Coalesce to one update per frame however fast the pointer reports.
+      if (!frame) frame = requestAnimationFrame(paint);
+      // Stop the page treating the same gesture as a scroll on browsers that ignore
+      // `touch-action` for an already-started gesture.
+      if (e.cancelable) e.preventDefault();
     };
     const onUp = (e: PointerEvent) => {
+      if (frame) cancelAnimationFrame(frame);
       const target = squareUnder(e.clientX, e.clientY);
       setDrag(null);
-      if (target !== null && target !== drag.from) dropOn(drag.from, target);
+      if (target !== null && target !== from) dropOn(from, target);
     };
-    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointermove', onMove, { passive: false });
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
     return () => {
+      if (frame) cancelAnimationFrame(frame);
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
     };
-  });
+    // Bound once per lift. Without this the listeners were torn down and rebuilt on every
+    // render, which during a drag meant every frame.
+  }, [drag?.from]);
 
   // --- clocks -------------------------------------------------------------
   const turnStartRef = useRef(Date.now());
@@ -2406,7 +2438,13 @@ export default function App() {
       )}
 
       {drag && state.board[drag.from] && (
-        <div className="drag-ghost" style={{ left: drag.x, top: drag.y }}>
+        // Positioned by transform from the pointer handler, so following the finger never
+        // costs a React render. The initial transform is the lift point.
+        <div
+          className="drag-ghost"
+          ref={ghostRef}
+          style={{ transform: `translate3d(${drag.x}px, ${drag.y}px, 0)` }}
+        >
           <PieceGlyph
             type={state.board[drag.from]!.type}
             color={state.board[drag.from]!.color}
@@ -2738,7 +2776,16 @@ function PlayerBar({
         </span>
       )}
       <span className="player-name">{name}</span>
-      {pondering && <span className="pondering" title="thinking" />}
+      {/* Always in the row, only sometimes visible. Rendering it conditionally added and
+          removed 26px of flex content on every single reply, which on a phone — where the bar
+          is allowed to wrap — tipped it onto a second line and back, and the whole board
+          stepped down and up with it. Reserving the space costs nothing and holds the layout
+          still. */}
+      <span
+        className={`pondering ${pondering ? '' : 'pondering-idle'}`}
+        title={pondering ? 'thinking' : undefined}
+        aria-hidden={!pondering}
+      />
 
       {remainingMs !== null && (
         <span

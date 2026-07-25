@@ -42,7 +42,15 @@
 
 body {
   margin: 0;
+  /* `100vh` on a phone is the viewport with the address bar *hidden*, so the page is always
+     a little taller than what you can see. That makes it permanently scrollable by exactly
+     the height of the bar, and every tap that nudges the scroll slides the bar in or out and
+     takes the whole layout with it — reported as the board moving a little on each reply.
+     `svh` is the smallest viewport, so the page fits what is actually visible and there is
+     nothing to slide. The `vh` line stays first as the fallback for browsers without it.
+     This is invisible in desktop testing, an iframe has no address bar to hide. */
   min-height: 100vh;
+  min-height: 100svh;
   color: var(--parch);
   background:
     repeating-linear-gradient(90deg, rgb(0 0 0 / 22%) 0 2px, transparent 2px 6px),
@@ -650,6 +658,15 @@ h1 {
   position: relative;
   width: var(--board);
   padding: 0 0 15px 15px;
+  /* A finger dragging a piece is also, to the browser, a finger panning the page: both
+     gestures run at once and the board slides under the piece. Reported from a phone as
+     jitter. Claiming the gesture here is the half of the fix that CSS can do; the other half
+     is in the pointer handler. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: contain;
 }
 
 .board {
@@ -802,14 +819,25 @@ h1 {
 }
 
 /* the piece riding under the cursor while dragging */
+/* The pointer handler owns `transform` on this element and writes it every frame, so the
+   centring that used to live there has moved into margins. Anything that needs to compose
+   with the drag position goes on the child instead. */
 .drag-ghost {
   position: fixed;
+  left: 0;
+  top: 0;
   z-index: 40;
   width: calc(var(--board) / 8);
   height: calc(var(--board) / 8);
-  transform: translate(-50%, -50%) scale(1.12);
+  margin-left: calc(var(--board) / -16);
+  margin-top: calc(var(--board) / -16);
   pointer-events: none;
   filter: drop-shadow(0 6px 8px rgb(0 0 0 / 55%));
+  will-change: transform;
+}
+
+.drag-ghost > * {
+  transform: scale(1.12);
 }
 
 /* ---------- pieces (vector Staunton set) ---------- */
@@ -2588,6 +2616,9 @@ h1 {
        binding one in portrait. Squares land near 45px, about the smallest a thumb
        picks out reliably. */
     --board: min(96vw, 88vmin, 600px);
+    /* Same trap one level down: `vmin` is the *height* on a short or landscape phone, so an
+       address bar sliding away resizes the board itself. `svh` is fixed, so it cannot. */
+    --board: min(96vw, 88svh, 600px);
   }
 
   .layout,
@@ -2626,10 +2657,15 @@ h1 {
   }
 
   /* "⚡ Relocate · not your turn" ran off the right edge, because the bar was one
-     nowrap row sized for a desktop column. Let it use two. */
+     nowrap row sized for a desktop column. Let it use two — but at a *fixed* height, so
+     which contents happen to be in it never moves the board. The power chip's reason text
+     changes length between turns and the captured-piece tray grows all game; with a bar
+     free to grow, every one of those was a step under the player's hands. */
   .player {
     flex-wrap: wrap;
     height: auto;
+    min-height: 80px;
+    align-content: center;
     row-gap: 4px;
     padding: 8px 10px;
   }
@@ -2656,4 +2692,10 @@ h1 {
   .tool-row {
     flex-wrap: wrap;
   }
+}
+
+/* Reserved, not removed: see the note beside the render. */
+.pondering-idle {
+  visibility: hidden;
+  animation: none;
 }
