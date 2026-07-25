@@ -2371,16 +2371,25 @@ export default function App() {
                   Load position
                 </button>
               )}
-              {/* Stepping away from a board is not the same as burning it. This used to clear
-                  the saved game on the way out, with no warning, sitting between Flip and
-                  Export — I lost an eleven-move duel to it mid-playtest by reaching for the
-                  nearest way back to the inn, which is exactly how a player would lose one.
-                  The board is kept and the inn offers it straight back; Resign is next to this
-                  button and is the honest way to end a game you mean to end. */}
-              <button type="button" onClick={() => setPhase('home')} title="Back to the inn. The board keeps.">
-                Leave
-              </button>
             </div>
+            )}
+
+            {/* The way out of a duel, for the games where walking away means something.
+                Stepping away from a board is not the same as ending the game on it: the board
+                is kept and the inn hands it straight back, which is why this is safe to offer
+                where Undo is not. Online has no equivalent — the position lives on the server
+                and somebody else is sitting at it, so leaving is either resigning or rudeness,
+                and both of those already have buttons. */}
+            {!online_ && (
+              <div className="tool-row tool-row-quiet">
+                <button
+                  type="button"
+                  onClick={() => setPhase('home')}
+                  title="The board keeps. Pick it up again from here."
+                >
+                  {isHouse(setup.opponent) ? '\u2190 Back to the inn' : '\u2190 Main menu'}
+                </button>
+              </div>
             )}
             {state.status.kind === 'ongoing' && (
               <div className="tool-row tool-row-quiet">
