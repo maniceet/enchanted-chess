@@ -372,8 +372,28 @@ export interface InnkeeperOptions {
    *  Defaults on; false restores uniform sampling. */
   keepTactics?: boolean;
   /** How much better a King power must look than the best ordinary move before a seat spends
-   *  it. Defaults to 60. A once-per-game resource is worth a real bar, but the number itself
-   *  was never measured — this exists so it can be. */
+   *  it. Defaults to 60. A once-per-game resource is worth a real bar.
+   *
+   *  MEASURED, INCONCLUSIVE. 60 against 30, eight games each on the five seats that ever call
+   *  one, 20k nodes, `scripts/balance.ts --power-margin 30`:
+   *
+   *      seat       margin 60            margin 30
+   *      innkeeper  100%  3/8 @ply 41    100%  5/8 @ply 41
+   *      rolain     100%  3/8 @ply 49    100%  4/8 @ply 59
+   *      wit         38%  5/8 @ply 85     50%  5/8 @ply 83
+   *      armored     13%  3/8 @ply 69     13%  3/8 @ply 65
+   *      kyrax        0%  1/8 @ply 39      0%  1/8 @ply 27
+   *
+   *  Powers fire a little more often at 30, and not noticeably earlier — the ply column is the
+   *  one that would show waste, and it does not move. Win rates are identical everywhere except
+   *  the Wit, and that is a single game at n=8, well inside the noise. So there is no evidence
+   *  for 30 over 60, and none against; 60 stays because it is what shipped, not because it won.
+   *  Raising n is the only thing that would settle it, and nothing about the ladder is currently
+   *  waiting on the answer.
+   *
+   *  Worth knowing before repeating this: an earlier n=4 run showed Rolain and Kyrax calling a
+   *  power *never*, which read like the margin shutting them out entirely. At n=8 they call one
+   *  3/8 and 1/8. That "never" was sample size, not behaviour. */
   powerMargin?: number;
   /** Skip the search entirely and reach for a piece at random. */
   random?: boolean;

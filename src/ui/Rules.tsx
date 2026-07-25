@@ -78,9 +78,9 @@ export function Rules({ onBack }: { onBack: () => void }) {
                 <td>
                   <strong>{ENCH_NAME[ench]}</strong>
                 </td>
-                <td>{ENCH_COST[ench]}</td>
-                <td>{CARRIERS[ench]}</td>
-                <td>{ENCH_TEXT[ench]}</td>
+                <td data-label="Base">{ENCH_COST[ench]}</td>
+                <td data-label="Borne by">{CARRIERS[ench]}</td>
+                <td data-label="">{ENCH_TEXT[ench]}</td>
               </tr>
             ))}
           </tbody>
@@ -138,7 +138,7 @@ export function Rules({ onBack }: { onBack: () => void }) {
                 <td>
                   <strong>{POWER_NAME[power]}</strong>
                 </td>
-                <td>{POWER_TEXT[power]}</td>
+                <td data-label="">{POWER_TEXT[power]}</td>
               </tr>
             ))}
           </tbody>

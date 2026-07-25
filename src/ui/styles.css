@@ -2702,6 +2702,55 @@ h1 {
   .tool-row {
     flex-wrap: wrap;
   }
+
+  /* The rules tables are five columns, one of which is a paragraph. At 410px that column
+     was squeezed to 82px and the page scrolled sideways — a prose column needs width, not a
+     scrollbar. Each row becomes a card instead: the rune and the name on top, the numbers
+     labelled inline, and the description as the paragraph it always was. */
+  .letter table,
+  .letter tbody,
+  .letter tr,
+  .letter td {
+    display: block;
+    width: auto;
+  }
+
+  .letter thead {
+    display: none;
+  }
+
+  .letter tr {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border: 1px solid rgb(60 40 12 / 28%);
+    border-radius: 3px;
+    background: rgb(255 246 224 / 45%);
+  }
+
+  .letter td {
+    padding: 2px 0;
+    border: 0;
+  }
+
+  /* The rune cell and the name sit on one line rather than stacking two near-empty rows. */
+  .letter td:has(> svg),
+  .letter td:has(> .rune) {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+
+  .letter td > strong {
+    font-size: 16px;
+  }
+
+  .letter td[data-label]:not([data-label=''])::before {
+    content: attr(data-label) ' · ';
+    color: #5a4114;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
 }
 
 /* Reserved, not removed: see the note beside the render. */
