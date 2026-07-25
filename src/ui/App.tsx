@@ -1054,6 +1054,20 @@ export default function App() {
     setPhase('build-w');
   };
 
+  /** A board that has been dealt but not played on is worth less than the loadout you just
+   *  chose, so changing your standing army throws it away and the seat deals again.
+   *
+   *  Found by playing: buy two enchantments from the Sorcerer, lay them out in the chest, walk
+   *  to the table — and sit down to the army you had *before* the shop, silently. The seat
+   *  click resumes an in-progress duel rather than dealing a new one, and "in progress" was
+   *  true of a board nobody had touched. A game with moves on it is left alone: that one is
+   *  real, and taking it away would be worse than the stale army. */
+  const discardUnstartedDuel = () => {
+    if (history.length > 1) return;
+    localStorage.removeItem(STORAGE_KEY);
+    setHistory([]);
+  };
+
   /** Play the same pairing again, either straight away or back through the builders. */
   const rematch = (reEdit: boolean) => {
     play('select');
@@ -1610,6 +1624,9 @@ export default function App() {
           onBuy={(ench) => setRun((r) => learn(r, ench))}
           onBack={() => {
             play('select');
+            // Learning something new and then sitting down to a board dealt before you learned
+            // it is the same trap the chest has; same answer.
+            discardUnstartedDuel();
             setPhase('home');
           }}
         />
@@ -1770,9 +1787,13 @@ export default function App() {
           color="w"
           loadout={bench}
           onChange={saveBench}
-          onBack={() => setPhase('home')}
+          onBack={() => {
+            discardUnstartedDuel();
+            setPhase('home');
+          }}
           onDone={() => {
             play('power');
+            discardUnstartedDuel();
             setPhase('home');
           }}
           heading="The Sorting Chest"
@@ -1784,7 +1805,7 @@ export default function App() {
           budget={campaignBudget(run)}
           subtitle={
             availableEnchantments(run).length
-              ? `Your standing loadout, laid out from what the Sorcerer has taught you. ${campaignBudget(run)} mana, one enchantment per piece. It is copied onto both sides when a duel begins, and you can still change it at the board.`
+              ? `Your standing loadout, laid out from what the Sorcerer has taught you. ${campaignBudget(run)} mana, one enchantment per piece. Every seat on the road faces this army, and you can still change it at the board before a duel starts.`
               : 'The chest is empty: the Sorcerer has taught you nothing yet. Beat the Innkeeper, then buy from him, and what you own turns up here to be laid out across your mana.'
           }
         />
