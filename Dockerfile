@@ -4,6 +4,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# The container ships the Node process, so this build gets real online play. The static
+# build (Vercel) leaves it unset and shows "coming soon" instead of a queue with no server.
+ENV VITE_ONLINE=1
 RUN npm run build
 
 FROM node:22-alpine

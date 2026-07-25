@@ -133,6 +133,30 @@ import { forgetPendingThoughts, think } from './think';
 import { recordGame, sideOf } from './stats';
 
 const STORAGE_KEY = 'enchanted-chess:v2';
+
+/** Whether this build has a game server behind it.
+ *
+ *  The campaign is entirely client-side — engine, search and all seven seats run in a worker
+ *  in the browser — so it ships as a static bundle with no backend at all. Online play is the
+ *  one thing that needs the Node process, and a static host has none. Rather than let the
+ *  matchmaking screen sit spinning against nothing, the build that ships without a server says
+ *  "coming soon" and means it. The container sets `VITE_ONLINE=1` and gets the real thing. */
+const ONLINE_ENABLED =
+  (import.meta as { env?: Record<string, string> }).env?.VITE_ONLINE === '1';
+
+/** Whether the board shows the tools that exist for building the game rather than playing it.
+ *
+ *  Undo, Load position and Export are how a designer interrogates a position; against a seat
+ *  on the road they are a cheat button, a save-state editor and a debug dump sitting next to
+ *  Resign. They stay on in `npm run dev`, where the whole point is to interrogate positions,
+ *  and are absent from anything shipped. `VITE_PLAYTEST=1` puts them back in a built copy for
+ *  a playtest build.
+ *
+ *  Flip and Leave go with them: a shipped board offers Resign and Offer draw and nothing else,
+ *  so the only ways out of a duel are the two that the game has an opinion about. */
+const PLAYTEST_ENABLED =
+  (import.meta as { env?: Record<string, string | boolean> }).env?.DEV === true ||
+  (import.meta as { env?: Record<string, string> }).env?.VITE_PLAYTEST === '1';
 const BENCH_KEY = 'enchanted-chess:bench';
 const PROMO_ORDER: PieceType[] = ['q', 'r', 'b', 'n'];
 const FACE: Record<House | 'you', { rows: string[]; palette: Record<string, string>; key: string }> = {
@@ -1781,16 +1805,24 @@ export default function App() {
               At this table
               <span className="soon">both captains on this device, one after the other</span>
             </button>
+            {/* Online needs a server to talk to, and the static build does not ship one. A
+                button that opens a queue nobody is listening to is worse than one that says
+                so, so the whole path is gated on the build knowing a server exists. */}
             <button
               type="button"
+              disabled={!ONLINE_ENABLED}
+              title={ONLINE_ENABLED ? undefined : 'Not on this table yet.'}
               onClick={() => {
+                if (!ONLINE_ENABLED) return;
                 play('select');
                 online.connect();
                 setPhase('online');
               }}
             >
               Against a stranger
-              <span className="soon">find another traveller online</span>
+              <span className="soon">
+                {ONLINE_ENABLED ? 'find another traveller online' : 'coming soon'}
+              </span>
             </button>
             {resumable && !midRoadDuel && (
               <button type="button" onClick={() => { play('select'); setPhase('game'); }}>
@@ -2310,7 +2342,8 @@ export default function App() {
               server rejects both, but offering them at all is wrong. Rewind stays: looking
               back at a position is not changing it. */}
           <div className="panel tools">
-            <h3>{online_ ? 'Table' : 'Playtest tools'}</h3>
+            <h3>{PLAYTEST_ENABLED ? 'Playtest tools' : 'The table'}</h3>
+            {PLAYTEST_ENABLED && (
             <div className="tool-row">
               {!online_ && (
                 <button
@@ -2348,6 +2381,7 @@ export default function App() {
                 Leave
               </button>
             </div>
+            )}
             {state.status.kind === 'ongoing' && (
               <div className="tool-row tool-row-quiet">
                 <button type="button" onClick={() => commit({ type: 'resign' })}>
