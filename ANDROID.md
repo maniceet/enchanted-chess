@@ -128,11 +128,36 @@ Two bugs were found this way and fixed, both invisible on a desktop:
   got the one-column phone stack in a viewport 390px tall: the board ran off the bottom edge at
   rank 5, and you scrolled to see your own back rank between moves.
 
+## The listing
+
+`play/` holds everything the Play Console asks for, so submission is pasting rather than
+inventing. `play/listing.md` has the store text with its character counts, the categorisation,
+the content-rating answers and the data-safety answers. Beside it are the icon, the feature
+graphic and four phone screenshots.
+
+The art is generated, not drawn by hand:
+
+```bash
+npx tsx scripts/icons.ts   # launcher icons, play/icon-512.png, play/feature-graphic.png
+```
+
+It renders the *same* rook path the board draws (`Pieces.tsx`, `SHAPES.r`) through headless
+Chrome, so the icon can never drift away from the pieces. The one number worth understanding is
+`FILL`: an adaptive icon's 66dp safe zone is a **circle**, so what has to fit inside it is the
+art's diagonal, not its height. Fitting the height put the rook's base outside the mask and a
+Pixel launcher sliced it off.
+
+The privacy policy is a real page — `public/privacy.html`, shipped with the web build, so the
+URL to give the Console is `/privacy.html` on whatever domain the site is deployed to. It is
+accurate rather than boilerplate: it names the four `localStorage` keys the game actually
+writes and says why `INTERNET` is the only permission.
+
 ## Known gaps
 
 - Portrait is declared in the web manifest but deliberately **not** pinned in
   `AndroidManifest.xml` — landscape earns its keep, with the board beside the panels and the
   reveal screen in two columns.
-- Play Console listing assets are not made: feature graphic (1024×500), phone screenshots,
-  privacy policy URL, content rating questionnaire, data safety form.
+- **The upload keystore does not exist.** Nothing can be published until it does; see above.
+- **Contact email** is not filled in. It is required and becomes public on the listing, which
+  makes it the developer's to choose, not something to commit on their behalf.
 - Emulator only, arm64 only. Not yet run on physical hardware.
