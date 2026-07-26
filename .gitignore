@@ -17,3 +17,4 @@ android/capacitor-cordova-android-plugins/
 *.keystore
 *.jks
 keystore.properties
+dist-playtest/
