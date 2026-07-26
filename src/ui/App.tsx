@@ -102,6 +102,7 @@ import {
   resetRun,
   campaignBudget,
   carriedBy,
+  clearsUntilTruth,
   knowsTheTruth,
   MANA_CAP,
   oddsInWords,
@@ -1469,6 +1470,30 @@ export default function App() {
               >
                 The road
                 <span className="soon">see how far you have come</span>
+              </button>
+            )}
+            {/* The Dragonlord falls, and the game does not say that anything is left. He tells
+                you himself — "there is a thing I would tell you, and I find I cannot" — but he
+                tells you at his table, an hour's walk and a whole run away from the decision to
+                go back. A player who clears the road once and stops has not been given a reason
+                on the screen where stopping happens. This is that reason, and it counts down. */}
+            {(run.beaten.kyrax ?? 0) > 0 && !run.freed && (
+              <button
+                type="button"
+                className="is-new"
+                onClick={() => {
+                  play('select');
+                  setPhase('house');
+                }}
+              >
+                {knowsTheTruth(run) ? 'Go south' : 'Seek the truth'}
+                <span className="soon">
+                  {knowsTheTruth(run)
+                    ? 'the road did not end at his table'
+                    : clearsUntilTruth(run) === 1
+                      ? 'the Dragonlord will say the name next time he falls'
+                      : `something has hold of the Dragonlord · ${clearsUntilTruth(run)} more falls`}
+                </span>
               </button>
             )}
             {run.sorcerer ? (
