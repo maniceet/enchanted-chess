@@ -552,7 +552,13 @@ h1 {
 
 .reveal-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  /* `minmax(310px, …)` is a floor the track cannot go under, so on a viewport narrower than
+     310px plus the page's padding it overflowed rather than shrinking — the two loadout panels
+     were simply wider than the screen. `min(310px, 100%)` keeps the intent (two columns as soon
+     as 310px each is affordable, one below that) while letting the single column shrink to fit
+     the space that actually exists. Found by scripts/overflow.ts at 320px, which is the CSS
+     viewport a Pixel 6 reports at Android's largest Display size. */
+  grid-template-columns: repeat(auto-fit, minmax(min(310px, 100%), 1fr));
   gap: 16px;
   margin: 16px 0;
 }

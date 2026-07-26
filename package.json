@@ -18,7 +18,8 @@
     "android:open": "npx cap open android",
     "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "android:bundle": "npm run android:sync && cd android && ./gradlew bundleRelease",
-    "android:verify": "npm run android:bundle && bash scripts/verify-aab.sh"
+    "android:verify": "npm run android:bundle && bash scripts/verify-aab.sh",
+    "check:overflow": "npm run build && tsx scripts/overflow.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
