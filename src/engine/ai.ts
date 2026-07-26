@@ -808,8 +808,14 @@ export function evaluate(state: GameState, color: Color, rankedPassers = true): 
     const ps = state.powers[c];
     return ps.powers.filter((w) => !ps.spent.includes(w)).length;
   };
-  score += 30 * unspoken(color);
-  score -= 30 * unspoken(opposite(color));
+  // 12 a word, not 30. A King may now hold three, and at 30 apiece a three-word traveller
+  // opposite a one-word seat starts 60 ahead on the evaluation alone — which happens to be the
+  // exact width of the aspiration window, so every search failed high, re-searched, and burned
+  // its node budget getting nowhere. The three-word hero lost eight games out of eight to Ardax
+  // and won three of eight with a single word: more power made it play worse, which is the sort
+  // of result that means the engine, not the balance.
+  score += 12 * unspoken(color);
+  score -= 12 * unspoken(opposite(color));
   return score;
 }
 

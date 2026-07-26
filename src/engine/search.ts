@@ -10,6 +10,7 @@ import {
   type MoveAction,
   type Piece,
   type PieceType,
+  type PowerName,
 } from './types';
 
 /** The search. The machinery here is the standard set every strong engine is built from,
@@ -59,7 +60,14 @@ const TURN_KEY = makeRandoms(1, 0x1234567)[0];
 const CASTLE_KEYS = makeRandoms(2 * 2 * 9, 0xabcdef);
 const EP_KEYS = makeRandoms(9, 0x55aa55);
 const FROZEN_KEYS = makeRandoms(128, 0x0f0f0f);
-const POWER_KEYS = makeRandoms(2 * 2, 0x777);
+/** One key per side per *word*, not per side. Six words exist and a King may hold three of
+ *  them, so the hash has to say which are still unspoken — and XOR is its own inverse, which
+ *  makes "the same key, once per word" collapse to parity: two left would hash identically to
+ *  none left, three identically to one. That is not a subtle collision, it is the table handing
+ *  back a score from a position with a different number of powers in hand, and it cost the
+ *  three-word player every game against Prince Ardax before it was found. */
+const POWER_WORDS: PowerName[] = ['teleport', 'relocate', 'decree', 'revive', 'chrono', 'doom'];
+const POWER_KEYS = makeRandoms(2 * POWER_WORDS.length, 0x777);
 
 function pieceSlot(
   colorIndex: number,
@@ -102,11 +110,12 @@ export function positionHash(state: GameState): number {
   // A King may hold three words and spend them separately, so the hash has to distinguish
   // "two left" from "one left" — a single spent/unspent bit would collide positions that are
   // genuinely different and hand the transposition table a wrong score.
-  for (const word of state.powers.w.powers) {
-    if (!state.powers.w.spent.includes(word)) hash = (hash ^ POWER_KEYS[0]) >>> 0;
-  }
-  for (const word of state.powers.b.powers) {
-    if (!state.powers.b.spent.includes(word)) hash = (hash ^ POWER_KEYS[1]) >>> 0;
+  for (const [side, ps] of [state.powers.w, state.powers.b].entries()) {
+    for (const word of ps.powers) {
+      if (ps.spent.includes(word)) continue;
+      const index = side * POWER_WORDS.length + POWER_WORDS.indexOf(word);
+      hash = (hash ^ POWER_KEYS[index]) >>> 0;
+    }
   }
   return hash >>> 0;
 }

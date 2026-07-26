@@ -57,6 +57,7 @@ const HERO_BUILDS = {
     loadout: {
       ...emptyLoadout(),
       power: 'teleport' as const,
+      powers: ['teleport', 'relocate', 'decree'] as const,
       enchantments: { b1: 'taunt' as const, e2: 'taunt' as const, d2: 'taunt' as const },
     },
   },
@@ -69,6 +70,7 @@ const HERO_BUILDS = {
     loadout: {
       ...emptyLoadout(),
       power: 'teleport' as const,
+      powers: ['teleport', 'relocate', 'decree'] as const,
       enchantments: {
         d1: 'taunt' as const,
         b1: 'taunt' as const,
@@ -88,6 +90,7 @@ const HERO_BUILDS = {
     loadout: {
       ...emptyLoadout(),
       power: 'teleport' as const,
+      powers: ['teleport', 'relocate', 'decree'] as const,
       enchantments: {
         d1: 'taunt' as const,
         b1: 'taunt' as const,
