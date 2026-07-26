@@ -90,6 +90,9 @@ export function LoadoutBuilder({
   };
 
   const assign = (square: string, ench: Enchantment | null) => {
+    // The road's enchantment is not a slot (see the locked panel below): anything bought on
+    // that square is overwritten by the engine at the first move, so refuse it at the source.
+    if (state.board[parseSquare(square)]?.ench) return;
     const next = { ...loadout.enchantments };
     if (ench) next[square] = ench;
     else delete next[square];
@@ -135,7 +138,9 @@ export function LoadoutBuilder({
                  * player can find out *which* — and they need to know while choosing, because a
                  * Poison pawn is worth building around. */
                 const given = piece.ench ?? null;
-                const ench = bought ?? given;
+                // Given first: the engine applies the road's enchantment after the player's, so
+                // if both somehow name this square, the gift is what the game will play.
+                const ench = given ?? bought;
                 const isKing = piece.type === 'k';
                 return (
                   <button
@@ -237,7 +242,33 @@ export function LoadoutBuilder({
             </div>
           )}
 
-          {selected && selectedPiece && selectedPiece.type !== 'k' && (
+          {/* A piece the road already enchanted — the Venom pawn, a fortified rook — is not a
+              slot, it is a gift. One enchantment per piece is the law of the game, and the
+              engine applies the road's after the player's, so anything bought here would be
+              silently overwritten at the first move: points spent on nothing. Locked, and said
+              so, rather than allowed and wasted. */}
+          {selected && selectedPiece && selectedPiece.type !== 'k' && selectedPiece.ench && (
+            <div className="panel">
+              <h3>
+                {PIECE_NAME[selectedPiece.type]} on {selected}
+                <span className="mult"> · given by the road</span>
+              </h3>
+              <p className="muted">
+                <EnchRune
+                  ench={selectedPiece.ench}
+                  shield={selectedPiece.ench === 'taunt' ? 'dormant' : undefined}
+                />{' '}
+                This {PIECE_NAME[selectedPiece.type].toLowerCase()} already carries{' '}
+                <strong className="hint-strong">{ENCH_NAME[selectedPiece.ench]}</strong>.
+              </p>
+              <p className="ench-why">
+                One enchantment per piece — what the road gives cannot be traded away or written
+                over. Build around it.
+              </p>
+            </div>
+          )}
+
+          {selected && selectedPiece && selectedPiece.type !== 'k' && !selectedPiece.ench && (
             <div className="panel">
               <h3>
                 {PIECE_NAME[selectedPiece.type]} on {selected}

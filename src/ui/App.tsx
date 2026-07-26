@@ -119,6 +119,8 @@ import {
   winSeat,
   type BoardMode,
   type RunState,
+  hasUnreadableSave,
+  recoverSave,
 } from './run';
 import { Shop } from './Shop';
 import { Stats } from './StatsPage';
@@ -430,22 +432,47 @@ function startingState(setup: Setup): GameState {
   return onTheRoad && setup.silentKing ? silenceKing(fortified, player) : fortified;
 }
 
-function replay(saved: Saved): GameState[] {
+/* Replay the log, and say whether it reached the end.
+ *
+ * An action log is only meaningful under the rules that produced it, and the rules here move:
+ * a power's cost changes, a bind lasts two turns instead of one, and a move that was legal in
+ * the version that wrote the save is refused by the version reading it. The old code broke out
+ * of the loop on the first refusal and returned the states it had — so an update could sit the
+ * player back down twelve moves earlier in the same game, with no sign anything had happened,
+ * and the save effect would then write that shortened log straight back over the full one.
+ *
+ * Losing an unfinished game to an update is a fair price. Silently rewinding one, and then
+ * destroying the record of what really happened, is not. */
+function replay(saved: Saved): { states: GameState[]; complete: boolean } {
   const states = [startingState(saved)];
   for (const action of saved.actions) {
     const next = applyAction(states[states.length - 1], action);
-    if (isError(next)) break;
+    if (isError(next)) return { states, complete: false };
     states.push(next);
   }
-  return states;
+  return { states, complete: true };
 }
 
+/** The board in progress, or null — but never a partial one.
+ *
+ *  Only the unfinished *game* is at stake here. Campaign progress lives under a different key
+ *  and is never touched by this path, which is the division that matters: an update may cost
+ *  you the game you were halfway through, and must never cost you the road you walked to reach
+ *  it. See `loadRun`. */
 function loadSaved(): { setup: Setup; states: GameState[] } | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw) as Saved;
-    return { setup: saved, states: replay(saved) };
+    const { states, complete } = replay(saved);
+    if (!complete) {
+      // Written under rules this build no longer plays. Drop the board, keep the log where it
+      // is: it costs nothing, and it is the only evidence of what the old rules allowed.
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem('enchanted-chess:v2.stale', raw);
+      return null;
+    }
+    return { setup: saved, states };
   } catch {
     return null;
   }
@@ -465,6 +492,7 @@ export default function App() {
   );
   const [bench, setBench] = useState<Loadout>(loadBench);
   const [run, setRun] = useState<RunState>(loadRun);
+  const [salvage, setSalvage] = useState(hasUnreadableSave);
   const won = run.progress;
   const [net, setNet] = useState<OnlineSnapshot>(online.current);
   const [card, setCard] = useState<{ card: StoryCard; then: () => void } | null>(null);
@@ -574,14 +602,34 @@ export default function App() {
     setCardAside(false);
   }, [card]);
   const bubbleTimers = useRef<{ house?: number; you?: number }>({});
-  const sayRef = useRef<(who: 'house' | 'you', text: string) => void>(() => {});
-  const say = useCallback((who: 'house' | 'you', text: string) => {
+  const sayRef = useRef<(who: 'house' | 'you', text: string, teaching?: boolean) => void>(() => {});
+  /* When the house bubble comes free, and until when a lesson owns it.
+   *
+   * Teaching and banter share one bubble, and the seat talks on nearly every move. A lesson was
+   * being posted and then overwritten a beat later by the greeting or by "…that's a good
+   * question, that" — while still being recorded as taught. Told once, ever, and never read.
+   * Banter is worth nothing and can be dropped; a lesson is worth the whole tutorial and waits
+   * its turn instead. Arbitrated here rather than at each call site because there are five of
+   * them and the sixth is the one that would break it again. */
+  const houseFreeAt = useRef(0);
+  const teachingUntil = useRef(0);
+  const say = useCallback((who: 'house' | 'you', text: string, teaching = false) => {
+    if (who === 'house' && !teaching && Date.now() < teachingUntil.current) return;
     setBubbles((prev) => ({ ...prev, [who]: text }));
     window.clearTimeout(bubbleTimers.current[who]);
+    const dwell = dwellFor(text);
+    if (who === 'house') houseFreeAt.current = Date.now() + dwell;
+    if (teaching) teachingUntil.current = Date.now() + dwell;
     bubbleTimers.current[who] = window.setTimeout(() => {
       setBubbles((prev) => ({ ...prev, [who]: null }));
-    }, dwellFor(text));
+    }, dwell);
   }, []);
+  /* `commit` and the tutorial effect reach the bubble through this ref rather than through `say`
+   * directly, so that neither has to list it as a dependency and re-run on every render. It was
+   * declared and never assigned, which made both of them call the no-op default: the Innkeeper's
+   * lessons and every line of commentary on the player's own moves went nowhere, quietly, while
+   * the lessons were still recorded as taught. `say` is stable, so one assignment holds. */
+  sayRef.current = say;
   const [drag, setDrag] = useState<{
     from: number;
     x: number;
@@ -608,10 +656,19 @@ export default function App() {
     if (!lesson) return;
     // A beat behind the move, so his line lands after the board has settled rather than on top
     // of the piece still arriving.
-    const timer = window.setTimeout(() => {
-      sayRef.current('house', LESSON_TEXT[lesson]);
+    // Re-checked at fire time, not just scheduled around: the seat's greeting lands in the same
+    // breath as the first lesson of a run, and whichever spoke second used to win.
+    let timer = 0;
+    const speak = () => {
+      const busy = houseFreeAt.current - Date.now();
+      if (busy > 0) {
+        timer = window.setTimeout(speak, busy + 400);
+        return;
+      }
+      sayRef.current('house', LESSON_TEXT[lesson], true);
       setLearned((prev) => remember(prev, lesson));
-    }, 700);
+    };
+    timer = window.setTimeout(speak, 700);
     return () => window.clearTimeout(timer);
   }, [state?.ply, state?.status.kind, learned]);
 
@@ -1441,8 +1498,18 @@ export default function App() {
           control: parsed.control ?? 'untimed',
           opponent: parsed.opponent ?? 'table',
         };
+        const { states, complete } = replay({ ...loaded, actions: parsed.actions });
+        if (!complete) {
+          // An imported log that stops short is the interesting case, not the boring one: it
+          // means this build refuses a move the build that recorded it allowed. Say which move,
+          // and load what did replay — that position is the bug report.
+          setLoadError(
+            `Log diverges at move ${states.length}: this build refuses the action recorded there. ` +
+              `Loaded the ${states.length - 1} moves that still replay.`,
+          );
+        }
         setSetup(loaded);
-        setHistory(replay({ ...loaded, actions: parsed.actions }));
+        setHistory(states);
       } else {
         setLoadError('Expected an exported log (with "actions") or a serialized state.');
         play('illegal');
@@ -1566,6 +1633,28 @@ export default function App() {
                     {run.attempts === 0 ? 'one walk, from the taps up' : 'from the taps, again'}
                   </span>
                 )}
+              </button>
+            )}
+            {/* A save the browser handed back damaged. It is set aside rather than overwritten
+                (see `loadRun`), so the campaign is still there and the usual cause — a write cut
+                short — does not repeat. Offering the retry is the whole recovery. */}
+            {salvage && (
+              <button
+                type="button"
+                onClick={() => {
+                  play('select');
+                  const back = recoverSave();
+                  if (back) {
+                    setRun(back);
+                    setSalvage(false);
+                  } else {
+                    setSalvage(false);
+                    play('illegal');
+                  }
+                }}
+              >
+                Recover your progress
+                <span className="soon">a saved road was unreadable last time — try it again</span>
               </button>
             )}
             {midRoadDuel && (
@@ -3112,7 +3201,8 @@ function StatusPanel({ state, powerMode }: { state: GameState; powerMode: PowerM
     <div className={`panel status ${s.kind !== 'ongoing' ? 'status-over' : ''}`}>
       <h3>Status</h3>
       <p className="status-text">{text}</p>
-      {hint && <p className="status-hint">{hint}</p>}
+      {/* Every armed state carries its exit: the hint says what to tap, this says you don't have to. */}
+      {hint && <p className="status-hint">{hint} Tap elsewhere to cancel.</p>}
       <p className="muted">
         move {state.fullmove} · fifty-move clock {state.halfmove}
         {state.ep !== null ? ` · en passant ${squareName(state.ep)}` : ''}

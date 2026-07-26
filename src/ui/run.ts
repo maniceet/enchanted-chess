@@ -18,6 +18,29 @@ import type { Enchantment, PowerName } from '../engine/types';
  *  first move, because a stranger has not earned anything off you and should not have to. */
 
 const KEY = 'enchanted-chess:run';
+/* Where an unreadable save is put instead of on the floor.
+ *
+ * A campaign is dozens of hours: the book the Sorcerer has taught, every seat ever beaten, the
+ * dragon Rolain lends once a lifetime. It is the one thing in this app that cannot be earned
+ * back in an evening, and it lives in a browser's localStorage behind a `JSON.parse`. If that
+ * parse ever throws — a write cut short by a full quota, a half-synced profile — the old code
+ * returned FRESH and the next `save()` wrote over the wreckage, which turns "we could not read
+ * your progress this once" into "your progress is gone for good".
+ *
+ * So a save that will not parse is moved aside, not overwritten. It costs one string and it is
+ * the difference between a recoverable bad day and a lost campaign. */
+const SALVAGE_KEY = 'enchanted-chess:run.unreadable';
+
+/* Bumped only when a shape change needs code to fix up old saves.
+ *
+ * `sanitize` reads field by field with a default for every one, so *adding* to RunState has
+ * always been safe and needs no migration: an old save simply arrives without the field and
+ * takes the default. What it cannot handle by itself is a field whose *meaning* changed —
+ * renamed, re-typed, or split — because the old value reads as valid and is wrong. That is what
+ * this number is for: something to branch on in `migrate` when it happens. Shipping it now,
+ * before it is needed, because a version stamp added after the fact can only ever describe
+ * saves written from that day on. */
+const SAVE_VERSION = 1;
 
 /** A traveller sits down at the first table with two, and a duel between strangers is always
  *  four. Starting *below* the duelling budget is the point: the campaign is the story of
@@ -576,6 +599,19 @@ const FRESH: RunState = {
   trials: [],
 };
 
+/** Bring a save of any age up to the current shape. Runs before `sanitize`, which then fills in
+ *  anything still missing. Deliberately tolerant: an unknown or absent version is treated as the
+ *  oldest, since a save written before versions existed is exactly that. */
+function migrate(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object') return raw;
+  const value = raw as Record<string, unknown>;
+  const from = Number(value.version) || 0;
+  if (from >= SAVE_VERSION) return value;
+  // Nothing to fix yet — every shape change so far has been additive, and `sanitize` covers
+  // those. Migrations from 0 → 1 → … land here, each one narrow and named.
+  return { ...value, version: SAVE_VERSION };
+}
+
 function sanitize(raw: unknown): RunState {
   const value = (raw ?? {}) as Partial<RunState>;
   const progress = Array.isArray(value.progress)
@@ -628,20 +664,51 @@ function sanitize(raw: unknown): RunState {
 }
 
 export function loadRun(): RunState {
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(KEY);
+    raw = localStorage.getItem(KEY);
     // Nothing saved yet and the shortcut is on: sit straight down at the eighth table rather
     // than making the road be walked again to look at one opponent.
     if (!raw && DEV && START_AT_WITTEX) return save({ ...FRESH, ...atWittex() });
-    return sanitize(raw ? JSON.parse(raw) : null);
+    return sanitize(migrate(raw ? JSON.parse(raw) : null));
   } catch {
+    // Unreadable. Keep it — see SALVAGE_KEY — and start this session fresh rather than pretend
+    // the campaign never happened.
+    try {
+      if (raw) localStorage.setItem(SALVAGE_KEY, raw);
+    } catch {
+      /* no room to keep it either; nothing further to try */
+    }
     return { ...FRESH };
+  }
+}
+
+/** True when a save was found unreadable and set aside. The bar shows a line offering to try it
+ *  again on the next visit, because the usual cause — a write cut short — does not repeat. */
+export function hasUnreadableSave(): boolean {
+  try {
+    return localStorage.getItem(SALVAGE_KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** Put a set-aside save back and read it. Returns null if it is still unreadable. */
+export function recoverSave(): RunState | null {
+  try {
+    const raw = localStorage.getItem(SALVAGE_KEY);
+    if (!raw) return null;
+    const state = sanitize(migrate(JSON.parse(raw)));
+    localStorage.removeItem(SALVAGE_KEY);
+    return save(state);
+  } catch {
+    return null;
   }
 }
 
 function save(state: RunState): RunState {
   try {
-    localStorage.setItem(KEY, JSON.stringify(state));
+    localStorage.setItem(KEY, JSON.stringify({ ...state, version: SAVE_VERSION }));
   } catch {
     /* A traveller with no pockets still gets to play; the road just forgets him. */
   }
