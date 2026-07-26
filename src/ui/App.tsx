@@ -184,7 +184,10 @@ const FACE: Record<House | 'you', { rows: string[]; palette: Record<string, stri
 };
 
 function faceAsset(face: (typeof FACE)[House | 'you']): string {
-  return `/portraits/${face.asset}.png`;
+  // WebP, not PNG: identical pixels at roughly a seventh of the bytes, and these portraits were
+  // 2.3 MB of a 5 MB download. Re-encode with `npx tsx scripts/portraits.ts`; the PNG masters
+  // live in `media/portraits/` and are not shipped.
+  return `/portraits/${face.asset}.webp`;
 }
 
 /** Story cards are intentionally data-first. This small index lets the presentation layer
