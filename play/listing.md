@@ -149,7 +149,7 @@ sips -z 512 512 media/logo.png --out play/icon-512.png
 | File | Where it goes |
 |---|---|
 | `icon-512.png` | App icon, 512×512, no transparency — the painted badge, from `media/logo.png` |
-| `feature-graphic.png` | Feature graphic, 1024×500 |
+| `feature-graphic.png` | Feature graphic, 1024×500 — the same badge, so banner and icon match |
 | `screenshots/01-the-board.png` | Phone screenshot — a live board with an enchanted pawn |
 | `screenshots/02-the-road.png` | Phone screenshot — the seven seats of the campaign |
 | `screenshots/03-the-open-board.png` | Phone screenshot — both loadouts revealed before move one |

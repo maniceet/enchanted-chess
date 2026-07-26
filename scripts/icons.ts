@@ -107,29 +107,50 @@ function storeSvg(px: number): string {
  *
  *  Play crops and overlays this unpredictably — on some surfaces the middle is covered by the
  *  install button and the edges are trimmed — so nothing important goes outside the middle and
- *  no text has to be read for the picture to work. */
+ *  no text has to be read for the picture to work.
+ *
+ *  Carries the painted badge rather than the launcher mark: the banner sits directly above the
+ *  store icon on the listing page, and two different pieces of artwork stacked on top of each
+ *  other read as two different apps. */
 function featureSvg(): string {
   const w = 1024;
   const h = 500;
-  const mark = foregroundSvg(h).replace(/^<svg[^>]*>|<\/svg>$/g, '');
+  // Trimmed of its black outer margin so the badge sits on the banner rather than in a
+  // black rectangle on it. Regenerate with:
+  //   sips -c 1140 1140 --cropOffset 57 57 media/logo.png --out media/logo-trimmed.png
+  const badge = readFileSync('media/logo-trimmed.png').toString('base64');
   const grain = Array.from({ length: 64 }, (_, i) => {
     const x = (i * w) / 64;
     return `<rect x="${x.toFixed(1)}" y="0" width="${(w / 128).toFixed(1)}" height="${h}" fill="#000" opacity="0.16"/>`;
   }).join('');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <defs>
-    <radialGradient id="glow" cx="34%" cy="50%" r="62%">
+    <!-- The glow sits behind the *text*, not the badge: the badge brings its own light and a
+         second source under it only fights the frame. Dark on the left also means the badge's
+         own dark ground meets dark ground rather than a brown wash. -->
+    <radialGradient id="glow" cx="68%" cy="50%" r="60%">
       <stop offset="0%" stop-color="#4a2a10"/>
       <stop offset="100%" stop-color="#140c06"/>
     </radialGradient>
+    <!-- The badge is a rounded square painted on a black field, so dropped in as a rectangle it
+         shows four black corners against the banner. Clipped to its own corner radius instead —
+         about 17.5% of its width, measured off the art — so the frame meets the background
+         directly. -->
+    <clipPath id="badge">
+      <rect x="42" y="26" width="448" height="448" rx="78" ry="78"/>
+    </clipPath>
   </defs>
   <rect width="${w}" height="${h}" fill="url(#glow)"/>
   ${grain}
-  <g transform="translate(58 0) scale(0.86)" opacity="0.97">${mark}</g>
+  <image href="data:image/png;base64,${badge}" x="42" y="26" width="448" height="448"
+    preserveAspectRatio="xMidYMid meet" clip-path="url(#badge)"/>
+  <!-- No title here. The badge already carries the wordmark, and printing the name a second
+       time six inches to the right of it reads as a mistake rather than as emphasis. The line
+       that earns its place is the one the badge cannot say. -->
   <g font-family="Palatino, 'Palatino Linotype', Georgia, serif" text-anchor="middle">
-    <text x="676" y="232" font-size="72" fill="${GOLD}">Enchanted Chess</text>
-    <text x="676" y="296" font-size="29" font-style="italic" fill="#c8ab86">Magic here has rules, a price,</text>
-    <text x="676" y="338" font-size="29" font-style="italic" fill="#c8ab86">and no secrets.</text>
+    <text x="740" y="222" font-size="40" font-style="italic" fill="${GOLD}">Magic here has rules,</text>
+    <text x="740" y="278" font-size="40" font-style="italic" fill="${GOLD}">a price, and no secrets.</text>
+    <text x="740" y="352" font-size="26" fill="#c8ab86">A roguelike chess variant · plays offline</text>
   </g>
 </svg>`;
 }
