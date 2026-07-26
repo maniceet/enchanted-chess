@@ -319,6 +319,10 @@ function startingState(setup: Setup): GameState {
     applyLoadout(base, player, player === 'w' ? setup.white : setup.black, setup.budget ?? BUDGET),
     house,
     house === 'w' ? setup.white : setup.black,
+    // The seat spends its own mana, not the duelling budget. Without this every seat spent
+    // whatever `BUDGET` happened to be — which is how raising the duelling purse from four to
+    // ten briefly armed the Drunken Knight like the Dragonlord.
+    isHouse(setup.opponent) ? HOUSE[setup.opponent].mana : undefined,
   );
   const profile = isHouse(setup.opponent) ? HOUSE[setup.opponent] : undefined;
   const mounted = profile?.dragons ? raiseDragons(ready, house, profile.dragons) : ready;
@@ -326,6 +330,10 @@ function startingState(setup: Setup): GameState {
     ? raiseArchbishops(mounted, house, profile.archbishops)
     : mounted;
   const armored = profile?.armored ? armorArmy(ordained, house, profile.armored) : ordained;
+  // The first two tables bring no King's word at all. Teaching seats: a power at the first
+  // board is one more rule to explain before the player has even met a shield, and Rolain is
+  // where the Divine Call is introduced on both sides at once.
+  const spoken = profile && profile.power === null ? silenceKing(armored, house) : armored;
 
   // `boon` and `silentKing` describe a *run*, and `Setup` is reused between games, so a stale
   // one has leaked into a hotseat duel and into an online match before now. Both call sites
@@ -337,8 +345,8 @@ function startingState(setup: Setup): GameState {
   // `raiseDragons` turns knights nearest the edge inwards, so the counts simply add.
   const evolved =
     onTheRoad && setup.dragons
-      ? raiseDragons(armored, player, { count: setup.dragons, taunt: false })
-      : armored;
+      ? raiseDragons(spoken, player, { count: setup.dragons, taunt: false })
+      : spoken;
   const mounted2 =
     onTheRoad && setup.boon ? raiseDragons(evolved, player, { count: 1, taunt: true }) : evolved;
   const ordained2 =
@@ -1225,6 +1233,7 @@ export default function App() {
       ? innkeeperLoadout(base, seatColor, {
           timed: merged.control !== 'untimed',
           power: HOUSE[merged.opponent as House].power,
+          budget: HOUSE[merged.opponent as House].mana,
         })
       : mirrorLoadout(bench);
     const next: Setup = {

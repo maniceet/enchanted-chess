@@ -75,6 +75,25 @@ export interface HouseProfile {
   /** How much of the tree this seat is allowed to see. Load-independent, so the seat plays the
    *  same everywhere. Whichever of this and `budgetMs` bites first ends the search. */
   maxNodes?: number;
+  /** What this seat spends on its own enchantments, in mana.
+   *
+   *  The road's difficulty is meant to be *what the opponent brought*, not only how deep it
+   *  searches, and this is the half that was missing. Every seat used to spend `BUDGET`, which
+   *  meant raising the duelling budget from four to ten quietly handed the Drunken Knight ten
+   *  points of magic — a teaching seat armed like the Dragonlord. The ladder is explicit now,
+   *  and it climbs with the road: 1, 2, 3, 4, 4, 6, 8, 10. */
+  mana: number;
+  /** The King's word this seat brings. Three states, deliberately:
+   *
+   *  - a name — always this one. Ardax raises the dead and always will; Wittex is the only
+   *    King on the road who may speak Destined Death.
+   *  - `null` — this King says nothing. The first two tables teach ordinary chess with a little
+   *    magic on it, and a power at the first board is one more rule to explain before the
+   *    player has met a shield. It is also why Rolain exists: she is where the Divine Call
+   *    enters the game, on both sides at once.
+   *  - omitted — draw one at random each attempt, from the pool that excludes Destined Death.
+   *    A seat the player meets many times should not be the same seat every time. */
+  power?: PowerName | null;
   /** Beat before the reply lands, so a move can be seen arriving. */
   pauseMs: number;
   /** How often this one opens its mouth on a notable move. */
@@ -88,8 +107,6 @@ export interface HouseProfile {
   /** Armour: the pieces in scope carry Taunt, so anything defended costs a whole turn to
    *  strip. Omitted means no armour at all. */
   armored?: ArmorScope;
-  /** Some of them always call the same thing. Ardax raises the dead, and always will. */
-  power?: PowerName;
   /** The dragon line. Marked so the road can frame them differently. */
   boss?: boolean;
 }
@@ -102,6 +119,10 @@ export const HOUSE: Record<House, HouseProfile> = {
     depth: 1,
     sample: 1,
     random: true,
+    // The first table teaches that pieces can carry magic at all. One point, and no word
+    // from his King: everything here should be explainable in a sentence.
+    mana: 1,
+    power: null,
     pauseMs: 220,
     banter: 0.5,
   },
@@ -113,6 +134,8 @@ export const HOUSE: Record<House, HouseProfile> = {
     sample: 10,
     budgetMs: 250,
     maxNodes: 8_000,
+    mana: 2,
+    power: null,
     pauseMs: 260,
     banter: 0,
   },
@@ -129,6 +152,10 @@ export const HOUSE: Record<House, HouseProfile> = {
     sample: 10,
     budgetMs: 350,
     maxNodes: 10_000,
+    // She is where the Divine Call enters the game, on both sides of the board at once: she
+    // brings one, and beating her is what grants the player theirs.
+    mana: 3,
+    power: 'teleport',
     pauseMs: 260,
     banter: 0.6,
     dragons: { count: 1, taunt: false },
@@ -140,6 +167,8 @@ export const HOUSE: Record<House, HouseProfile> = {
     sample: 40,
     budgetMs: 400,
     maxNodes: 24_000,
+    mana: 4,
+    power: 'decree',
     pauseMs: 260,
     banter: 0.7,
   },
@@ -164,6 +193,10 @@ export const HOUSE: Record<House, HouseProfile> = {
     magic: true,
     budgetMs: 600,
     maxNodes: 55_000,
+    // Four, like the Wit — but every point of it goes into Taunt, so the same purse buys a
+    // harder afternoon. The armour is the difficulty here, not the arithmetic.
+    mana: 4,
+    power: 'relocate',
     pauseMs: 260,
     banter: 0.5,
     armored: 'pawns',
@@ -176,6 +209,8 @@ export const HOUSE: Record<House, HouseProfile> = {
     sample: 40,
     budgetMs: 800,
     maxNodes: 90_000,
+    // Six, and he shows the player what Revive is for before Kyrax uses it on them.
+    mana: 6,
     pauseMs: 280,
     banter: 0.8,
     power: 'revive',
@@ -197,6 +232,8 @@ export const HOUSE: Record<House, HouseProfile> = {
     sample: 64,
     budgetMs: 1200,
     maxNodes: 125_000,
+    // Ten, the ceiling, and the only King on the road who may speak Destined Death.
+    mana: 10,
     pauseMs: 320,
     banter: 0.9,
     power: 'doom',
@@ -215,6 +252,11 @@ export const HOUSE: Record<House, HouseProfile> = {
     sample: 60,
     budgetMs: 1000,
     maxNodes: 115_000,
+    mana: 8,
+    // No fixed word: he is met more often than anyone on the road — five times before he
+    // will say Wittex's name — and an opponent you sit down with five times should not open
+    // the same way five times. Never Destined Death; that one is his brother's.
+
     pauseMs: 300,
     banter: 0.85,
     boss: true,
@@ -896,14 +938,24 @@ const HOUSE_SPELLBOOK: Enchantment[] = ['taunt', 'martyr', 'outpost', 'swift', '
 export function innkeeperLoadout(
   state: GameState,
   color: Color,
-  options: { rng?: () => number; timed?: boolean; power?: PowerName } = {},
+  options: {
+    rng?: () => number;
+    timed?: boolean;
+    /** `null` means this seat's King says nothing. A power is still chosen, because a Loadout
+     *  must name one — the caller silences the King separately, which is how the traveller's
+     *  own silent King is expressed too. */
+    power?: PowerName | null;
+    /** What this seat may spend. Defaults to the duelling budget for a stranger; the road
+     *  passes each seat's own mana, which is most of what makes the ladder a ladder. */
+    budget?: number;
+  } = {},
 ): Loadout {
   // Revive is paid for out of what you did **not** spend, so a seat that is supposed to raise
   // the dead has to hold points back before it starts shopping — not discover afterwards that
   // it cannot afford its own power. Three points buys a knight or a bishop back; a pawn for one
   // is not worth a whole turn and not worth a boss's reputation.
   const holdBack = options.power === 'revive' ? REVIVE_RESERVE : 0;
-  const purse = BUDGET - holdBack;
+  const purse = Math.max(0, (options.budget ?? BUDGET) - holdBack);
   const rng = options.rng ?? Math.random;
   const pick = <T,>(items: T[]): T => items[Math.floor(rng() * items.length)];
 

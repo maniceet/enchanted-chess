@@ -122,10 +122,16 @@ interface Game {
 function build(who: House, seed: number, hero: HeroBuild): GameState {
   const profile = HOUSE[who];
   const base = initialState({});
-  const black = innkeeperLoadout(base, 'b', { power: profile.power, rng: seeded(seed) });
+  const black = innkeeperLoadout(base, 'b', {
+    power: profile.power,
+    // The seat's own mana, matching the game. Before this the harness measured every seat at
+    // the duelling budget, which is not the opponent anybody actually faces.
+    budget: profile.mana,
+    rng: seeded(seed),
+  });
   const { loadout, mana } = HERO_BUILDS[hero];
   // The seat always spends the duelling four; only the traveller's purse varies.
-  const ready = applyLoadout(applyLoadout(base, 'w', loadout, mana), 'b', black);
+  const ready = applyLoadout(applyLoadout(base, 'w', loadout, mana), 'b', black, profile.mana);
   // The traveller's own boons, when the build carries them. Raised before the seat's so the
   // two sides are built by the same code path and a bug in it cannot favour one of them.
   const spec = HERO_BUILDS[hero] as { dragons?: number; archbishops?: number };
@@ -137,7 +143,11 @@ function build(who: House, seed: number, hero: HeroBuild): GameState {
   const ordained = profile.archbishops
     ? raiseArchbishops(mounted, 'b', profile.archbishops)
     : mounted;
-  return profile.armored ? armorArmy(ordained, 'b', profile.armored) : ordained;
+  const armored = profile.armored ? armorArmy(ordained, 'b', profile.armored) : ordained;
+  // The two teaching seats bring no King's word, exactly as they do in the game.
+  return profile.power === null
+    ? { ...armored, powers: { ...armored.powers, b: { ...armored.powers.b, used: true } } }
+    : armored;
 }
 
 interface Caps {
