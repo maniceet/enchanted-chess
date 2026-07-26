@@ -172,8 +172,14 @@ const FACE: Record<House | 'you', { rows: string[]; palette: Record<string, stri
   armored: { rows: ARMORED, palette: ARMORED_PALETTE, key: 'armored', asset: 'armored' },
   ardax: { rows: ARDAX, palette: ARDAX_PALETTE, key: 'ardax', asset: 'ardax' },
   kyrax: { rows: KYRAX, palette: KYRAX_PALETTE, key: 'kyrax', asset: 'kyrax' },
-  // The Wit's own face, in Shivlar's colours. Recognising it is the point.
-  wittex: { rows: WIT, palette: WITTEX_PALETTE, key: 'wittex', asset: 'wit' },
+  /* The Wit's own face, in Shivlar's colours. Recognising it is the point — he has been sitting
+   * in the middle of the road wearing a smaller name, and the eighth table is where the player
+   * is supposed to look up and know him.
+   *
+   * `rows`/`palette` drive the pixel portrait and already recoloured him. `asset` drives the
+   * painted one, and pointed at `wit` — so on story cards and the seat card he was the Wit
+   * exactly, same pixels, no recolour at all. Half the reveal was landing. */
+  wittex: { rows: WIT, palette: WITTEX_PALETTE, key: 'wittex', asset: 'wittex' },
   you: { rows: TRAVELLER, palette: TRAVELLER_PALETTE, key: 'traveller', asset: 'traveller' },
 };
 
