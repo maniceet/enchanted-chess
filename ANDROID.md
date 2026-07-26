@@ -336,6 +336,34 @@ Two consequences, both handled:
 `:has()` is also used, for the Rules table on mobile, and is purely cosmetic — an old engine
 gets slightly taller rows and nothing else.
 
+## Download size, and the portraits
+
+The bundle carries eight seat portraits in `public/portraits/`. They are 433×433 PNGs at about
+280 KB each — **2.1 MB, which is most of the app**. The APK went from 3.1 MB to 5.2 MB the day
+they landed.
+
+They are never drawn anywhere near that size. The player bar renders them at 30×30 CSS px, the
+seat cards at around 40, and every rule that draws them sets `image-rendering: pixelated`, which
+throws the detail away on purpose. Measured alternatives, same eight files:
+
+| stored at | total |
+|---|---|
+| 433px (today) | 2132 KB |
+| 192px | 493 KB |
+| 128px | 233 KB |
+
+192px covers a 40px slot at 3× device pixel ratio with room to spare and returns about 1.6 MB —
+roughly a third of the download. Not done here on purpose: the portraits are live artwork being
+worked on elsewhere, and resizing somebody's source files underneath them is not a packaging
+decision to take unilaterally. When the art settles:
+
+```bash
+for f in public/portraits/*.png; do sips -z 192 192 "$f" --out "$f"; done
+```
+
+Better still would be exporting them at the size they are drawn at, since pixel art downscaled
+by a non-integer ratio muddies rather than sharpens.
+
 ## Known gaps
 
 - Portrait is declared in the web manifest but deliberately **not** pinned in
