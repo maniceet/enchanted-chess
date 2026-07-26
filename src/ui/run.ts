@@ -190,7 +190,7 @@ export const POWERUP: Record<
   venom: {
     name: 'Venom',
     flavour:
-      'A flask goes into the water butt and one of your pawns drinks before you can say which. You will find out when somebody takes it.',
+      'A flask goes into the rain barrel overnight, and one of your pawns drinks from it before anyone thinks to ask which. You will find out when somebody takes it.',
     weight: 16,
   },
   fortify: {
