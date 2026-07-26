@@ -209,7 +209,7 @@ export const HOUSE: Record<House, HouseProfile> = {
     power: 'relocate',
     pauseMs: 260,
     banter: 0.5,
-    armored: 'half',
+    armored: 'few',
   },
   // The necromancer: whatever you take, he calls back.
   ardax: {
@@ -218,7 +218,7 @@ export const HOUSE: Record<House, HouseProfile> = {
     depth: 8,
     sample: 40,
     budgetMs: 800,
-    maxNodes: 26_000,
+    maxNodes: 19_000,
     // Six, and he shows the player what Revive is for before Kyrax uses it on them.
     mana: 3,
     pauseMs: 280,
@@ -369,7 +369,7 @@ function sharpened(profile: HouseProfile): { depth: number; maxNodes?: number; b
  *  not a hard opponent, it is an opponent you cannot open — the reference hero drew seven games
  *  in eight against it, which is worse than losing them: nobody enjoys failing to convert. Four
  *  shields is a wall with a door in it. */
-export type ArmorScope = 'all' | 'pawns' | 'half';
+export type ArmorScope = 'all' | 'pawns' | 'half' | 'few';
 
 export function armorArmy(state: GameState, color: Color, scope: ArmorScope = 'all'): GameState {
   const board = state.board.map((piece) =>
@@ -381,9 +381,15 @@ export function armorArmy(state: GameState, color: Color, scope: ArmorScope = 'a
       ? { ...piece, ench: 'taunt' as const, shieldBroken: false }
       : piece,
   );
-  if (scope !== 'half') return { ...state, board };
-  // Half: the four centre pawns only, so the flanks are open and the game has somewhere to go.
-  let left = 4;
+  if (scope !== 'half' && scope !== 'few') return { ...state, board };
+  /* How many shields a seat can wear before it stops being an opponent and becomes a lock.
+   *
+   * Measured, not guessed. With every pawn shielded the reference hero drew twelve games in
+   * twenty; with none it won nine of sixteen. The shields were never making him strong, they
+   * were making him impossible to convert against, which is a different and much less enjoyable
+   * thing. Two is enough that a shield has to be answered and few enough that the game still
+   * ends. */
+  let left = scope === 'few' ? 2 : 4;
   const halved = state.board.map((piece) => {
     if (!piece || piece.color !== color || piece.type !== 'p' || piece.ench || left <= 0) {
       return piece;
@@ -808,14 +814,21 @@ export function evaluate(state: GameState, color: Color, rankedPassers = true): 
     const ps = state.powers[c];
     return ps.powers.filter((w) => !ps.spent.includes(w)).length;
   };
-  // 12 a word, not 30. A King may now hold three, and at 30 apiece a three-word traveller
-  // opposite a one-word seat starts 60 ahead on the evaluation alone — which happens to be the
-  // exact width of the aspiration window, so every search failed high, re-searched, and burned
-  // its node budget getting nowhere. The three-word hero lost eight games out of eight to Ardax
-  // and won three of eight with a single word: more power made it play worse, which is the sort
-  // of result that means the engine, not the balance.
-  score += 12 * unspoken(color);
-  score -= 12 * unspoken(opposite(color));
+  /* Having a word in hand is worth something. Having three is worth barely more than having
+   * one, and pretending otherwise is what made a better-equipped traveller play worse.
+   *
+   * A word is only worth what spending it buys, and the search already finds that: power
+   * activations are in the move list, so a teleport that wins a piece is scored as winning a
+   * piece. The term here is for the *option*, which is real but small — and paying per word made
+   * a three-word King evaluate itself well ahead of an even position, whereupon it stopped
+   * pressing and took draws. Against Prince Ardax that turned three wins in eight into none.
+   *
+   * So: a flat bounty for still having something to say, and almost nothing for having more of
+   * it. Measured word-count-neutral against both seats afterwards, which is the property that
+   * matters — a player who chooses three words must not be punished for it. */
+  const bounty = (c: Color) => (unspoken(c) > 0 ? 20 + 4 * (unspoken(c) - 1) : 0);
+  score += bounty(color);
+  score -= bounty(opposite(color));
   return score;
 }
 
