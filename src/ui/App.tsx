@@ -57,6 +57,7 @@ import {
 import { describeHead, headIndex, jumpHead, stepHead } from './rewind';
 import { dressStatusBar, onBackButton } from './native';
 import { strangerReset } from './stranger';
+import { LESSON_TEXT, loadLearned, lessonFor, remember, type Lesson } from './tutorial';
 import { lastPower, powerSquares } from './powerFx';
 import {
   ARDAX,
@@ -589,6 +590,30 @@ export default function App() {
   } | null>(null);
 
   const state = history[history.length - 1] ?? null;
+
+  /* The Innkeeper teaching the parts that are not chess.
+   *
+   * He speaks when the situation is actually on the board — a warning about Poison on move one
+   * is a rule, the same warning as your knight lines the pawn up is advice — and once each,
+   * ever, across the whole campaign. Only on the road: a duel between two people who chose
+   * their own armies does not need coaching, and hearing it there would be the game explaining
+   * a decision they had just made on purpose.
+   */
+  const [learned, setLearned] = useState<Lesson[]>(loadLearned);
+  useEffect(() => {
+    if (!state || state.status.kind !== 'ongoing') return;
+    if (!isHouse(setupRef.current.opponent)) return;
+    const player: Color = setupRef.current.player ?? 'w';
+    const lesson = lessonFor(state, player, learned);
+    if (!lesson) return;
+    // A beat behind the move, so his line lands after the board has settled rather than on top
+    // of the piece still arriving.
+    const timer = window.setTimeout(() => {
+      sayRef.current('house', LESSON_TEXT[lesson]);
+      setLearned((prev) => remember(prev, lesson));
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [state?.ply, state?.status.kind, learned]);
 
   /* A King power costs a whole turn and can move a piece across the board, freeze one, or
    * bring one back from the dead — and the board used to simply look different afterwards,
