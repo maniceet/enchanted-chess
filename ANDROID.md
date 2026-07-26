@@ -283,6 +283,35 @@ policy should be. Only the clean production alias is public. It is
 accurate rather than boilerplate: it names the four `localStorage` keys the game actually
 writes and says why `INTERNET` is the only permission.
 
+## Multiplayer, and why it is off
+
+The shipped build gates online play to a disabled "Against a stranger — COMING SOON" button.
+That is deliberate, and it is two separate things, not one flag:
+
+- **No server is running.** `server/main.ts` is a `ws` server that has to stay alive holding
+  connections. Vercel serves the static bundle and will not do that; it needs a host with
+  persistent WebSockets.
+- **The app could not find one anyway.** `socketUrl()` falls back to `location.host`, which
+  inside the WebView is the local bundle's own origin. It needs `VITE_WS_URL` pointing at an
+  absolute `wss://…/ws` at build time.
+
+Turning it on is: deploy the server, rebuild with `VITE_ONLINE=1 VITE_WS_URL=…`, bump
+`versionCode`, ship an update. **And update the data safety form and the privacy policy first** —
+both currently say the game collects nothing and that nothing leaves the device, which online
+play makes false. Shipping a build that contradicts a filed data-safety declaration is the part
+Play enforces on.
+
+What ships instead is not multiplayer-free: **hotseat** ("Duel another captain → At this table")
+is two people on one device with all six enchantments, and works offline.
+
+## Measurements worth keeping
+
+| | |
+|---|---|
+| Cold start | 2.9–3.5s on a software-rendered emulator; faster on real hardware |
+| Download size | 2.68 MB |
+| Tablet | 10" landscape (1280×800 CSS px) uses the desktop layout; menu centres, nothing breaks |
+
 ## Known gaps
 
 - Portrait is declared in the web manifest but deliberately **not** pinned in

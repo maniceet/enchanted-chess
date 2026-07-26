@@ -148,6 +148,22 @@ reviewer cannot read is a rejection. Only the clean production alias above is pu
 
 Worth re-checking after any change to the project's Deployment Protection settings.
 
+## Signing — done
+
+The upload keystore exists, is held outside this repository, and produces a correctly signed
+bundle. Verified on the artifact itself rather than assumed:
+
+| | |
+|---|---|
+| Signature block | `META-INF/UPLOAD.RSA` |
+| Certificate | `CN=Maniceet Sahay, O=Enchanted Chess` |
+| Valid until | December 2053 — well past Play's October 2033 floor |
+| Algorithm | SHA384withRSA |
+
+Enrol in **Play App Signing** at first upload. It makes the key above only an *upload* key, which
+Google can reset if it is ever lost; without it, losing that file ends the ability to update this
+listing at all.
+
 ## Still to do before submitting
 
 - **Contact email.** Required and made public on the listing. Deliberately not filled in here —
