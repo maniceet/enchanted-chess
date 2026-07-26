@@ -73,7 +73,11 @@ export const CARRIER_MULTIPLIER: Record<PieceType, number> = {
 
 export const LEGAL_CARRIERS: Record<Enchantment, PieceType[]> = {
   squire: ['p'],
-  taunt: ['p', 'n', 'b', 'r', 'q', 'd'],
+  // No 'd', and no exception anywhere else either: a Dragon is never shielded. The seats'
+  // raises shed Taunt (see `raiseDragons`), so a purchasable shield here would be four mana
+  // for an enchantment the first move deletes. Rolain's lent dragon gets its shield from the
+  // raise itself, not from any loadout.
+  taunt: ['p', 'n', 'b', 'r', 'q'],
   martyr: ['p', 'n', 'b', 'r', 'q', 'd'],
   outpost: ['p', 'n', 'b'],
   swift: ['p'],

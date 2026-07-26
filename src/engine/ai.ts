@@ -214,7 +214,7 @@ export const HOUSE: Record<House, HouseProfile> = {
   // The necromancer: whatever you take, he calls back.
   ardax: {
     label: 'Prince Ardax',
-    blurb: 'The Dragonlord’s son. Rides a shielded dragon, and practices necromancy: what falls does not stay down.',
+    blurb: 'The Dragonlord’s son. Rides a dragon, and practices necromancy: what falls does not stay down.',
     depth: 8,
     sample: 40,
     budgetMs: 800,
@@ -254,10 +254,10 @@ export const HOUSE: Record<House, HouseProfile> = {
     dragons: { count: 2 },
     archbishops: { count: 2 },
   },
-  // The end of the road. Two shielded dragons and a search that reads to the bottom.
+  // The end of the road. Two dragons and a search that reads to the bottom.
   kyrax: {
     label: 'Dragonlord Kyrax',
-    blurb: 'Both his dragons are shielded, and he has read this board before you sat down.',
+    blurb: 'He rides with two dragons, and he has read this board before you sat down.',
     depth: 8,
     sample: 60,
     budgetMs: 1000,
@@ -400,8 +400,14 @@ export function armorArmy(state: GameState, color: Color, scope: ArmorScope = 'a
   return { ...state, board: halved };
 }
 
-/** Turns a rider's knights into dragons, optionally shielded. Applied after the loadout, so
- *  whatever enchantments were chosen still land on the squares they were chosen for. */
+/** Turns a rider's knights into dragons. Applied after the loadout, so whatever enchantments
+ *  were chosen still land on the squares they were chosen for — with one exception. Unless
+ *  `taunt: true` is passed (Rolain's lent dragon, and nothing else), a raised piece *sheds*
+ *  Taunt. The profiles cannot ask for shielded dragons by type, but a seat's own rolled
+ *  loadout could put Taunt on a knight and the raise used to carry it through — the exact
+ *  wall-you-cannot-reach-into that removing the profile option was supposed to end, back by a
+ *  side door on whatever fraction of rolls happened to draw it. Other enchantments ride along;
+ *  it is the shield specifically that a Dragon must not wear. */
 export function raiseDragons(
   state: GameState,
   color: Color,
@@ -412,18 +418,20 @@ export function raiseDragons(
   const board = state.board.map((piece) => {
     if (!piece || piece.color !== color || piece.type !== 'n' || raised >= count) return piece;
     raised++;
+    const kept = piece.ench === 'taunt' ? null : piece.ench;
     return {
       ...piece,
       type: 'd' as const,
-      ench: options.taunt ? ('taunt' as const) : piece.ench,
+      ench: options.taunt ? ('taunt' as const) : kept,
       shieldBroken: false,
     };
   });
   return { ...state, board };
 }
 
-/** Bishops become Archbishops. Same shape as `raiseDragons`: the piece keeps its square and
- *  its enchantment, and gains the word. */
+/** Bishops become Archbishops. Same shape and same shield rule as `raiseDragons`: the piece
+ *  keeps its square and its enchantment, gains the word, and sheds Taunt unless the raise
+ *  itself grants it. */
 export function raiseArchbishops(
   state: GameState,
   color: Color,
@@ -434,10 +442,11 @@ export function raiseArchbishops(
   const board = state.board.map((piece) => {
     if (!piece || piece.color !== color || piece.type !== 'b' || raised >= count) return piece;
     raised++;
+    const kept = piece.ench === 'taunt' ? null : piece.ench;
     return {
       ...piece,
       type: 'a' as const,
-      ench: options.taunt ? ('taunt' as const) : piece.ench,
+      ench: options.taunt ? ('taunt' as const) : kept,
       shieldBroken: false,
     };
   });

@@ -760,7 +760,10 @@ describe('Carrier errors are shown to a player, so they read as prose', () => {
 
   it('says nothing when the carrier is legal', () => {
     expect(carrierError('swift', 'p')).toBeNull();
-    expect(carrierError('taunt', 'd')).toBeNull();
+    // A Dragon is never shielded — the raise sheds Taunt and the loadout refuses to sell it,
+    // in agreement. The error doubles as the builder's explanation of the rule.
+    expect(carrierError('taunt', 'd')).not.toBeNull();
+    expect(carrierError('martyr', 'd')).toBeNull();
   });
 });
 
