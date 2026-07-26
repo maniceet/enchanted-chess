@@ -194,6 +194,7 @@ export function Board({
             powerFlash.has(s) ? 'sq-power-fx' : '',
             lastMove && (lastMove.from === s || lastMove.to === s) ? 'sq-last' : '',
             checkedKing === s ? 'sq-check' : '',
+            checkedKing === s && state.status.kind === 'checkmate' ? 'sq-fallen' : '',
             denySquare === s ? 'sq-deny' : '',
             shatterSquare === s ? 'sq-shatter' : '',
             hoverSquare === s ? 'sq-hover' : '',
