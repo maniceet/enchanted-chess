@@ -2404,8 +2404,7 @@ export default function App() {
                         ? 'a dragon'
                         : `${HOUSE[setup.opponent].dragons!.count} dragons`}{' '}
                       in place of {HOUSE[setup.opponent].dragons!.count === 1 ? 'a knight' : 'knights'}
-                      {HOUSE[setup.opponent].dragons!.taunt ? ', shielded by Taunt' : ''}. A dragon
-                      moves as knight and bishop both.
+                      . A dragon moves as knight and bishop both.
                     </p>
                   )}
                   {/* The armour is not in the loadout list, because it is not bought — it is

@@ -223,8 +223,8 @@ export const STORY: Record<House, Beat> = {
       lines: [
         '"Good. You saw the shape of it." She is already turning the horse.',
         '"Take this as well, since you have earned it and nobody else was going to offer. They call it the Divine Call: one word from your King, once in a game, spent instead of a move. He can throw a piece across the board, or trade places with one, or still an enemy where it stands, or call a fallen piece back up. Choose which word he knows before you sit down."',
-        '"Two things, then. My brother practises necromancy, so what you take from him does not always stay taken. And my father shields his dragons, which means that on his own ground you cannot simply reach out and remove them."',
-        '"On his own ground. Remember the second half of that. A shield is a thing you stand behind, not a thing you carry, and it sleeps the moment its owner crosses the middle. Everyone forgets. Do not be everyone."',
+        '"Two things, then. My brother practises necromancy, so what you take from him does not always stay taken. And there is a man in full plate at the fifth table who has spent every point he owns on shields, which is a stupid way to build an army and a very annoying one to sit opposite."',
+        '"Learn the shield on him, because it is the only thing he has. It only works in his own half — a shield is a thing you stand behind, not a thing you carry, and it sleeps the moment its owner crosses the middle. Make him come to you. Everyone forgets. Do not be everyone."',
         '"Beat them anyway."',
       ],
     },

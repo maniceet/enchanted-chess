@@ -100,10 +100,16 @@ export interface HouseProfile {
   banter: number;
   /** Dragon riders field dragons in place of knights, and may shield them. Bosses are exempt
    *  from the four point budget on purpose: better pieces are the whole threat. */
-  dragons?: { count: number; taunt: boolean };
+  /** Dragons this seat rides. No `taunt` field, and its absence is the rule: a seat's exotic
+   *  pieces are never shielded. A Dragon already moves as knight and bishop both; wrapping it in
+   *  a shield as well made the late road a wall you could not reach into, and the option existing
+   *  at all is how it kept coming back. The player's own lent dragon may still be shielded —
+   *  `raiseDragons` keeps the option — but no profile can ask for it. */
+  dragons?: { count: number };
   /** Archbishops in place of bishops. Wittex is the only seat that fields them: the piece is
    *  a rare boon on the road, and meeting two of them at the last table is the point. */
-  archbishops?: { count: number; taunt: boolean };
+  /** Same rule as `dragons`: raised, never shielded. */
+  archbishops?: { count: number };
   /** Armour: the pieces in scope carry Taunt, so anything defended costs a whole turn to
    *  strip. Omitted means no armour at all. */
   armored?: ArmorScope;
@@ -158,7 +164,7 @@ export const HOUSE: Record<House, HouseProfile> = {
     power: 'teleport',
     pauseMs: 260,
     banter: 0.6,
-    dragons: { count: 1, taunt: false },
+    dragons: { count: 1 },
   },
   wit: {
     label: 'The Wit',
@@ -189,21 +195,21 @@ export const HOUSE: Record<House, HouseProfile> = {
     label: 'The Armored Knight',
     blurb:
       'Guards the castle gate in full plate, and every pawn he owns wears the same. Plate is for standing in: it holds on his four ranks and nowhere else.',
-    depth: 7,
+    depth: 6,
     sample: 40,
     // Redundant with `sample: 40` today, and kept anyway: it pins the guarantee that this seat
     // understands the magic it is wearing, so tuning his sample down later cannot quietly make
     // him blind to his own armour again. `seats.test.ts` enforces it.
     magic: true,
     budgetMs: 600,
-    maxNodes: 38_000,
+    maxNodes: 12_000,
     // Four, like the Wit — but every point of it goes into Taunt, so the same purse buys a
     // harder afternoon. The armour is the difficulty here, not the arithmetic.
-    mana: 4,
+    mana: 2,
     power: 'relocate',
     pauseMs: 260,
     banter: 0.5,
-    armored: 'pawns',
+    armored: 'half',
   },
   // The necromancer: whatever you take, he calls back.
   ardax: {
@@ -212,14 +218,14 @@ export const HOUSE: Record<House, HouseProfile> = {
     depth: 8,
     sample: 40,
     budgetMs: 800,
-    maxNodes: 52_000,
+    maxNodes: 26_000,
     // Six, and he shows the player what Revive is for before Kyrax uses it on them.
-    mana: 5,
+    mana: 3,
     pauseMs: 280,
     banter: 0.8,
     power: 'revive',
     boss: true,
-    dragons: { count: 1, taunt: true },
+    dragons: { count: 1 },
   },
   // The truth. The Wit has been at the far end of this road the whole time, wearing a smaller
   // name and letting a prisoner take the blame for him.
@@ -245,8 +251,8 @@ export const HOUSE: Record<House, HouseProfile> = {
     // He does not need cavalry to be frightening, and he brings it anyway. Two dragons and two
     // Archbishops is the whole bestiary at one table: the pieces the road handed out one rare
     // drop at a time, all of them at once, on the other side.
-    dragons: { count: 2, taunt: true },
-    archbishops: { count: 2, taunt: true },
+    dragons: { count: 2 },
+    archbishops: { count: 2 },
   },
   // The end of the road. Two shielded dragons and a search that reads to the bottom.
   kyrax: {
@@ -264,7 +270,7 @@ export const HOUSE: Record<House, HouseProfile> = {
     pauseMs: 300,
     banter: 0.85,
     boss: true,
-    dragons: { count: 2, taunt: true },
+    dragons: { count: 2 },
   },
 };
 
@@ -357,7 +363,13 @@ function sharpened(profile: HouseProfile): { depth: number; maxNodes?: number; b
  *  the position even moves. Armour on the pawns keeps the lesson (a wall you have to open) and
  *  drops the grind (opening it sixteen times). The King is never in scope: he bows to no
  *  enchantment. */
-export type ArmorScope = 'all' | 'pawns';
+/** How much of a seat's army is shielded for free.
+ *
+ *  `half` exists because `pawns` turned the fifth table into a fortress. Eight Taunted pawns is
+ *  not a hard opponent, it is an opponent you cannot open — the reference hero drew seven games
+ *  in eight against it, which is worse than losing them: nobody enjoys failing to convert. Four
+ *  shields is a wall with a door in it. */
+export type ArmorScope = 'all' | 'pawns' | 'half';
 
 export function armorArmy(state: GameState, color: Color, scope: ArmorScope = 'all'): GameState {
   const board = state.board.map((piece) =>
@@ -369,7 +381,17 @@ export function armorArmy(state: GameState, color: Color, scope: ArmorScope = 'a
       ? { ...piece, ench: 'taunt' as const, shieldBroken: false }
       : piece,
   );
-  return { ...state, board };
+  if (scope !== 'half') return { ...state, board };
+  // Half: the four centre pawns only, so the flanks are open and the game has somewhere to go.
+  let left = 4;
+  const halved = state.board.map((piece) => {
+    if (!piece || piece.color !== color || piece.type !== 'p' || piece.ench || left <= 0) {
+      return piece;
+    }
+    left--;
+    return { ...piece, ench: 'taunt' as const, shieldBroken: false };
+  });
+  return { ...state, board: halved };
 }
 
 /** Turns a rider's knights into dragons, optionally shielded. Applied after the loadout, so
