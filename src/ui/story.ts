@@ -303,20 +303,22 @@ export const STORY: Record<House, Beat> = {
         'He turns the board a quarter turn, the way a man does when he intends to be here a while.',
       ],
       lesson:
-        'He carries Destined Death, and it is the only power in the game that is not spent by being used. He names a piece and it dies three of your turns later — moving it does not help, defending it does not help, and nothing lifts it. He can name another one next turn. Trade, or make the three turns count.',
+        'He carries Destined Death. Once in the game, and not before move ten, he names a piece of yours and it dies three of your turns later — moving it does not help, defending it does not help, and nothing lifts it. It moves and captures normally until the hour comes, so the three turns are yours to spend. He will not name your Queen.',
     },
     after: {
-      title: 'The Town Wakes',
+      title: 'Nothing Lifts',
       lines: [
         'He looks at the board for a long moment, and then he laughs, once, without any of it reaching his face.',
         '"Eleven years," he says. "And a traveller with a borrowed dragon and a book they bought secondhand."',
-        'Then he is simply a man in a chair in an empty country, and the thing he was holding closed comes open.',
-        'It reaches the valley before you do. By the time you come down past the well the banner is gone, the shutters are open, and there is a woman drawing water who looks up at the road and does not carry her bucket indoors.',
-        'Rolain finds you on the way in. She has been to see her father and she has not said anything since, and she does not say anything now, and it is the most she has ever told you.',
-        'The keeper has your table ready. "It is still there," he says, "the road, if you want it. It only gets harder from here, and that is the only thing I can still offer you."',
+        'Then he stands, and he is not there. Not a door, not a flourish, not a word — the chair is simply empty and the board is still warm on his side of it.',
+        'You wait a while. You are not sure what for.',
+        'The walk back is the long one, and you feel it before you see it: the air over the valley has not changed. The banner is down at the well, and the shutters are still shut behind it. A woman comes out for water, looks at the road, and carries her bucket indoors.',
+        'Rolain finds you on the way in. She has been to see her father. "It is still on him," she says, and there is no give in her voice at all. "He is still holding it closed. Whatever you beat down there, it was not the thing that is doing this."',
+        'The keeper has your table ready and does not ask how it went, which is how you know it shows.',
+        '"Then he was not the top of it," he says at last. "Somebody set that man on a road and told him to sit down. Eleven years is a long time to be somebody else\u2019s piece."',
       ],
       lesson:
-        'The spell is lifted and the valley is yours to leave. The road remains, and the inn can make it worse on request.',
+        'The Dark Lord is beaten and the curse is still in the air. Something further up has not been found yet, and the road does not reach it — not this road, not yet. That much of the story is still being written, and it will arrive in a later patch.',
     },
   },
 
@@ -445,6 +447,26 @@ export function runOverCard(
     cta: 'Back to the inn →',
   };
 }
+
+/** Beating Wittex ends the road as it currently exists, so it is the one moment the game can
+ *  say "you finished it" — and then immediately admit that finishing it did not fix anything.
+ *
+ *  Shown after his card rather than folded into it, deliberately. The two beats are doing
+ *  opposite jobs: one is the story refusing to resolve, the other is the game congratulating
+ *  the player. Run together in a single card they cancel out, and the reader gets neither. */
+export const FREED: StoryCard = {
+  title: 'The Longest Road, Walked',
+  lines: [
+    'Eight seats, from a drunk who could not see the board to a man who was never really sitting at it. Nobody in the valley knows your name and the banner is still folded behind the well, and you did it anyway.',
+    'There is a mark against your name in the keeper\u2019s book now. He will not say what it is for. He wrote it down without looking up, which from him is a standing ovation.',
+    '"You will want somebody to play," he says. "Not a seat. Not a story. Somebody."',
+    '"There are others on this road. Same book, same four points, no ladder and no gold and nothing to hide behind. That is the honest version of this game, and you are ready for it, which is more than most of them are."',
+    'He nods at the far table, where two chairs have been set opposite each other for as long as you have been coming here, and where nobody has ever explained who they are for.',
+  ],
+  lesson:
+    'The road is finished. Duel another captain at this table — every enchantment, ten points each, no gold and no ladder — and see what the game is when the opponent is not written down in advance.',
+  cta: 'Take the far table \u2192',
+};
 
 /** The second sitting, and every one after it. He is unchanged. You are not. */
 export const KYRAX_RETURN: StoryCard = {

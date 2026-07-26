@@ -17,7 +17,7 @@ import {
   type Loadout,
 } from './loadout';
 import { isAttacked, isShielded, legalMoves, shieldBreakActions } from './movegen';
-import { powerActions } from './powers';
+import { seatPowerActions } from './powers';
 import { Searcher, TranspositionTable } from './search';
 import {
   type Action,
@@ -884,7 +884,8 @@ export function chooseAction(
     ];
     // He has a King power too, and no idea when to use it. A couple of activations go into
     // the hat with everything else, so now and then he spends it on nothing at all.
-    const powers = powerActions(state, state.turn);
+    // No seat marks a Queen for death — see `seatPowerActions`.
+    const powers = seatPowerActions(state, state.turn);
     for (let i = 0; i < 2 && powers.length; i++) {
       available.push(powers[Math.floor(rng() * powers.length)]);
     }

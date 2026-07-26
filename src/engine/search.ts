@@ -1,7 +1,7 @@
 import { applyAction, makeMove } from './apply';
 import { opposite } from './board';
 import { attackersOf, inCheck, legalMoves, shieldBreakActions, type Board } from './movegen';
-import { powerActions } from './powers';
+import { seatPowerActions } from './powers';
 import {
   isError,
   type Action,
@@ -566,7 +566,8 @@ export class Searcher {
       ...shieldBreakActions(state, state.turn),
     ];
     if (!withPowers) return base;
-    const powers = powerActions(state, state.turn);
+    // No seat marks a Queen for death — see `seatPowerActions`.
+    const powers = seatPowerActions(state, state.turn);
     if (!powers.length) return base;
     // Teleport alone offers hundreds of placements, so powers are always sampled.
     const shuffled = [...powers].sort(() => this.rng() - 0.5).slice(0, 6);

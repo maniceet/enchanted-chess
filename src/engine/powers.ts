@@ -175,7 +175,23 @@ export function powerActions(state: GameState, color: Color = state.turn): Power
   return out;
 }
 
-/** Why a power button is unusable, for the UI (spec §4: greyed with reason). */
+/** The powers a *seat* may reach for: everything legal, minus Destined Death on a Queen.
+ *
+ *  A house rule rather than a rule of the game, and it binds only the machine — the player may
+ *  mark a Queen freely. The mark cannot be lifted, blocked or answered; it takes the piece three
+ *  turns later and nothing intervenes. Laid on a Queen by an opponent the player meets once, at
+ *  the end of an hour's walk, that stops reading as an opponent playing and starts reading as
+ *  the game deciding. Losing a knight to it is a problem to solve; losing the Queen to it is a
+ *  confiscation.
+ *
+ *  Lives here, once, because it was written twice — in the searcher and in the drunkard's random
+ *  path — and two copies of a rule is one copy too many. */
+export function seatPowerActions(state: GameState, color: Color = state.turn): PowerAction[] {
+  return powerActions(state, color).filter(
+    (p) => p.args.kind !== 'doom' || state.board[p.args.target]?.type !== 'q',
+  );
+}
+
 /** Why a power button is unusable, for the UI (spec §4: greyed with reason). */
 export function powerUnavailableReason(state: GameState, color: Color): string | null {
   const ps = state.powers[color];

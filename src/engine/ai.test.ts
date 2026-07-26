@@ -5,6 +5,7 @@ import { armorArmy, chooseAction, evaluate, HOUSE, MATE_SCORE, material, raiseDr
 import { parseFen } from './fen';
 import { applyLoadout } from './loadout';
 import { inCheck, legalMoves, shieldBreakActions } from './movegen';
+import { powerActions, seatPowerActions } from './powers';
 import { hasMove, position } from './testkit';
 import { isError, type Action, type GameState } from './types';
 
@@ -300,5 +301,37 @@ describe('When a seat spends its King power', () => {
 
   it('never spends one when the bar is out of reach', () => {
     expect(pick(100_000)?.action.type).not.toBe('power');
+  });
+});
+
+/** A house rule that binds the machine and not the player.
+ *
+ *  Destined Death cannot be lifted, blocked or answered — it takes the piece three turns later
+ *  and nothing intervenes. Aimed at a Queen by an opponent met once at the end of an hour's
+ *  walk, that stops reading as an opponent playing and starts reading as the game deciding. The
+ *  rules still allow it, and the player may do it freely; a seat simply never does. */
+describe('a seat never marks a Queen for death', () => {
+  const board = () =>
+    position(
+      { e1: 'wk', e8: 'bk', d8: 'bq', b8: 'bn', h8: 'br' },
+      { powers: { w: 'doom' }, ply: 30 },
+    );
+
+  it('offers every other piece and never the Queen', () => {
+    const state = board();
+    const named = seatPowerActions(state, 'w').map(
+      (p) => state.board[(p.args as { target: number }).target]!.type,
+    );
+    expect(named.length, 'the knight and the rook are still on the table').toBe(2);
+    expect(named).not.toContain('q');
+    expect(new Set(named)).toEqual(new Set(['n', 'r']));
+  });
+
+  it('is a seat rule, not a rule of the game — the player may still name her', () => {
+    const state = board();
+    const all = powerActions(state, 'w').map(
+      (p) => state.board[(p.args as { target: number }).target]!.type,
+    );
+    expect(all, 'legality is unchanged').toContain('q');
   });
 });

@@ -164,12 +164,17 @@ const WITTEX_LINES: Record<BanterMood, string[]> = {
     'You found the road under the road. Good. It was getting tedious being clever alone.',
     'The Dragonlord kept my secret for eleven years and never once asked me to. Sit.',
     'You have walked past me four times. Twice I let you win.',
+    'You should not have come to Shivlar. Nobody comes to Shivlar. That was rather the arrangement.',
+    'How did he say it? The working was built so that he could not. I was careful. I am always careful.',
   ],
   move: [
     'I know how this ends. I have known since the town.',
     'A word from me and that piece has three turns left. Choose which one you would miss.',
     'You are playing a game. I am finishing an errand.',
     'Kyrax fought me with a whole valley behind him. You have a book and a purse.',
+    'So he broke it. After eleven years, on the fifth fall, he broke it. I will want to know how.',
+    'Perhaps he did break my spell. It changes nothing at this table. Nobody has beaten me.',
+    'You are the first thing in eleven years I did not arrange. I find I am enjoying it.',
   ],
   captured: [
     'It was already dead. I simply told it when.',

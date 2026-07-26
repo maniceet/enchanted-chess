@@ -512,6 +512,12 @@ export const TRIALS: Trial[] = ['black', 'timed', 'deadly'];
  *  Set to false to walk the road normally in dev. */
 const DEV = (import.meta as unknown as { env: { DEV: boolean } }).env.DEV;
 
+/** Flip to `true` to sit straight down at the eighth table in a dev build. Off by default: it
+ *  is for looking at Wittex without walking the road, and leaving it on means never seeing the
+ *  game anyone else will play. Both this and `DEV` must be true, so it can never ship however
+ *  this is set. */
+const START_AT_WITTEX = false;
+
 /** The state a traveller reaches after clearing the road five times: every seat down, the
  *  Dragonlord's spell worn through, the whole book learned, and the eighth chair open.
  *
@@ -626,7 +632,7 @@ export function loadRun(): RunState {
     const raw = localStorage.getItem(KEY);
     // Nothing saved yet and the shortcut is on: sit straight down at the eighth table rather
     // than making the road be walked again to look at one opponent.
-    if (!raw && DEV) return save({ ...FRESH, ...atWittex() });
+    if (!raw && DEV && START_AT_WITTEX) return save({ ...FRESH, ...atWittex() });
     return sanitize(raw ? JSON.parse(raw) : null);
   } catch {
     return { ...FRESH };
@@ -928,5 +934,5 @@ export function resetRun(): RunState {
   } catch {
     /* nothing to forget */
   }
-  return DEV ? save({ ...FRESH, ...atWittex() }) : { ...FRESH };
+  return DEV && START_AT_WITTEX ? save({ ...FRESH, ...atWittex() }) : { ...FRESH };
 }
