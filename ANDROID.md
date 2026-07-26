@@ -310,7 +310,7 @@ is two people on one device with all six enchantments, and works offline.
 |---|---|
 | Cold start | 2.9–3.5s on a software-rendered emulator; faster on real hardware |
 | Download size | 2.68 MB |
-| Tablet | 10" landscape (1280×800 CSS px) uses the desktop layout; menu centres, nothing breaks |
+| Tablet | 10" landscape (1280×800 CSS px): rail left, board centre, panels right — the desktop layout, and it holds |
 
 ## Known gaps
 

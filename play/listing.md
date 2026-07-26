@@ -130,9 +130,19 @@ honest answer is that there is a reference in a character's name and description
 | `screenshots/02-the-road.png` | Phone screenshot — the seven seats of the campaign |
 | `screenshots/03-the-open-board.png` | Phone screenshot — both loadouts revealed before move one |
 | `screenshots/04-loadout.png` | Phone screenshot — the builder, budget and enchantment costs |
+| `screenshots-tablet/01-the-board.png` | Tablet screenshot — the three-column board layout |
+| `screenshots-tablet/02-the-road.png` | Tablet screenshot — the seven seats, two columns |
+| `screenshots-tablet/03-rules.png` | Tablet screenshot — the Rules, set as a page |
 
-Screenshots are 1080×2400, captured from a Pixel 6 emulator running the release web bundle.
-Play wants at least two and takes up to eight.
+Phone screenshots are 1080×2400; tablet screenshots are 2560×1600, both captured from an
+emulator running the release bundle. Play wants at least two phone shots and takes up to eight,
+and uploading tablet shots is what stops the listing being marked as not designed for large
+screens.
+
+The tablet board shot was chosen for what it happens to show: the Chronicle has caught the
+Drunken Knight spending his King power — `⚡relocate(↔h7)` — with his King now on h7 and the
+button beside the board reading "Relocate · used". A power being used explains the game faster
+than a quiet opening does.
 
 ## Privacy policy URL
 
