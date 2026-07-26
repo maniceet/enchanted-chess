@@ -106,6 +106,41 @@ Homebrew installs the command-line tools at `cmdline-tools/latest-2`, and `avdma
 `PATH` then fails with `Package path is not valid` and an empty list of valid paths — it is
 looking for `cmdline-tools/latest`. Call the binary under `latest/bin` directly, as above.
 
+## Verifying the artifact that actually ships
+
+```bash
+npm run android:verify
+```
+
+The debug APK running is not evidence that the app works, because Play never receives the debug
+APK. What ships is the `.aab`, and Play generates and signs a set of split APKs from it per
+device. That is a separate code path with its own failure modes, and it had never been run.
+
+`scripts/verify-aab.sh` runs it locally: bundletool builds exactly the splits *this* device
+would be served — sharper than a universal APK, which hides precisely the split-related faults
+worth catching — installs them, and launches the result.
+
+The splits are signed with the standard Android **debug** keystore, whose password is the
+publicly documented `android`. That is a throwaway used only to make them installable on a
+local device. It is not the upload key and cannot be mistaken for one.
+
+Measured this way, on a Pixel 6 AVD:
+
+| | |
+|---|---|
+| Splits served | `base-master` 7.4 MB · `base-xxhdpi` 48 KB · `base-en` 24 KB |
+| Download size Play reports | **2.68 MB** |
+| minSdk | 29 (Android 10) |
+
+The release build was then played, and it works: the campaign reaches a board and the opponent
+replies, which is the one thing most likely to break here — the AI runs in a Web Worker, and a
+worker script that cannot be located once the bundle is re-packed would leave an opponent that
+never moves. It moved. `minifyEnabled` is off, so R8 is not in the picture at all.
+
+Also confirmed in the release build rather than assumed: **The Table offers only Back to the
+inn, Resign and Offer draw.** No undo, no export, no scenario loader. The Chronicle keeps its
+rewind controls, which are review-only and are meant to be there.
+
 ## What has actually been observed
 
 Verified on a Pixel 6 AVD, API 35, by playing the opening of a run:
