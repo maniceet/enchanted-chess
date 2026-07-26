@@ -1541,7 +1541,7 @@ export default function App() {
             <button type="button" onClick={() => { play('select'); setPhase('friendly'); }}>
               Duel another captain
               <span className="soon">
-                all six enchantments, no gold, no ladder
+                every enchantment, no gold, no ladder
               </span>
             </button>
             <button type="button" onClick={() => { play('select'); setPhase('rules'); }}>

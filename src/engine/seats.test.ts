@@ -147,3 +147,4 @@ describe('The enchantment list has one owner', () => {
     expect(ENCHANTMENTS).toContain('immolation');
   });
 });
+

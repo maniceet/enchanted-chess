@@ -302,7 +302,7 @@ play makes false. Shipping a build that contradicts a filed data-safety declarat
 Play enforces on.
 
 What ships instead is not multiplayer-free: **hotseat** ("Duel another captain → At this table")
-is two people on one device with all six enchantments, and works offline.
+is two people on one device with every enchantment, and works offline.
 
 ## Measurements worth keeping
 

@@ -4,12 +4,12 @@ import type { Color, Enchantment, GameState, PieceType, PowerName } from './type
 /** The points a captain spends before the first move, off the road.
  *
  *  Four was the original spec's duelling budget and it outlived its reasoning. It was chosen
- *  when four points was the whole game; the campaign now runs to ten, six enchantments exist,
+ *  when four points was the whole game; the campaign now runs to ten, seven enchantments are
  *  and a duel at four can afford one Poison pawn or one Taunt queen and nothing else — so two
  *  strangers meet on a board that cannot show most of what the game does. A duel should be the
  *  fullest version of it, not the thinnest.
  *
- *  Ten, matching the road's ceiling, so "Duel another captain — all six enchantments" is true
+ *  Ten, matching the road's ceiling, so "Duel another captain — every enchantment" is true
  *  rather than nearly true. This is provisional: what a *ranked* match should cost is a
  *  matchmaking question and gets decided when there is matchmaking to decide it with. Every
  *  function here takes the budget as an argument rather than reading this constant, so that
@@ -44,6 +44,20 @@ export const ENCHANTMENTS: Enchantment[] = [
   'squire',
   'poison',
   'immolation',
+];
+
+/** Every King power, in the order a rulebook should teach them.
+ *
+ *  Canonical, and exported so nothing has to keep its own copy. Destined Death is last because
+ *  a traveller only holds it by finding the Dark Word — but it is in the list, because from the
+ *  eighth seat it is used *against* them and a rule you can meet is a rule you can look up. */
+export const POWER_NAMES: PowerName[] = [
+  'teleport',
+  'relocate',
+  'decree',
+  'revive',
+  'chrono',
+  'doom',
 ];
 
 export const CARRIER_MULTIPLIER: Record<PieceType, number> = {

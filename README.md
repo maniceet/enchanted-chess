@@ -22,7 +22,7 @@ mana and the enchantments you buy with gold are permanent, and the seats halve t
 each time you beat them so the road cannot be farmed. Beat the Dragonlord five times and he can
 finally say who actually did this to the valley.
 
-**Two captains** is the plain two-player game — all six enchantments, four points, no ladder —
+**Two captains** is the plain two-player game — every enchantment, ten points, no ladder —
 either hotseat or across a WebSocket.
 
 ## Layout

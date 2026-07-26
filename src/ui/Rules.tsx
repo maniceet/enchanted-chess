@@ -1,19 +1,14 @@
-import { CARRIER_MULTIPLIER, ENCH_COST, ENCH_TEXT, POWER_TEXT } from '../engine/loadout';
+import {
+  CARRIER_MULTIPLIER,
+  ENCHANTMENTS,
+  ENCH_COST,
+  ENCH_TEXT,
+  POWER_NAMES,
+  POWER_TEXT,
+} from '../engine/loadout';
 import type { Enchantment, PowerName } from '../engine/types';
 import { ENCH_NAME, EnchRune } from './Pieces';
 
-const ENCH_ORDER: Enchantment[] = [
-  'taunt',
-  'martyr',
-  'outpost',
-  'swift',
-  'herald',
-  'poison',
-  // Not on the Sorcerer's shelf. It is in the table anyway, because a rule a player can meet
-  // is a rule a player should be able to look up — and the row says where it comes from.
-  'immolation',
-];
-const POWER_ORDER: PowerName[] = ['teleport', 'relocate', 'decree', 'revive', 'chrono'];
 const POWER_NAME: Record<PowerName, string> = {
   teleport: 'Teleport',
   relocate: 'Relocate',
@@ -81,7 +76,7 @@ export function Rules({ onBack }: { onBack: () => void }) {
             </tr>
           </thead>
           <tbody>
-            {ENCH_ORDER.map((ench) => (
+            {ENCHANTMENTS.map((ench) => (
               <tr key={ench}>
                 <td>
                   <EnchRune ench={ench} shield={ench === 'taunt' ? 'active' : undefined} />
@@ -172,7 +167,7 @@ export function Rules({ onBack }: { onBack: () => void }) {
             </tr>
           </thead>
           <tbody>
-            {POWER_ORDER.map((power) => (
+            {POWER_NAMES.map((power) => (
               <tr key={power}>
                 <td>
                   <strong>{POWER_NAME[power]}</strong>

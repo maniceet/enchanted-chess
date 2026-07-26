@@ -34,7 +34,7 @@ could not have seen coming. You know exactly what the piece across the board can
 knows exactly what yours can do, and the whole difficulty is in what you do about it. A
 mechanic that only works as an ambush does not belong here.
 
-SIX ENCHANTMENTS
+SEVEN ENCHANTMENTS
 
 Taunt — while defended and standing in your own half, this piece has a shield. An attacker
 who strikes it breaks the shield instead of capturing, and spends its turn doing so. Cross
@@ -48,15 +48,20 @@ Swift — a pawn that may step two squares on any move, not only its first.
 
 Herald — a pawn that crowns on the seventh rank instead of the eighth.
 
+Squire — a pawn whose move is to change places with a friendly Herald, anywhere on the
+board. If the Herald lands on its crowning rank it crowns at once. Neither is worth much
+alone; together they are a queen nobody had to walk up the board.
+
 Poison — whatever captures this pawn dies with it.
 
 A King can carry none of them, and suffers none of them. The King bows to no enchantment.
 
-FOUR KING POWERS
+FIVE KING POWERS
 
 Once per game, instead of moving: teleport a piece to any empty unattacked square; swap your
-King with a friendly piece in your own half; forbid one enemy piece from moving next turn; or
-bring a fallen piece back from your graveyard, paid for with points you chose not to spend.
+King with a friendly piece in your own half; forbid one enemy piece from moving next turn;
+bring a fallen piece back from your graveyard, paid for with points you chose not to spend; or
+bend the clock, if there is one running.
 
 THE ROAD
 
@@ -76,7 +81,7 @@ Free. Plays entirely offline, including on a plane. Collects nothing whatsoever.
 First release.
 
 The full campaign: seven opponents from the inn's taps to the Dragonlord's
-table, six enchantments, five King powers, and a board where both sides know
+table, seven enchantments, five King powers, and a board where both sides know
 everything before the first move.
 
 Plays offline. Collects nothing.
