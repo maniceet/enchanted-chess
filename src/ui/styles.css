@@ -3818,3 +3818,58 @@ button.primary:hover:not(:disabled) {
   opacity: 0.45;
   text-decoration: line-through;
 }
+
+/* -- the Innkeeper's table (drills) ------------------------------------------
+   The list borrows the home menu's card feel; the stage is just the game board
+   with one instruction line above it, because the instruction *is* the screen. */
+.drills {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+.drill-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+.drill-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  text-align: left;
+}
+.drill-name {
+  font-weight: 600;
+}
+.drill-done {
+  color: var(--gold, #c9a227);
+}
+.drill-ench {
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+.drill-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.drill-say {
+  max-width: var(--board);
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-style: italic;
+  line-height: 1.45;
+}
+.drill-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}

@@ -10,6 +10,7 @@ import {
   type Tally,
 } from './stats';
 import type { Enchantment } from '../engine/types';
+import { forgetLessons } from './tutorial';
 
 function TallyTable({ title, rows, label }: { title: string; rows: Tally[]; label: string }) {
   return (
@@ -104,6 +105,18 @@ export function Stats({ onBack }: { onBack: () => void }) {
               Wipe the slate
             </button>
           )}
+          {/* The Innkeeper teaches each rule once, ever. This is the one place to ask for the
+              course again — worth having because "once, ever" is also what a rule half-read
+              mid-game looks like from the player's side. */}
+          <button
+            type="button"
+            onClick={() => {
+              forgetLessons();
+              onBack();
+            }}
+          >
+            Hear the Innkeeper’s lessons again
+          </button>
         </div>
 
         <TallyTable title="Enchantments" rows={enchantmentTallies(records)} label="Enchantment" />

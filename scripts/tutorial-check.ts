@@ -16,7 +16,7 @@ import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize } from 'node:path';
 import { WebSocket } from 'ws';
-import { LESSON_TEXT, type Lesson } from '../src/ui/tutorial';
+import { LESSON_TEXT, TAUGHT_KEY, type Lesson } from '../src/ui/tutorial';
 const PORT = 8231, CDP = 9224, DIST = 'dist';
 const MIME: Record<string,string> = {'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml','.json':'application/json','.webmanifest':'application/manifest+json'};
 const server = createServer((req,res)=>{const u=(req.url??'/').split('?')[0];let f=join(DIST,normalize(u==='/'?'/index.html':u));if(!existsSync(f)||statSync(f).isDirectory())f=join(DIST,'index.html');res.writeHead(200,{'content-type':MIME[extname(f)]??'application/octet-stream'});createReadStream(f).pipe(res);});
@@ -47,7 +47,7 @@ for (const step of ['Set out on the road','Onward','The Drunken Knight','Onward'
 }
 // Long enough for the lesson to appear (700ms) and hold its full dwell (up to 11s).
 await new Promise(r=>setTimeout(r,14_000));
-const taught: Lesson[] = JSON.parse((await evalJs("localStorage.getItem('enchanted-chess:taught')")) ?? '[]');
+const taught: Lesson[] = JSON.parse((await evalJs(`localStorage.getItem(${JSON.stringify(TAUGHT_KEY)})`)) ?? '[]');
 const seen: string[] = (await evalJs('window.__seen')) ?? [];
 ws.close(); chrome.kill(); server.close();
 

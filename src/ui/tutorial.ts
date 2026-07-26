@@ -100,10 +100,17 @@ export function lessonFor(
   return null;
 }
 
-const KEY = 'enchanted-chess:taught';
+/* `taught2`, not `taught`: the first key is poisoned. Before the sayRef fix the lessons were
+ * recorded as learned while the bubble showed nothing, so every list written under the old key
+ * describes a player who was told nothing and will never be told. A new key resets everyone,
+ * which is exactly right — the worst case is hearing seven short lines again. */
+export const TAUGHT_KEY = 'enchanted-chess:taught2';
+const KEY = TAUGHT_KEY;
+const POISONED_KEY = 'enchanted-chess:taught';
 
 export function loadLearned(): Lesson[] {
   try {
+    localStorage.removeItem(POISONED_KEY);
     const raw = localStorage.getItem(KEY);
     const value: unknown = raw ? JSON.parse(raw) : [];
     return Array.isArray(value) ? (value.filter((v) => typeof v === 'string') as Lesson[]) : [];

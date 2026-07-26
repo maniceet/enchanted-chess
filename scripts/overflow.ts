@@ -38,6 +38,8 @@ const WIDTHS = [320, 360, 393, 412, 480, 600, 820];
 const SCREENS: Array<{ name: string; path: string[] }> = [
   { name: 'home', path: [] },
   { name: 'rules', path: ['Rules'] },
+  { name: 'drills', path: ['Innkeeper’s table'] },
+  { name: 'drill stage', path: ['Innkeeper’s table', 'The shield'] },
   { name: 'prologue', path: ['Set out on the road'] },
   { name: 'the road', path: ['Set out on the road', 'Onward'] },
   { name: 'story card', path: ['Set out on the road', 'Onward', 'The Drunken Knight'] },

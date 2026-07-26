@@ -47,6 +47,7 @@ import { Board } from './Board';
 import { LoadoutBuilder } from './Loadout';
 import { ENCH_NAME, EnchRune, PieceGlyph, PIECE_NAME } from './Pieces';
 import { Rules } from './Rules';
+import { DrillsPage } from './DrillsPage';
 import {
   houseCommentary,
   houseSays,
@@ -246,6 +247,7 @@ type Phase =
   | 'online'
   | 'house'
   | 'rules'
+  | 'drills'
   | 'chest'
   | 'friendly'
   | 'spoils'
@@ -1744,6 +1746,10 @@ export default function App() {
             <button type="button" onClick={() => { play('select'); setPhase('rules'); }}>
               Rules
             </button>
+            <button type="button" onClick={() => { play('select'); setPhase('drills'); }}>
+              The Innkeeper’s table
+              <span className="soon">learn each enchantment on a small board</span>
+            </button>
             <button type="button" onClick={() => { play('select'); setPhase('ledger'); }}>
               The Ledger
               <span className="soon">what has been winning, and how often</span>
@@ -2106,6 +2112,14 @@ export default function App() {
     return (
       <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
         <Rules onBack={() => setPhase('home')} />
+      </Shell>
+    );
+  }
+
+  if (phase === 'drills') {
+    return (
+      <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
+        <DrillsPage onBack={() => setPhase('home')} />
       </Shell>
     );
   }
