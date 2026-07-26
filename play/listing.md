@@ -118,10 +118,22 @@ honest answer is that there is a reference in a character's name and description
 Screenshots are 1080×2400, captured from a Pixel 6 emulator running the release web bundle.
 Play wants at least two and takes up to eight.
 
+## Privacy policy URL
+
+```
+https://enchanted-chess.vercel.app/privacy.html
+```
+
+Live and checked. Paste this one and no other: Vercel's per-deployment URLs — anything of the
+form `enchanted-chess-<hash>-luffy-ee0d.vercel.app`, and the team-suffixed alias — sit behind
+Vercel Authentication and answer a request with a 302 to an SSO login. A Play reviewer following
+such a link would find a login wall where the policy should be, and a privacy policy the
+reviewer cannot read is a rejection. Only the clean production alias above is public.
+
+Worth re-checking after any change to the project's Deployment Protection settings.
+
 ## Still to do before submitting
 
-- **Privacy policy URL.** The page is written and ships with the site at `/privacy.html`; the
-  URL to paste is that path on whatever domain the web build is deployed to.
 - **Contact email.** Required and made public on the listing. Deliberately not filled in here —
   it is the developer's own address to choose and publish, not something to be committed to a
   repository on their behalf.

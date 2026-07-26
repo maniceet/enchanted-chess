@@ -130,7 +130,7 @@ Measured this way, on a Pixel 6 AVD:
 |---|---|
 | Splits served | `base-master` 7.4 MB · `base-xxhdpi` 48 KB · `base-en` 24 KB |
 | Download size Play reports | **2.68 MB** |
-| minSdk | 29 (Android 10) |
+| minSdk / targetSdk | 24 (Android 7.0) / 36 (Android 16) |
 
 The release build was then played, and it works: the campaign reaches a board and the opponent
 replies, which is the one thing most likely to break here — the AI runs in a Web Worker, and a
@@ -140,6 +140,24 @@ never moves. It moved. `minifyEnabled` is off, so R8 is not in the picture at al
 Also confirmed in the release build rather than assumed: **The Table offers only Back to the
 inn, Resign and Offer draw.** No undo, no export, no scenario loader. The Chronicle keeps its
 rewind controls, which are review-only and are meant to be there.
+
+## Play policy audit
+
+The rules that reject an upload rather than merely making it worse, and where this app stands:
+
+- **16 KB memory page sizes.** Required of apps targeting Android 15+, and the requirement is
+  about native libraries. Checked by looking inside the bundle rather than reasoning about it:
+  it contains **no `.so` files at all**. There is no native code of ours to align, so the rule
+  cannot bite.
+- **Predictive back.** Android 16 turns it on by default for apps targeting SDK 36, and the
+  legacy `onBackPressed` path stops being consulted — which would be a quiet disaster here,
+  because the back stack is the thing keeping the app from exiting mid-game. It survives:
+  Capacitor's App plugin registers an AndroidX `OnBackPressedCallback` on the activity's
+  `OnBackPressedDispatcher` (`AppPlugin.java`), and that dispatcher is what the framework routes
+  through `OnBackInvokedCallback` when predictive back is active. No manifest opt-in is needed.
+  **This is read from the source, not observed** — see the gap below.
+- **targetSdk 36** clears Play's current floor. `minSdk` is 24.
+- **One permission**, `INTERNET`, declared by the WebView. Nothing is sent through it.
 
 ## What has actually been observed
 
@@ -182,8 +200,11 @@ Chrome, so the icon can never drift away from the pieces. The one number worth u
 art's diagonal, not its height. Fitting the height put the rook's base outside the mask and a
 Pixel launcher sliced it off.
 
-The privacy policy is a real page — `public/privacy.html`, shipped with the web build, so the
-URL to give the Console is `/privacy.html` on whatever domain the site is deployed to. It is
+The privacy policy is a real page — `public/privacy.html`, shipped with the web build and live
+at **https://enchanted-chess.vercel.app/privacy.html**. Give the Console that URL and no other:
+Vercel's per-deployment URLs and the team-suffixed alias sit behind Vercel Authentication and
+answer with a 302 to an SSO login, so a reviewer following one would meet a login wall where the
+policy should be. Only the clean production alias is public. It is
 accurate rather than boilerplate: it names the four `localStorage` keys the game actually
 writes and says why `INTERNET` is the only permission.
 
@@ -195,4 +216,16 @@ writes and says why `INTERNET` is the only permission.
 - **The upload keystore does not exist.** Nothing can be published until it does; see above.
 - **Contact email** is not filled in. It is required and becomes public on the listing, which
   makes it the developer's to choose, not something to commit on their behalf.
+- **Everything has been observed on API 35, and the app targets 36.** That is the one gap that
+  matters, because Android 16 is exactly where predictive back changes who receives the back
+  press. The reasoning above says the AndroidX dispatcher carries it, and the reasoning is
+  probably right, but the back stack is important enough here to deserve being watched rather
+  than argued about. Create an Android 16 AVD and repeat the four back-button checks:
+
+  ```bash
+  sdkmanager 'system-images;android-36;google_apis_playstore;arm64-v8a'
+  "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n ec_a16 \
+    -k 'system-images;android-36;google_apis_playstore;arm64-v8a' -d pixel_6
+  ```
+
 - Emulator only, arm64 only. Not yet run on physical hardware.
