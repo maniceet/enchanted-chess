@@ -166,8 +166,12 @@ export const HOUSE: Record<House, HouseProfile> = {
     depth: 6,
     sample: 40,
     budgetMs: 400,
-    maxNodes: 24_000,
-    mana: 4,
+    maxNodes: 18_000,
+    // Three, the same purse Rolain brings, and he is still the harder seat because he searches
+    // more than twice as deep. Four made him the wall he was for weeks: the fourth table was
+    // spending more magic than the traveller could answer, which is a difficulty curve with a
+    // step in it rather than a slope.
+    mana: 3,
     power: 'decree',
     pauseMs: 260,
     banter: 0.7,
