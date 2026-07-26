@@ -266,8 +266,8 @@ interface Setup {
   dragons?: number;
   /** Bishops raised by Holy Orders. Road only, same reasoning as `dragons`. */
   archbishops?: number;
-  /** Pawns the road has poisoned this walk. Which pawns is rolled at the board. */
-  venomPawns?: number;
+  /** Files whose pawns the road has poisoned this walk, fixed for the whole run. */
+  venom?: string[];
   /** Rooks carrying Taunt from the Gift of Fortification, this walk. */
   fortifiedRooks?: number;
   /** The keeper's cruelties in force for this game. Road only. */
@@ -347,8 +347,8 @@ function startingState(setup: Setup): GameState {
   // The road's own gifts, applied after the loadout so they can never overwrite an enchantment
   // the player spent mana on: both helpers skip a piece that already carries one.
   const venomed =
-    onTheRoad && setup.venomPawns
-      ? venomPawn(ordained2, player, { count: setup.venomPawns })
+    onTheRoad && setup.venom?.length
+      ? venomPawn(ordained2, player, setup.venom)
       : ordained2;
   const fortified =
     onTheRoad && setup.fortifiedRooks
@@ -1246,7 +1246,7 @@ export default function App() {
       budget: isHouse(merged.opponent) ? campaignBudget(run) : BUDGET,
       dragons: isHouse(merged.opponent) ? run.dragons : 0,
       archbishops: isHouse(merged.opponent) ? run.archbishops : 0,
-      venomPawns: isHouse(merged.opponent) ? run.venomPawns : 0,
+      venom: isHouse(merged.opponent) ? run.venom : [],
       fortifiedRooks: isHouse(merged.opponent) ? run.fortifiedRooks : 0,
       trials: isHouse(merged.opponent) ? run.trials : [],
     };

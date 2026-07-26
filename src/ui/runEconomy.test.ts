@@ -440,7 +440,7 @@ describe('the lesson: what a defeat is worth', () => {
       mana: 9,
       dragons: 2,
       archbishops: 1,
-      venomPawns: 3,
+      venom: ['c'],
       fortifiedRooks: 2,
       doomCall: true,
       gold: 40,
@@ -452,10 +452,37 @@ describe('the lesson: what a defeat is worth', () => {
     expect(after.mana).toBe(MANA_START);
     expect(after.dragons).toBe(0);
     expect(after.archbishops).toBe(0);
-    expect(after.venomPawns).toBe(0);
+    expect(after.venom).toEqual([]);
     expect(after.fortifiedRooks).toBe(0);
     expect(after.doomCall).toBe(false);
     expect(after.gold, 'gold survives').toBe(40);
     expect(after.taught, 'and so does the book').toEqual(['taunt']);
+  });
+});
+
+function worthOfferingVenom(state: RunState): boolean {
+  return offerSpoils(state, () => 0, 9).includes('venom');
+}
+
+/* Found in play: Venom vanished after a loss (correct — the walk's gifts do not survive it) but
+ * it had also been landing on a different pawn every board *within* a run, which is not. A gift
+ * you have to build around must stay where it was put. */
+describe('Venom picks a pawn once and keeps it', () => {
+  it('records a file when taken, not a count', () => {
+    const after = takePowerup({ ...loadRun(), venom: [] } as RunState, 'venom', seeded(3));
+    expect(after.venom).toHaveLength(1);
+    expect('abcdefgh').toContain(after.venom[0]);
+  });
+
+  it('never poisons the same file twice, and stops at four of the eight', () => {
+    let run = { ...loadRun(), venom: [] } as RunState;
+    for (let i = 0; i < 4; i++) run = takePowerup(run, 'venom', seeded(i + 1));
+    expect(new Set(run.venom).size, 'four distinct files').toBe(4);
+    expect(worthOfferingVenom(run), 'and the road stops offering it').toBe(false);
+  });
+
+  it('is gone after a defeat, which is the part that was already right', () => {
+    const walked = { ...loadRun(), venom: ['c', 'f'], best: 9, progress: ['drunkard'] } as RunState;
+    expect(loseRun(walked).venom).toEqual([]);
   });
 });

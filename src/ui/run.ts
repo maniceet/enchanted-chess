@@ -36,6 +36,9 @@ const KEY = 'enchanted-chess:run';
  *  so the shape of a run is something that happens inside the run. Gold is the thing that
  *  crosses between them — see `loseRun`. */
 export const MANA_START = 1;
+
+/** The eight files a pawn can stand on, which is where Venom picks from. */
+const PAWN_FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 export const MANA_CAP = 10;
 
 /** What each seat pays the *first* time it is beaten, whether or not the run survives
@@ -287,7 +290,7 @@ function worthOffering(state: RunState, up: Powerup): boolean {
   // rare thing is still worth hoping for.
   if (up === 'doomcall') return state.keeper && !state.doomCall;
   if (up === 'fortify') return state.fortifiedRooks < 2;
-  if (up === 'venom') return state.venomPawns < 4;
+  if (up === 'venom') return state.venom.length < 4;
   return true;
 }
 
@@ -360,10 +363,15 @@ export function takePowerup(
         : save({ ...state, dragons: Math.min(2, state.dragons + 1) });
     case 'holyorders':
       return save({ ...state, archbishops: Math.min(2, state.archbishops + 1) });
-    case 'venom':
-      // Eight pawns, and the road never poisons more than half of them: past that it stops
-      // being a hazard the opponent has to respect and becomes a wall they cannot approach.
-      return save({ ...state, venomPawns: Math.min(4, state.venomPawns + 1) });
+    case 'venom': {
+      // Chosen here, once, and kept. Eight pawns, and the road never poisons more than half of
+      // them: past that it stops being a hazard the opponent must respect and becomes a wall
+      // they cannot approach.
+      const free = PAWN_FILES.filter((f) => !state.venom.includes(f));
+      if (!free.length) return save({ ...state, gold: state.gold + SYMBOLIC_GOLD.mana });
+      const chosen = free[Math.floor(rng() * free.length)];
+      return save({ ...state, venom: [...state.venom, chosen] });
+    }
     case 'fortify':
       return save({ ...state, fortifiedRooks: Math.min(2, state.fortifiedRooks + 1) });
     case 'doomcall':
@@ -424,9 +432,10 @@ export interface RunState {
   /** Bishops raised to Archbishops by Holy Orders. Capped at two, for the same reason dragons
    *  are: there are only two bishops to raise. Lost with the run. */
   archbishops: number;
-  /** Pawns the road has poisoned, this walk. Which pawns is decided at the board, not here —
-   *  see `venomPawn` — so the same count can play out differently twice. */
-  venomPawns: number;
+  /** The files whose pawns the road has poisoned, this walk. Files rather than a count: the
+   *  pawn is chosen once, when the gift is taken, and stays that pawn for the rest of the walk.
+   *  Re-rolling it every board turned something to build around into weather. */
+  venom: string[];
   /** Rooks given Taunt by the Gift of Fortification, this walk. */
   fortifiedRooks: number;
   /** The Dark Word: your King may speak Destined Death. Rare, and gone when the walk ends. */
@@ -490,7 +499,7 @@ const FRESH: RunState = {
   beaten: {},
   walkPurse: 0,
   mana: MANA_START,
-  venomPawns: 0,
+  venom: [],
   fortifiedRooks: 0,
   doomCall: false,
   dragons: 0,
@@ -722,7 +731,7 @@ export function loseRun(state: RunState): RunState {
     mana: MANA_START,
     dragons: 0,
     archbishops: 0,
-    venomPawns: 0,
+    venom: [],
     fortifiedRooks: 0,
     doomCall: false,
     progress: [],

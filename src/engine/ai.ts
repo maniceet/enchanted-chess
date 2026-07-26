@@ -1,10 +1,12 @@
 import {
+  FILES,
   PIECE_VALUE,
   blastZone,
   findKing,
   inOwnHalf,
   opposite,
   relativeRank,
+  sq,
   squareName,
 } from './board';
 import {
@@ -136,8 +138,8 @@ export const HOUSE: Record<House, HouseProfile> = {
     blurb: 'A wise man on the road who talks more than he walks. Will not let you pass untested.',
     depth: 6,
     sample: 40,
-    budgetMs: 1800,
-    maxNodes: 60_000,
+    budgetMs: 400,
+    maxNodes: 24_000,
     pauseMs: 260,
     banter: 0.7,
   },
@@ -160,8 +162,8 @@ export const HOUSE: Record<House, HouseProfile> = {
     // understands the magic it is wearing, so tuning his sample down later cannot quietly make
     // him blind to his own armour again. `seats.test.ts` enforces it.
     magic: true,
-    budgetMs: 2000,
-    maxNodes: 140_000,
+    budgetMs: 600,
+    maxNodes: 55_000,
     pauseMs: 260,
     banter: 0.5,
     armored: 'pawns',
@@ -172,8 +174,8 @@ export const HOUSE: Record<House, HouseProfile> = {
     blurb: 'The Dragonlord’s son. Rides a shielded dragon, and practices necromancy: what falls does not stay down.',
     depth: 9,
     sample: 40,
-    budgetMs: 2400,
-    maxNodes: 240_000,
+    budgetMs: 800,
+    maxNodes: 90_000,
     pauseMs: 280,
     banter: 0.8,
     power: 'revive',
@@ -193,8 +195,8 @@ export const HOUSE: Record<House, HouseProfile> = {
       'The wise man on the road, under the name he uses in Shivlar. He never needed dragons. He marks a piece and it dies, and he can do it again next turn.',
     depth: 10,
     sample: 64,
-    budgetMs: 4200,
-    maxNodes: 450_000,
+    budgetMs: 1200,
+    maxNodes: 125_000,
     pauseMs: 320,
     banter: 0.9,
     power: 'doom',
@@ -211,8 +213,8 @@ export const HOUSE: Record<House, HouseProfile> = {
     blurb: 'Both his dragons are shielded, and he has read this board before you sat down.',
     depth: 9,
     sample: 60,
-    budgetMs: 3500,
-    maxNodes: 300_000,
+    budgetMs: 1000,
+    maxNodes: 115_000,
     pauseMs: 300,
     banter: 0.85,
     boss: true,
@@ -368,31 +370,28 @@ export function raiseArchbishops(
   return { ...state, board };
 }
 
-/** Venom: a pawn of yours carries Poison, chosen by the road rather than by you.
+/** Venom: named pawns of yours carry Poison.
  *
- *  Randomised on purpose. Every other way to spend strength in this game is a decision made at
- *  a table with full information, and a roguelike needs at least one thing that simply happens
- *  to you and has to be played around — a Poison pawn on b2 is a different game from one on e2,
- *  and neither was chosen. `pick` takes the roll so a run can be replayed exactly. */
-export function venomPawn(
-  state: GameState,
-  color: Color,
-  options: { count?: number; pick?: () => number } = {},
-): GameState {
-  const roll = options.pick ?? Math.random;
+ *  Takes *files* rather than squares, and that is the whole point of the signature. The road
+ *  picks which pawn is poisoned once, when the gift is taken, and it stays that pawn for the
+ *  rest of the walk — a poison on b2 is a different game from one on e2, and re-rolling it
+ *  every board would turn a decision you have to build around into weather. Files rather than
+ *  squares because the Second Chair trial has the traveller playing Black, where the pawn rank
+ *  is seven and not two.
+ *
+ *  Only bare pawns are taken: overwriting an enchantment the player spent mana on would be
+ *  giving with one hand and taking with the other. */
+export function venomPawn(state: GameState, color: Color, files: readonly string[]): GameState {
+  const rank = color === 'w' ? 1 : 6;
   const board = state.board.slice() as (Piece | null)[];
-  // Only bare pawns are eligible: overwriting an enchantment the player paid mana for would be
-  // taking with one hand while giving with the other.
-  const eligible = board
-    .map((piece, square) => ({ piece, square }))
-    .filter(({ piece }) => piece && piece.color === color && piece.type === 'p' && !piece.ench)
-    .map(({ square }) => square);
-  let left = options.count ?? 1;
-  const pool = [...eligible];
-  while (left > 0 && pool.length) {
-    const [square] = pool.splice(Math.floor(roll() * pool.length), 1);
-    board[square] = { ...board[square]!, ench: 'poison' };
-    left--;
+  for (const file of files) {
+    const index = FILES.indexOf(file);
+    if (index < 0) continue;
+    const square = sq(index, rank);
+    const piece = board[square];
+    if (piece && piece.color === color && piece.type === 'p' && !piece.ench) {
+      board[square] = { ...piece, ench: 'poison' };
+    }
   }
   return { ...state, board };
 }
