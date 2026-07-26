@@ -1,13 +1,20 @@
 import { parseSquare, squareName } from './board';
 import type { Color, Enchantment, GameState, PieceType, PowerName } from './types';
 
-/** The points a captain spends before the first move.
+/** The points a captain spends before the first move, off the road.
  *
- *  Four is the duelling budget, and it is what two strangers always get: an even board is the
- *  point of a duel. The campaign is not a duel — it is a story about getting stronger — so the
- *  road hands the player a larger purse as seats fall, and every function here takes the budget
- *  as an argument rather than reading this constant. See `campaignBudget` in `ui/run.ts`. */
-export const BUDGET = 4;
+ *  Four was the original spec's duelling budget and it outlived its reasoning. It was chosen
+ *  when four points was the whole game; the campaign now runs to ten, six enchantments exist,
+ *  and a duel at four can afford one Poison pawn or one Taunt queen and nothing else — so two
+ *  strangers meet on a board that cannot show most of what the game does. A duel should be the
+ *  fullest version of it, not the thinnest.
+ *
+ *  Ten, matching the road's ceiling, so "Duel another captain — all six enchantments" is true
+ *  rather than nearly true. This is provisional: what a *ranked* match should cost is a
+ *  matchmaking question and gets decided when there is matchmaking to decide it with. Every
+ *  function here takes the budget as an argument rather than reading this constant, so that
+ *  decision changes one line. See `campaignBudget` in `ui/run.ts`. */
+export const BUDGET = 10;
 
 export const ENCH_COST: Record<Enchantment, number> = {
   taunt: 1,

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Matchmaker } from './matchmaking';
 import { Room } from './room';
 import { parseSquare } from '../src/engine/board';
+import { BUDGET, ENCH_COST } from '../src/engine/loadout';
 import type { Seek } from '../src/shared/protocol';
 
 const blitz: Seek = { mode: 'classic', control: '3+2' };
@@ -80,8 +81,17 @@ describe('A room', () => {
 
   it('refuses a loadout that breaks the budget', () => {
     const room = new Room('g2', 'ann', 'bo', blitz);
-    const greedy = { enchantments: { a2: 'poison' as const, b2: 'poison' as const }, power: 'teleport' as const };
-    expect(room.submitLoadout('ann', greedy)).toMatch(/over budget/);
+    // Derived from BUDGET rather than hard-coded. This fixture used to be two Poison pawns,
+    // which was over the old budget of four and is comfortably *under* the current ten — so it
+    // silently stopped testing anything the moment the number moved. Enough pawns to exceed
+    // whatever the budget is, and it stays a real test through the next change too.
+    const pawns = ['a2', 'b2', 'c2', 'd2', 'e2', 'f2', 'g2', 'h2'];
+    const needed = Math.floor(BUDGET / ENCH_COST.poison) + 1;
+    const enchantments = Object.fromEntries(
+      pawns.slice(0, needed).map((square) => [square, 'poison' as const]),
+    );
+    expect(needed * ENCH_COST.poison, 'the fixture really is over budget').toBeGreaterThan(BUDGET);
+    expect(room.submitLoadout('ann', { enchantments, power: 'teleport' })).toMatch(/over budget/);
     expect(room.phase).toBe('loadout');
   });
 
