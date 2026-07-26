@@ -165,7 +165,9 @@ const MEASURE = `
     for (const el of document.querySelectorAll('*')) {
       const r = el.getBoundingClientRect();
       if (r.width === 0) continue;
-      const past = Math.round(r.right - doc.clientWidth);
+      // Past the right edge, or starting left of zero. The first version only looked right, and
+      // reported "52px over" with no culprit at all on a page whose offender hung off the left.
+      const past = Math.round(Math.max(r.right - doc.clientWidth, -r.left));
       if (past > 0 && (!worst || past > worst.past)) {
         worst = {
           past,
@@ -174,6 +176,24 @@ const MEASURE = `
           width: Math.round(r.width),
         };
       }
+    }
+    // Nothing overhanging and yet the page is too wide: the cause is a container that refuses
+    // to shrink rather than a child sticking out. Naming the widest element in the document is
+    // what actually points at it, and a report with no culprit at all is barely a report.
+    if (!worst) {
+      let widest = null;
+      for (const el of document.querySelectorAll('*')) {
+        const r = el.getBoundingClientRect();
+        if (!widest || r.width > widest.width) {
+          widest = {
+            past: 0,
+            tag: el.tagName.toLowerCase(),
+            cls: (typeof el.className === 'string' ? el.className : '').slice(0, 60),
+            width: Math.round(r.width),
+          };
+        }
+      }
+      worst = widest;
     }
     return { over, worst };
   })()

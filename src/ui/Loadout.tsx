@@ -114,7 +114,13 @@ export function LoadoutBuilder({
                 const name = squareName(index);
                 const piece = state.board[index];
                 if (!piece) return <div className="loadout-cell empty" key={name} />;
-                const ench = loadout.enchantments[name] ?? null;
+                const bought = loadout.enchantments[name] ?? null;
+                /* What the road put there, as opposed to what the player bought. Venom picks a
+                 * pawn for you and Fortification picks a rook, so this is the only place the
+                 * player can find out *which* — and they need to know while choosing, because a
+                 * Poison pawn is worth building around. */
+                const given = piece.ench ?? null;
+                const ench = bought ?? given;
                 const isKing = piece.type === 'k';
                 return (
                   <button
@@ -122,7 +128,8 @@ export function LoadoutBuilder({
                     key={name}
                     className={`loadout-cell ${selected === name ? 'is-selected' : ''} ${
                       ench ? 'has-ench' : ''
-                    } ${isKing ? 'is-king' : ''}`}
+                    } ${!bought && given ? 'is-given' : ''} ${isKing ? 'is-king' : ''}`}
+                    title={!bought && given ? `${name}: given by the road` : undefined}
                     onClick={() => {
                       play('select');
                       setSelected(name === selected ? null : name);

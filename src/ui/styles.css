@@ -3184,6 +3184,20 @@ button.primary:hover:not(:disabled) {
   text-align: left;
 }
 
+/* The glow is 520px wide and starts 120px left of its container, which on a 320px phone reaches
+   80px past the right edge and makes the home screen scroll sideways. It is decoration with
+   `z-index: -1` and nobody should ever be able to scroll to it, so the container clips it.
+   `clip` rather than `hidden`: it contains the overflow without turning `.home` into a scroll
+   container, which would break `position: sticky` on anything inside it later.
+
+   Worth noting how long this hid. `check:overflow` scans the DOM, and a pseudo-element is not in
+   the DOM — so the report said "92px over" and could not name a culprit, because there was no
+   element to name. The guard now falls back to naming the widest element, which is what pointed
+   here by elimination. */
+.home {
+  overflow: clip;
+}
+
 .home::before {
   content: '';
   position: absolute;
@@ -3460,6 +3474,11 @@ button.primary:hover:not(:disabled) {
   min-height: 274px;
   gap: 11px;
   padding: 16px;
+  /* The portrait was left-aligned by the base rule while the text under it was centred, which
+     is the mismatch that makes a tidy grid look untidy: eight cards, each one lopsided in the
+     same way. Centre both. */
+  justify-items: center;
+  text-align: center;
   background: rgb(27 23 32 / 90%);
   border: 1px solid rgb(201 151 84 / 28%);
   border-radius: 12px;
@@ -3487,6 +3506,10 @@ button.primary:hover:not(:disabled) {
   display: block;
   color: var(--parch);
   font-size: 19px;
+  /* Room for two lines whether or not this name needs them. "The Wit" is one line and "The
+     Armored Knight" is two, so without this the blurb beneath starts at a different height on
+     almost every card and the row reads as ragged. */
+  min-height: 2.5em;
 }
 
 .cast-name .cast-step {
@@ -3502,9 +3525,13 @@ button.primary:hover:not(:disabled) {
   border-color: rgb(223 112 80 / 60%);
 }
 
+/* A boss is marked by colour and light, not by size.
+ *
+ *  This used to be 132px against everyone else's 104, and a 28px difference in the first
+ *  element of a card pushes every element after it down by 28px — so the three boss cards sat a
+ *  line lower than their neighbours and nothing in a row shared a baseline. The ember border and
+ *  the glow say "boss" perfectly well without breaking the grid they sit in. */
 .cast-boss .cast-face {
-  width: 132px;
-  height: 132px;
   border-color: var(--ember);
   border-radius: 14px;
   box-shadow: 0 0 26px rgb(223 112 80 / 22%);
@@ -3551,6 +3578,46 @@ button.primary:hover:not(:disabled) {
   background:
     repeating-linear-gradient(92deg, rgb(60 34 14 / 9%) 0 2px, transparent 2px 7px),
     linear-gradient(150deg, #ad7a50 0%, #895b40 100%);
+}
+
+/* A king in check, said loudly.
+ *
+ *  This stopped showing when the squares above were rewritten: they set the `background`
+ *  *shorthand*, which resets `background-image`, and `.sq-check` sets only `background-image`.
+ *  Same specificity, later in the file, so the red went out — and check is the one state on this
+ *  board a player cannot afford to miss.
+ *
+ *  Rewritten to not depend on that argument at all. `.sq.sq-check` outranks a single class, and
+ *  the ring is a `box-shadow`, which nothing here competes for. The glow underneath is kept as
+ *  well, so the square reads at a glance and the king itself is ringed rather than merely
+ *  sitting on a warmer square. */
+.sq.sq-check {
+  background-image: radial-gradient(circle, rgb(196 58 58 / 90%) 12%, rgb(196 58 58 / 0%) 72%);
+  box-shadow:
+    inset 0 0 0 3px rgb(226 74 62 / 95%),
+    inset 0 0 16px rgb(226 74 62 / 55%);
+  animation: check-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes check-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 3px rgb(226 74 62 / 95%),
+      inset 0 0 16px rgb(226 74 62 / 45%);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 3px rgb(255 118 96 / 100%),
+      inset 0 0 24px rgb(226 74 62 / 75%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still unmistakable, just still. The pulse is emphasis; the ring is the information. */
+  .sq.sq-check {
+    animation: none;
+  }
 }
 
 .player {
@@ -3724,4 +3791,16 @@ button.primary:hover:not(:disabled) {
   .story-modal .story {
     display: block;
   }
+}
+
+
+/* A piece the road enchanted, rather than one the player paid for.
+ *
+ *  Venom chooses a pawn for you and Fortification chooses a rook, so the builder is the only
+ *  place a player can learn *which* — and they need it while choosing, since a Poison pawn is
+ *  worth building the rest of the army around. Marked in the ember the gifts use elsewhere so it
+ *  reads as "this came from the road", not as a selection. */
+.loadout-cell.is-given {
+  border-color: rgb(223 112 80 / 55%);
+  box-shadow: inset 0 0 0 1px rgb(223 112 80 / 30%);
 }

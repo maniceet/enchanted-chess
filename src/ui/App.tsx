@@ -342,6 +342,19 @@ type PowerMode =
  *  say that to an engine that assumes every King has one is to hand him a power he has already
  *  spent: `powerActions` returns nothing, the button greys out, and mate detection is untouched
  *  because powers are never legal in check anyway. */
+/** Lay the run's gifts onto a bare board, for a screen that needs to show what the player has
+ *  rather than what they have bought. Mirrors the order `startingState` uses, so the builder and
+ *  the board it leads to cannot disagree. `run` is null off the road, where there are no gifts. */
+function withRoadGifts(state: GameState, color: Color, run: RunState | null): GameState {
+  if (!run) return state;
+  let board = state;
+  if (run.dragons) board = raiseDragons(board, color, { count: run.dragons });
+  if (run.archbishops) board = raiseArchbishops(board, color, { count: run.archbishops });
+  if (run.venom.length) board = venomPawn(board, color, run.venom);
+  if (run.fortifiedRooks) board = fortifyRooks(board, color, { count: run.fortifiedRooks });
+  return board;
+}
+
 function silenceKing(state: GameState, color: Color): GameState {
   return {
     ...state,
@@ -2226,7 +2239,17 @@ export default function App() {
 
   if (phase === 'build-w' || phase === 'build-b') {
     const color: Color = phase === 'build-w' ? 'w' : 'b';
-    const base = initialState(setup.back ? { back: setup.back } : {});
+    /* The board the builder draws has to be the board the game will deal, or it lies about what
+     * the player owns. It used to be a bare starting position, so a traveller who had taken
+     * Venom saw eight identical pawns and no way to find out which one the road had poisoned —
+     * information they need *while choosing*, since a Poison pawn is worth building around and
+     * the gift lands on a pawn they did not pick. Same for a fortified rook, and for knights
+     * and bishops that are Dragons and Archbishops by now. */
+    const base = withRoadGifts(
+      initialState(setup.back ? { back: setup.back } : {}),
+      color,
+      isHouse(setup.opponent) && color === (setup.player ?? 'w') ? run : null,
+    );
     return (
       <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
         <LoadoutBuilder
