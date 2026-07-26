@@ -4027,3 +4027,25 @@ button.primary:hover:not(:disabled) {
     animation: none;
   }
 }
+
+/* Enchanting a piece in the builder is a purchase and deserves a beat: one soft pulse when
+   the enchantment lands on the cell. The animation is tied to the class, so it plays when a
+   cell *gains* an enchantment and holds still through unrelated re-renders. */
+.loadout-cell.has-ench .piece {
+  animation: ench-bless 420ms ease;
+}
+@keyframes ench-bless {
+  0% {
+    transform: scale(0.82);
+    filter: drop-shadow(0 0 9px rgb(196 167 255 / 90%));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 2px 2px rgb(40 22 8 / 45%));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loadout-cell.has-ench .piece {
+    animation: none;
+  }
+}
