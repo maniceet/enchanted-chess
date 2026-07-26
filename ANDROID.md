@@ -186,6 +186,41 @@ so it exercises the artifact Play ships on the OS version the app targets:
   `●●●` indicator is up, and after the reply lands.
 - **Persistence**: a duel survived `force-stop` and a reinstall over the top.
 
+## Offline, proven rather than asserted
+
+The listing says the game plays entirely offline, including on a plane. That is a public claim,
+so it was checked with the radios actually off rather than reasoned about from the fact that the
+bundle is local:
+
+```bash
+adb shell settings put global airplane_mode_on 1
+adb shell cmd connectivity airplane-mode enable
+adb shell ping -c 1 -W 2 8.8.8.8      # → connect: Network is unreachable
+adb shell pm clear com.maniceet.enchantedchess   # first run, the hardest case
+```
+
+Cold start with cleared data, through the prologue, into a duel: the opponent replied. The claim
+is true. Worth re-checking if the app ever gains a feature that phones home, because the line is
+in the store description where a reviewer can hold it against the app.
+
+## Display size
+
+Separate setting from font scale, and it breaks different things: it changes density rather than
+text size, so at Android's largest step the CSS viewport on a Pixel 6 drops to roughly 320px —
+narrower than any phone the layout had been looked at on.
+
+```bash
+adb shell wm density 540     # largest Display size
+adb shell wm density reset
+```
+
+It found a third overflow, and this one was present at *every* size, merely too small to notice
+until the viewport shrank: `--board` was `min(96vw, …)`, but the board sits inside `.app`, which
+spends 18px of the viewport on padding down each side. Sizing the board against the viewport
+made it wider than the column holding it, so the page scrolled sideways by the difference. It is
+`min(calc(100vw - 36px), …)` now, and the board is inset with symmetric margins at both
+densities.
+
 ## Large font scale
 
 Android's font size setting goes to **2.0**, and the WebView applies it to every font size in

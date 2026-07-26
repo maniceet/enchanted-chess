@@ -2647,6 +2647,12 @@ h1 {
     /* Same trap one level down: `vmin` is the *height* on a short or landscape phone, so an
        address bar sliding away resizes the board itself. `svh` is fixed, so it cannot. */
     --board: min(96vw, 88svh, 600px);
+    /* And a third: `vw` is the whole viewport, but the board sits inside `.app`, which spends
+       18px of it on padding down each side. Sizing the board against the viewport therefore
+       made it wider than the column holding it, and the page scrolled sideways by the
+       difference. Found by setting Android's Display size to its largest step, where the CSS
+       viewport drops to about 320px and the overhang stops being subtle. */
+    --board: min(calc(100vw - 36px), 88svh, 600px);
   }
 
   .layout,
