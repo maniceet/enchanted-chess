@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WITTEX_CLEARS_REQUIRED } from '../engine/ai';
-import { kyraxCard } from './story';
+import { kyraxCard, runOverCard, seatFallCard, STORY } from './story';
 
 /* The Dragonlord tells the story in instalments, and the instalment count is load-bearing:
  * the reveal must land exactly on the clear that opens the eighth seat, and every clear after
@@ -37,5 +37,63 @@ describe('the Dragonlord tells it in instalments', () => {
       expect(text).toContain('working is still on me');
       expect(card.cta).toBeUndefined();
     }
+  });
+});
+
+
+/* The cards after a result read the run, not just the result. A defeat screen that says the
+ * same thing on the first fall and the ninth, or a seat that repeats its victory speech
+ * verbatim forever, is a recording where a character should be. */
+describe('a seat that falls again says something new', () => {
+  it('gives the full story beat on first blood and a shorter return after', () => {
+    const first = seatFallCard('wit', 0);
+    expect(first).toEqual(STORY.wit.after);
+    const second = seatFallCard('wit', 1);
+    expect(second.title).not.toBe(first.title);
+    expect(second.lines).not.toEqual(first.lines);
+    // No lesson on a return: the teaching happened the first time.
+    expect(second.lesson).toBeUndefined();
+  });
+
+  it('holds on the last telling rather than running out of things to say', () => {
+    expect(seatFallCard('drunkard', 7)).toEqual(seatFallCard('drunkard', 40));
+  });
+
+  it('keeps the instalment tellers for the two seats that had them', () => {
+    expect(seatFallCard('kyrax', 2)).toEqual(kyraxCard(2));
+  });
+
+  it('varies every seat on the road, not just the bosses', () => {
+    for (const seat of ['drunkard', 'innkeeper', 'wit', 'armored', 'ardax', 'wittex'] as const) {
+      const again = seatFallCard(seat, 1);
+      expect(again.lines, seat).not.toEqual(STORY[seat].after.lines);
+    }
+  });
+});
+
+describe('the walk back reads the run count and the depth', () => {
+  const lines = (c: { lines: string[] }) => c.lines.join(' ');
+
+  it('a first fall gets the rules of the road; a ninth gets the shorthand', () => {
+    const first = runOverCard(2, 10, false, false, 0, 1, 0);
+    const ninth = runOverCard(2, 10, false, false, 0, 9, 2);
+    expect(lines(first)).toContain('nobody warned you');
+    expect(lines(ninth)).toContain('You know the speech by now');
+    expect(lines(first)).not.toBe(lines(ninth));
+  });
+
+  it('falling short of your own deepest mark is noticed', () => {
+    const short = runOverCard(1, 5, false, false, 0, 3, 5);
+    expect(lines(short)).toContain('You have been further than this');
+    // New ground (lesson > 0) is the opposite case and must never carry the regression line.
+    const deeper = runOverCard(6, 30, false, false, 1, 3, 5);
+    expect(lines(deeper)).not.toContain('You have been further than this');
+  });
+
+  it('losing to the first chair reads differently once it keeps happening', () => {
+    const first = runOverCard(0, 0, false, false, 0, 1, 0);
+    const later = runOverCard(0, 0, false, false, 0, 5, 3);
+    expect(lines(first)).toContain('worse than laughing');
+    expect(lines(later)).toContain('even the drunk gets an evening');
   });
 });

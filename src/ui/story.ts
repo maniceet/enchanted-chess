@@ -407,21 +407,47 @@ export function runOverCard(
   /** Mana taken home for reaching new ground. A reward the player is not told about is not a
    *  reward, it is an accounting entry. */
   lesson = 0,
+  /** Which attempt this was (beginRun counts it, so during a run it is already this walk's
+   *  number) and the deepest seat ever reached before it. The card reads differently on a
+   *  first fall than a ninth, and differently again when the walk died short of the player's
+   *  own mark — a defeat screen that cannot tell those apart is not watching the player it is
+   *  talking to. */
+  attempts = 1,
+  best = 0,
 ): StoryCard {
   const walk =
     reached === 0
-      ? 'You do not get out of the first chair. Somebody moves your cup for you, which is worse than laughing.'
+      ? attempts <= 1
+        ? 'You do not get out of the first chair. Somebody moves your cup for you, which is worse than laughing.'
+        : 'The first chair, again. On a long enough road even the drunk gets an evening, and he has decided it is this one.'
       : reached < 3
         ? 'The walk back is short and nobody comments on it, which is its own kind of comment.'
         : reached < 5
           ? 'You get further than most and it does not matter, because the road does not pay for further. It pays for finished.'
           : 'You get close enough to see the shape of the end, and then you do not reach it. That is the worst distance there is.';
 
+  // Fell short of ground already taken on an earlier walk. `lesson` is the opposite case —
+  // new ground — and the two can never both be true.
+  const shortOfBest =
+    reached < best && lesson === 0
+      ? attempts >= 6
+        ? 'You have stood deeper on this road than you stood tonight, more than once. The road remembers that even on the evenings you make it hard to believe.'
+        : 'You have been further than this. The road knows it too, and neither of you says anything about it.'
+      : null;
+
+  const restart =
+    attempts <= 1
+      ? 'Here is the shape of the thing, since nobody warned you: the road only counts an unbroken walk. It starts again at the taps — but gold stays spent into learning, and learning does not wash off.'
+      : attempts >= 6
+        ? 'It starts again at the taps. You know the speech by now — you could give it. The seats will be carrying something different when you come back; so, by now, will you.'
+        : 'The road only counts an unbroken walk, so it starts again at the taps, and everyone on it will be carrying something different when you come back. They always are.';
+
   return {
     title: justOpened ? 'The Door Behind The Bar' : 'Back To The Inn',
     lines: [
       walk,
-      'The road only counts an unbroken walk, so it starts again at the taps, and everyone on it will be carrying something different when you come back. They always are.',
+      ...(shortOfBest ? [shortOfBest] : []),
+      restart,
       // Seats pay when they fall, not when the walk ends: `winSeat` banks the purse and
       // `loseRun` banks nothing. Say so, or a traveller watches the counter refuse to move
       // on this very screen and concludes the house is skimming.
@@ -478,6 +504,109 @@ export const FREED: StoryCard = {
  *
  *  So the grant happens once. After that she is simply a woman who keeps losing to you and keeps
  *  turning up, which is a better character note than the lecture was. */
+/* What a seat says when it falls *again*.
+ *
+ * Kyrax and Rolain already told their stories in instalments, and the rest of the road said
+ * the same thing on the twelfth beating as the first — which reads less like a character and
+ * more like a recording. One or two short returns per seat, cycling and then holding on the
+ * last: by then the relationship is the text, and inventing a new sentence for the fortieth
+ * win would be the game performing novelty it does not have.
+ *
+ * No lesson lines on any of these. The teaching happened the first time. */
+const AGAIN: Partial<Record<House, { title: string; tellings: string[][] }>> = {
+  drunkard: {
+    title: 'The Same Chair, Falling The Same Way',
+    tellings: [
+      [
+        'He loses faster this time and takes it better, which is not the direction those two usually travel together.',
+        '"You again. Good. Losing to a stranger is embarrassing, but losing to a regular is practically company."',
+      ],
+      [
+        'He has your drink poured before the board is even cleared, and he does not bother counting his pieces back into the box.',
+        '"One day I will be sober and you will be careless. I can wait. It is the one thing I am still good at."',
+      ],
+    ],
+  },
+  innkeeper: {
+    title: 'The Bar, Wiped Again',
+    tellings: [
+      [
+        'He resets the pieces before you have finished taking his King, which is as close as he comes to conversation.',
+        '"Better," he says, and it is a while before you realise he was not talking about the game. He was talking about you.',
+      ],
+      [
+        'This time he does not watch the board while you finish. He watches you, the way a man checks a knife he already knows is sharp.',
+        '"The road is longer past my door. You know that by now. Go and be somebody else\u2019s problem."',
+      ],
+    ],
+  },
+  wit: {
+    title: 'Talked Down, Again',
+    tellings: [
+      [
+        'He tips his King with two fingers and starts talking before it lands, because silence is the one position he has never learned to hold.',
+        '"Yes, yes. You have beaten a talkative old man on a walking trail. Put it on your banner. The ones ahead of you hit back harder and converse worse."',
+      ],
+      [
+        'He is quieter this time, and the quiet is more unsettling than the talk ever was.',
+        '"You play like the road now, not like a traveller on it," he says. "I would think about what that costs, if I were the sort of man who thought about costs."',
+      ],
+    ],
+  },
+  armored: {
+    title: 'The Shields Come Off Faster Now',
+    tellings: [
+      [
+        'The knight unstraps a gauntlet, which turns out to be how he applauds.',
+        '"You strike the shield without flinching now. First time you paid the turn like it was a toll. Now you spend it like a man who has counted his change."',
+      ],
+      [
+        'He waves off his own squire and resets the board himself, armour and all.',
+        '"There is nothing left behind these shields you have not already broken. Go break something that is still proud of itself."',
+      ],
+    ],
+  },
+  ardax: {
+    title: 'What Falls Stays Down, Again',
+    tellings: [
+      [
+        'He looks at his graveyard a long moment, as if expecting it to disagree with the result the way it usually does.',
+        '"You beat the board and the second board I keep under it. Twice the game, and you did not blink. My father will not find that funny at all."',
+      ],
+      [
+        'He does not call anything back this time, even when he could, and you both notice him not doing it.',
+        '"Raising the dead only frightens people who have not beaten them already," he says. "Go on. He is waiting, and he does not wait kindly."',
+      ],
+    ],
+  },
+  wittex: {
+    title: 'The Curse, Beaten Back Again',
+    tellings: [
+      [
+        'He goes down the way a candle goes out: no drama, just an absence where the pressure was.',
+        'The air in the valley is easier for a while. You have stopped expecting it to stay that way, and so has the valley.',
+      ],
+      [
+        'It is almost routine now, which is the most frightening thing about it. A curse you can schedule is still a curse.',
+        'Somewhere behind the quiet, something takes another note about you. The story is not done using your name.',
+      ],
+    ],
+  },
+};
+
+/** The card for a seat's fall: the full story beat on first blood, and the seat's own shorter
+ *  returns after that. Kyrax and Rolain keep their instalment tellers, which predate this and
+ *  do the same job with more to say. */
+export function seatFallCard(seat: House, timesBeatenBefore: number): StoryCard {
+  if (seat === 'kyrax') return kyraxCard(timesBeatenBefore);
+  if (seat === 'rolain') return rolainCard(timesBeatenBefore);
+  const base = STORY[seat].after;
+  const again = AGAIN[seat];
+  if (timesBeatenBefore === 0 || !again) return base;
+  const tell = again.tellings[Math.min(timesBeatenBefore - 1, again.tellings.length - 1)];
+  return { title: again.title, lines: tell, cta: base.cta };
+}
+
 export function rolainCard(timesBeatenBefore: number): StoryCard {
   const base = STORY.rolain.after;
   if (timesBeatenBefore === 0) return base;

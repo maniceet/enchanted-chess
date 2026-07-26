@@ -132,8 +132,7 @@ import {
   ROLAIN_LENDS,
   STORY,
   drawCard,
-  kyraxCard,
-  rolainCard,
+  seatFallCard,
   relicCard,
   runOverCard,
   type StoryCard,
@@ -835,12 +834,7 @@ export default function App() {
         // The Dragonlord tells you a little more each time he falls, and the fifth time he
         // gives you the name. Read *before* `winSeat` lands, so the count is what it was when
         // he sat down.
-        const base =
-          seat === 'kyrax'
-            ? kyraxCard(run.beaten.kyrax ?? 0)
-            : seat === 'rolain'
-              ? rolainCard(run.beaten.rolain ?? 0)
-              : STORY[seat].after;
+        const base = seatFallCard(seat, run.beaten[seat] ?? 0);
         const beat = found ? relicCard(base, found) : base;
         // Beating the last seat ends the attempt, so the epilogue returns to the inn. Sending
         // it back to the road put the player on a ladder they had just finished, every seat
@@ -884,7 +878,7 @@ export default function App() {
         setTimeout(
           () =>
             setCard({
-              card: drawn ?? runOverCard(reached, purse, run.sorcerer, opening, lesson),
+              card: drawn ?? runOverCard(reached, purse, run.sorcerer, opening, lesson, run.attempts, run.best),
               then: () => setPhase('home'),
             }),
           900,
