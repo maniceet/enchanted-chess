@@ -166,8 +166,13 @@ try {
     render(storeSvg(px), px, join(dir, 'ic_launcher_round.png'), work);
     console.log(`mipmap-${density}  ${px}px`);
   }
-  render(storeSvg(512), 512, 'play/icon-512.png', work);
-  console.log('play/icon-512.png  512px');
+  // play/icon-512.png is deliberately NOT generated here. The Play Store icon is the painted
+  // badge in media/logo.png — commissioned art, shown large on the listing where its detail
+  // reads — and this script would overwrite it with the flat mark on every run. The launcher
+  // icon stays generated: a 48dp adaptive icon is masked to a circle and cannot carry a frame,
+  // a wordmark, or two potion bottles. Different surfaces, different artwork, same identity.
+  //
+  //   sips -z 512 512 media/logo.png --out play/icon-512.png
   render(featureSvg(), 1024, 'play/feature-graphic.png', work, 500);
   console.log('play/feature-graphic.png  1024x500');
 
