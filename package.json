@@ -20,7 +20,8 @@
     "android:bundle": "npm run android:sync && cd android && ./gradlew bundleRelease",
     "android:verify": "npm run android:bundle && bash scripts/verify-aab.sh",
     "check:overflow": "npm run build && tsx scripts/overflow.ts",
-    "check:devgate": "npm run build && tsx scripts/devgate.ts"
+    "check:devgate": "npm run build && tsx scripts/devgate.ts",
+    "preflight": "bash scripts/preflight.sh"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

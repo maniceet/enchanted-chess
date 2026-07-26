@@ -116,6 +116,22 @@ Two traps, both of which cost an hour once:
 
 Swap `android-36` for `android-35` above to test the other API level; both have been used here.
 
+## Before every upload
+
+```bash
+npm run preflight
+```
+
+One command, and it either says "Ready to upload" with the path to the bundle, or names what
+failed. Tests, types, horizontal overflow at seven widths, the dev-only shortcut's absence from
+the bundle, the release build, the signature, the versionCode, and the download size Play will
+report.
+
+Each of those checks exists because the thing it catches had already shipped, or nearly had —
+three sideways-scrolling screens found by hand, a dev shortcut sitting unreachable inside a
+production build, a new enchantment missing from six lists. None of them were visible without
+looking, so this looks, in one place, before the artifact leaves the machine.
+
 ## Verifying the artifact that actually ships
 
 ```bash
