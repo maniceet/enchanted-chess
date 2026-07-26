@@ -90,18 +90,48 @@ describe('Seat regimes', () => {
     expect(regime.magic).toBe(true);
   });
 
-  /** The road dips in the middle if seat 5 is easier than seat 4: you beat a real opponent at
-   *  the Wit and then walk through the gate. Difficulty lives in `maxNodes`, not in `depth`
-   *  (which is a ceiling on iterative deepening that the node cap reaches first) and not in
-   *  armour (worth about one tempo per shielded piece). */
-  it('walks up the ladder without a trough, measured in nodes', () => {
-    const caps = CAMPAIGN.map((who) => HOUSE[who].maxNodes ?? 0);
-    for (let i = 1; i < caps.length; i++) {
-      expect(caps[i], `${CAMPAIGN[i]} must not search less than ${CAMPAIGN[i - 1]}`)
-        .toBeGreaterThanOrEqual(caps[i - 1]);
+  /** What a seat is made of, and why this stopped being one number.
+   *
+   *  This used to assert that `maxNodes` climbs strictly along the road, on the stated grounds
+   *  that "difficulty lives in maxNodes, not in depth and not in armour (worth about one tempo
+   *  per shielded piece)". Both halves of that turned out to be wrong, and measurement is what
+   *  said so.
+   *
+   *  Cutting the Wit's search twice moved his win rate not at all; cutting his *mana* from four
+   *  to three moved it from 25% to 50% immediately. And the Armoured Knight's free armour is
+   *  worth far more than a tempo a piece — eight shielded pawns produced seven draws in eight
+   *  games, an opponent nobody could open rather than one they could not beat.
+   *
+   *  So difficulty is mana, armour and search together, and no unit test can measure the sum.
+   *  What it can still hold is the shape: the two teaching seats must stay the weakest things on
+   *  the road, and the two at the end must out-search everything in the middle. The flat stretch
+   *  between them is deliberate — the Wit and the Armoured Knight both sit near an even fight,
+   *  reached by different means — and asserting a strict climb through it would be asserting a
+   *  model of difficulty that the numbers have already refuted.
+   *
+   *  Win rates against the reference hero, n=8, at the time of writing:
+   *  rolain 75 · wit 50 · armored 50 · ardax 38 · kyrax 0 · wittex 0. */
+  it('keeps the teaching seats weakest and the end of the road strongest', () => {
+    const nodesOf = (who: House) => HOUSE[who].maxNodes ?? 0;
+    const middle: House[] = ['wit', 'armored', 'ardax'];
+
+    for (const teaching of ['innkeeper', 'rolain'] as const) {
+      for (const later of middle) {
+        expect(nodesOf(teaching), `${teaching} must not out-search ${later}`)
+          .toBeLessThanOrEqual(nodesOf(later));
+      }
     }
-    expect(HOUSE.armored.maxNodes!).toBeGreaterThan(HOUSE.wit.maxNodes!);
-    expect(HOUSE.armored.maxNodes!).toBeLessThan(HOUSE.ardax.maxNodes!);
+
+    for (const boss of ['kyrax', 'wittex'] as const) {
+      for (const earlier of middle) {
+        expect(nodesOf(boss), `${boss} must out-search ${earlier}`)
+          .toBeGreaterThan(nodesOf(earlier));
+      }
+    }
+
+    // And mana climbs to the end, which is the axis that actually decides these games.
+    expect(HOUSE.wittex.mana).toBeGreaterThan(HOUSE.kyrax.mana);
+    expect(HOUSE.kyrax.mana).toBeGreaterThan(HOUSE.ardax.mana);
   });
 
   it('leaves the teaching seats blind to enchantments, which is what keeps them careless', () => {
