@@ -239,6 +239,7 @@ export const PIECE_NAME: Record<PieceType, string> = {
 };
 
 export const ENCH_NAME: Record<Enchantment, string> = {
+  squire: 'Squire',
   taunt: 'Taunt',
   martyr: 'Martyr',
   outpost: 'Outpost',

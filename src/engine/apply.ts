@@ -6,6 +6,7 @@ import {
   opposite,
   positionKey,
   rankOf,
+  relativeRank,
   sq,
   squareName,
 } from './board';
@@ -18,6 +19,7 @@ import {
   promotionRankOf,
   shieldBreakActions,
   bindActions,
+  swapActions,
 } from './movegen';
 import { REPEATABLE, REVIVE_COST, powerActions, samePowerArgs } from './powers';
 import { TIME_POWER_INCREMENT_MS, TIME_POWER_LUMP_MS, incrementFor } from './clock';
@@ -33,6 +35,7 @@ import type {
   Piece,
   PieceType,
   PowerAction,
+  SwapAction,
   ShieldBreakAction,
 } from './types';
 
@@ -289,6 +292,55 @@ function applyBind(state: GameState, action: BindAction): GameState | EngineErro
   );
 }
 
+/** The Squire's trade.
+ *
+ *  Both pawns move, nothing is captured, and the whole reason the pair exists is the line in the
+ *  middle: a Herald that lands on its crowning rank crowns immediately. Without that the Squire
+ *  is a tempo-losing shuffle, and with it a blocked Herald on rank two and a Squire that has
+ *  walked to rank seven are a queen.
+ *
+ *  A pawn move, so the fifty-move counter resets and any en-passant right lapses — both pawns
+ *  changing places is emphatically not a quiet move. */
+function applySwap(state: GameState, action: SwapAction): GameState | EngineError {
+  const legal = swapActions(state, state.turn).some(
+    (a) => a.from === action.from && a.to === action.to,
+  );
+  if (!legal) return err(`illegal swap ${squareName(action.from)}-${squareName(action.to)}`);
+
+  const squire = state.board[action.from]!;
+  const herald = state.board[action.to]!;
+  const board = state.board.slice() as (Piece | null)[];
+  board[action.to] = squire;
+  board[action.from] = herald;
+
+  // Only the Herald can arrive somewhere that crowns it: the Squire takes the Herald's square,
+  // and a Herald never stands on its own crowning rank without having already crowned there.
+  let promoted = herald;
+  if (relativeRank(herald.color, action.from) >= promotionRankRelative(herald)) {
+    if (!action.promo) return err('the herald arrives crowned; name the piece');
+    if (action.promo === 'k' || action.promo === 'p') return err('cannot promote to that');
+    promoted = { ...herald, type: action.promo, ench: null, shieldBroken: false };
+    board[action.from] = promoted;
+  } else if (action.promo) {
+    return err('nothing is crowned by this swap');
+  }
+
+  const next = {
+    ...state,
+    board,
+    ep: null,
+    halfmove: 0,
+    log: [...state.log, action],
+  };
+  return settle(endTurn(next, { spentMs: action.spentMs }));
+}
+
+/** The rank a pawn crowns on, counted from its owner's side, one-based. Eight normally, seven
+ *  for a Herald — the same rule `promotionRankOf` expresses in board indices. */
+function promotionRankRelative(piece: Piece): number {
+  return piece.ench === 'herald' ? 7 : 8;
+}
+
 function applyPower(state: GameState, action: PowerAction): GameState | EngineError {
   const color = state.turn;
   const legal = powerActions(state, color).some(
@@ -435,6 +487,9 @@ export function applyAction(state: GameState, action: Action): GameState | Engin
     case 'bind':
       return applyBind(state, action);
 
+    case 'swap':
+      return applySwap(state, action);
+
     case 'power':
       return applyPower(state, action);
   }
@@ -448,6 +503,7 @@ export function legalActions(state: GameState): Action[] {
     ...legalMoves(state, state.turn),
     ...shieldBreakActions(state, state.turn),
     ...bindActions(state, state.turn),
+    ...swapActions(state, state.turn),
     ...powerActions(state, state.turn),
   ];
 }

@@ -17,6 +17,7 @@ interface ShopProps {
 }
 
 const FLAVOUR: Record<Enchantment, string> = {
+  squire: 'He carries the arms. He does not wear the crown.',
   taunt: 'Steel for standing in.',
   martyr: 'A death that costs them a turn.',
   outpost: 'No pawn will touch it.',

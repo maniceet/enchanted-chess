@@ -411,6 +411,7 @@ const SHIELD_BROKEN = [
 
 /** What it says when it takes an enchanted piece of yours. */
 const TOOK: Record<Enchantment, string[]> = {
+  squire: ['Killing the servant is how you stop the coronation.', 'No squire, no crown. Simple enough.'],
   taunt: ['Undefended and enchanted. Bold.', 'The shield was down. So is the piece.'],
   martyr: ['Chained again. I know this trick and I take the piece anyway.', 'Hold still, would you.'],
   outpost: ['No pawn could touch it. I am not a pawn.', 'A fine little fort. I came round the side.'],
@@ -422,6 +423,7 @@ const TOOK: Record<Enchantment, string[]> = {
 
 /** What it says when you take an enchanted piece of its. */
 const LOST: Record<Enchantment, string[]> = {
+  squire: ['He was only ever going to carry somebody else’s arms.', 'A pawn with a job. Now a pawn without one.'],
   taunt: ['The shield was the whole idea. You found the gap.', 'Steel is expensive. Enjoy it.'],
   martyr: ['Take it. Your hand is tied for a turn now.', 'It died usefully. Most things here do not.'],
   outpost: ['You brought something bigger than a pawn. Sensible.', 'Fine. It was only holding ground.'],

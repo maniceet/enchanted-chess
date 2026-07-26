@@ -59,6 +59,9 @@ export const PURSE: Record<House, number> = {
 /** A full clear is worth 104 gold, and the book costs 96 to fill. Nobody buys everything on
  *  one run, and nobody needs to. */
 export const PRICE: Record<Enchantment, number> = {
+  // Cheap for what it does, and priced that way on purpose: it does nothing at all without a
+  // Herald, which costs 22 on its own, so the pair is the real purchase.
+  squire: 12,
   taunt: 8,
   martyr: 8,
   outpost: 14,
@@ -76,7 +79,10 @@ export const SPELLBOOK: Enchantment[] = [
   'martyr',
   'outpost',
   'swift',
+  // Sold next to the Herald deliberately: the Squire is worthless on its own and the shelf
+  // should say so by where it puts them.
   'herald',
+  'squire',
   'poison',
 ];
 

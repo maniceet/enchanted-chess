@@ -1,14 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { applyAction, isFrozen } from './apply';
 import { initialState, parseSquare, squareName } from './board';
-import { applyLoadout, carrierError, costOf } from './loadout';
+import { applyLoadout, carrierError, costOf, validateLoadout } from './loadout';
 import { deserialize, parseFen, serialize, toFen } from './fen';
-import { bindActions, inCheck, isAttacked, isShielded, legalMoves, shieldBreakActions } from './movegen';
+import {
+  bindActions,
+  inCheck,
+  isAttacked,
+  isShielded,
+  legalMoves,
+  shieldBreakActions,
+  swapActions,
+} from './movegen';
 import { powerActions, powerUnavailableReason } from './powers';
 import { TIME_CONTROLS, newClock } from './clock';
 import { toSan } from './notation';
 import { at, hasMove, position } from './testkit';
-import { isError, type Action, type GameState, type PowerAction } from './types';
+import { isError, type Action, type GameState, type PieceType, type PowerAction } from './types';
 
 const ok = (r: GameState | { error: string }): GameState => {
   if (isError(r)) throw new Error(r.error);
@@ -1013,5 +1021,86 @@ describe('The Archbishop binds instead of taking', () => {
     const after = ok(applyAction(state, { type: 'bind', from: parseSquare('d4'), target: parseSquare('f6') }));
     const black = ok(applyAction(after, { type: 'move', from: parseSquare('h7'), to: parseSquare('h6') }));
     expect(bindActions(black, 'w').map((b) => squareName(b.target))).not.toContain('f6');
+  });
+});
+
+/** The Squire — a pawn whose only move is to change places with a Herald.
+ *
+ *  Herald on its own is the weakest thing on the shelf: crowning a rank early is worth little
+ *  when the pawn still has six ranks to walk. The Squire is the delivery mechanism. A Herald
+ *  stuck behind its own army and a Squire that has walked to the seventh rank are, together, a
+ *  queen — and that is the whole reason both exist. */
+describe('The Squire', () => {
+  const swap = (state: GameState, from: string, to: string, promo?: PieceType) =>
+    applyAction(state, {
+      type: 'swap',
+      from: parseSquare(from),
+      to: parseSquare(to),
+      ...(promo ? { promo } : {}),
+    } as Action);
+
+  it('changes places with a friendly Herald', () => {
+    const s = position({ e1: 'wk', e8: 'bk', a2: 'wp:squire', b3: 'wp:herald' });
+    const after = ok(swap(s, 'a2', 'b3'));
+    expect(at(after, 'b3')!.ench, 'the squire took the herald’s square').toBe('squire');
+    expect(at(after, 'a2')!.ench, 'and the herald took his').toBe('herald');
+  });
+
+  it('crowns the Herald when the trade lands it on the seventh rank', () => {
+    // The point of the pair: the squire has walked to the seventh, the herald has not, and one
+    // turn turns the herald into a queen without it ever making the walk.
+    const s = position({ e1: 'wk', e8: 'bk', a7: 'wp:squire', b2: 'wp:herald' });
+    const after = ok(swap(s, 'a7', 'b2', 'q'));
+    expect(at(after, 'b2')!.ench, 'the squire is where the herald was').toBe('squire');
+    const crowned = at(after, 'a7')!;
+    expect(crowned.type, 'and the herald arrived crowned').toBe('q');
+    expect(crowned.ench, 'the enchantment is spent with the promotion').toBe(null);
+  });
+
+  it('insists on being told what the Herald becomes', () => {
+    const s = position({ e1: 'wk', e8: 'bk', a7: 'wp:squire', b2: 'wp:herald' });
+    expect(isError(swap(s, 'a7', 'b2')), 'no piece named').toBe(true);
+  });
+
+  it('refuses a crown when the trade does not earn one', () => {
+    const s = position({ e1: 'wk', e8: 'bk', a2: 'wp:squire', b3: 'wp:herald' });
+    expect(isError(swap(s, 'a2', 'b3', 'q'))).toBe(true);
+  });
+
+  it('offers nothing when there is no Herald to trade with', () => {
+    const s = position({ e1: 'wk', e8: 'bk', a2: 'wp:squire' });
+    expect(swapActions(s, 'w')).toHaveLength(0);
+  });
+
+  it('will not trade with the enemy’s Herald', () => {
+    const s = position({ e1: 'wk', e8: 'bk', a2: 'wp:squire', b7: 'bp:herald' });
+    expect(swapActions(s, 'w')).toHaveLength(0);
+  });
+
+  it('cannot answer a check, because a trade moves no occupancy', () => {
+    // Worth stating as a rule rather than discovered at a board: both squares are occupied
+    // before and after, so a trade can neither block the checking line nor take the piece on
+    // it. The same invariant is why a trade can never expose its own King either — there is no
+    // king-safety filter in `swapActions` because there is provably nothing for one to catch.
+    const s = position({ e1: 'wk', e8: 'bk', a2: 'wp:squire', b3: 'wp:herald', e7: 'br' });
+    expect(inCheck(s, 'w'), 'the rook has the file').toBe(true);
+    expect(swapActions(s, 'w'), 'nothing offered').toHaveLength(0);
+    expect(isError(swap(s, 'a2', 'b3')), 'and refused if asked for directly').toBe(true);
+  });
+
+  it('is refused at the builder without a Herald in the army', () => {
+    const board = initialState({});
+    const check = validateLoadout(board, 'w', {
+      enchantments: { a2: 'squire' },
+      power: 'teleport',
+    });
+    expect(check.ok).toBe(false);
+    expect(check.errors.join(' ')).toMatch(/needs a Herald/);
+
+    const paired = validateLoadout(board, 'w', {
+      enchantments: { a2: 'squire', b2: 'herald' },
+      power: 'teleport',
+    });
+    expect(paired.ok, 'and allowed with one').toBe(true);
   });
 });

@@ -16,7 +16,8 @@ const LETTER: Record<PieceType, string> = {
   k: 'K',
 };
 
-/** Standard algebraic notation, extended per spec §4 with ⚡ (power), ⊘ (shield-break) and ⛨ (binding). */
+/** Standard algebraic notation, extended per spec §4 with ⚡ (power), ⊘ (shield-break),
+ *  ⛨ (binding) and ⇄ (the Squire's trade). */
 export function toSan(state: GameState, action: Action): string {
   if (action.type === 'resign') return 'resign';
   if (action.type === 'drawOffer') return '(=)';
@@ -28,6 +29,12 @@ export function toSan(state: GameState, action: Action): string {
   // the Archbishop did not make.
   if (action.type === 'bind') {
     return `⛨${squareName(action.target)}`;
+  }
+  // Two pawns change places, so neither square alone tells the story: both, and the crown if
+  // the Herald arrived on its rank.
+  if (action.type === 'swap') {
+    const promo = action.promo ? `=${action.promo.toUpperCase()}` : '';
+    return `${squareName(action.from)}⇄${squareName(action.to)}${promo}`;
   }
   if (action.type === 'power') {
     const a = action.args;

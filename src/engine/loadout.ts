@@ -17,6 +17,7 @@ import type { Color, Enchantment, GameState, PieceType, PowerName } from './type
 export const BUDGET = 10;
 
 export const ENCH_COST: Record<Enchantment, number> = {
+  squire: 2,
   taunt: 1,
   martyr: 1,
   outpost: 2,
@@ -37,7 +38,10 @@ export const ENCHANTMENTS: Enchantment[] = [
   'martyr',
   'outpost',
   'swift',
+  // The Squire sits next to the Herald because it is meaningless without one, and a list is
+  // the cheapest place to say so.
   'herald',
+  'squire',
   'poison',
   'immolation',
 ];
@@ -54,6 +58,7 @@ export const CARRIER_MULTIPLIER: Record<PieceType, number> = {
 };
 
 export const LEGAL_CARRIERS: Record<Enchantment, PieceType[]> = {
+  squire: ['p'],
   taunt: ['p', 'n', 'b', 'r', 'q', 'd'],
   martyr: ['p', 'n', 'b', 'r', 'q', 'd'],
   outpost: ['p', 'n', 'b'],
@@ -64,6 +69,8 @@ export const LEGAL_CARRIERS: Record<Enchantment, PieceType[]> = {
 };
 
 export const ENCH_TEXT: Record<Enchantment, string> = {
+  squire:
+    'Instead of moving, this pawn changes places with a friendly Herald pawn anywhere on the board. If the Herald arrives on its crowning rank it crowns at once. Requires a Herald in the same army — a squire with nobody to carry the arms for is only a pawn.',
   taunt:
     'While defended and standing in your own half, this piece has a shield. An enemy capture attempt breaks the shield instead: the attacker does not move, and its turn is spent. Cross into the enemy half and the shield sleeps until the piece comes home. Taunt grants no exception to an attacker, since striking a shield always means reaching into enemy ground. Once broken, it is gone for good.',
   martyr: 'When captured, the capturing piece may not move on its owner’s next turn. A capturing King is immune.',
@@ -116,6 +123,7 @@ const CARRIER_PLURAL: Record<PieceType, string> = {
 };
 
 const ENCH_LABEL: Record<Enchantment, string> = {
+  squire: 'Squire',
   taunt: 'Taunt',
   martyr: 'Martyr',
   outpost: 'Outpost',
@@ -169,6 +177,14 @@ export function validateLoadout(
       continue;
     }
     spent += costOf(ench, piece.type);
+  }
+
+  // A Squire with nobody to carry the arms for is two points of nothing: his only move is to
+  // trade places with a Herald, so without one in the same army he is an ordinary pawn that
+  // cost extra. Refused at the builder rather than sold and then discovered to be inert.
+  const chosen = Object.values(loadout.enchantments);
+  if (chosen.includes('squire') && !chosen.includes('herald')) {
+    errors.push('a Squire needs a Herald in the same army');
   }
 
   if (spent > budget) errors.push(`over budget: ${spent}/${budget} points`);

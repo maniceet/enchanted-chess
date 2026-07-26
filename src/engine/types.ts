@@ -8,6 +8,7 @@ export type Color = 'w' | 'b';
 export type PieceType = 'p' | 'n' | 'b' | 'r' | 'q' | 'k' | 'd' | 'a';
 
 export type Enchantment =
+  | 'squire'
   | 'taunt'
   | 'martyr'
   | 'outpost'
@@ -119,6 +120,18 @@ export interface BindAction extends Timed {
   readonly target: number;
 }
 
+/** The Squire's trade. Two friendly pawns change places — the Squire and a Herald — and if the
+ *  Herald lands on its crowning rank it crowns at once, which is the entire point of the pair.
+ *
+ *  `promo` carries the piece the Herald becomes when the swap crowns it, exactly as a move does.
+ *  Nothing is captured and nothing else moves. */
+export interface SwapAction extends Timed {
+  readonly type: 'swap';
+  readonly from: number;
+  readonly to: number;
+  readonly promo?: PieceType;
+}
+
 export interface PowerAction extends Timed {
   readonly type: 'power';
   readonly power: PowerName;
@@ -149,6 +162,7 @@ export interface DrawAction {
 export type Action =
   | MoveAction
   | ShieldBreakAction
+  | SwapAction
   | BindAction
   | PowerAction
   | FlagAction

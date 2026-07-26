@@ -23,6 +23,7 @@ const POWER_NAME: Record<PowerName, string> = {
   chrono: 'Time Manipulation',
 };
 const CARRIERS: Record<Enchantment, string> = {
+  squire: 'pawn · needs a Herald',
   taunt: 'any piece but the King',
   martyr: 'any piece but the King',
   outpost: 'pawn · knight · bishop',

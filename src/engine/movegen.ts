@@ -20,6 +20,7 @@ import type {
   Piece,
   PieceType,
   ShieldBreakAction,
+  SwapAction,
 } from './types';
 
 export type Board = readonly (Piece | null)[];
@@ -461,6 +462,47 @@ export function shieldBreakActions(
  *  And he may not bind while his own King is in check, for the same reason a shield-break is
  *  illegal there (T4) — a bind does not answer a check, so spending the turn on one would be
  *  leaving the King attacked. */
+/** Every place a Squire may trade with a Herald.
+ *
+ *  A swap is a whole turn and nothing is captured, so the only legality questions are the ones
+ *  every move faces: the mover must not be frozen, and the position afterwards must not leave
+ *  its own King attacked. Both pawns move at once, which is why this cannot be expressed as an
+ *  ordinary move and gets its own action.
+ *
+ *  Never offered while in check, and the reason is worth stating because it also explains why
+ *  there is no king-safety filter here. A trade leaves *occupancy unchanged*: both squares were
+ *  full before and are full after. Enemy attacks depend on occupancy and on where the enemy
+ *  stands, neither of which a swap touches, so a trade can neither block a check nor capture
+ *  the piece giving it — and equally can never expose its own King. Both facts fall out of the
+ *  same invariant. A filter per swap was written here first and was provably dead code.
+ *
+ *  The promotion is not decided here. A Herald arriving on its crowning rank crowns, and which
+ *  piece it becomes is the caller's choice, so this offers the bare swap and `applySwap` demands
+ *  a `promo` when the landing square calls for one. */
+export function swapActions(state: GameState, color: Color = state.turn): SwapAction[] {
+  const out: SwapAction[] = [];
+  if (inCheck(state, color)) return out;
+  const heralds: number[] = [];
+  for (let s = 0; s < 64; s++) {
+    const piece = state.board[s];
+    if (piece && piece.color === color && piece.type === 'p' && piece.ench === 'herald') {
+      heralds.push(s);
+    }
+  }
+  if (!heralds.length) return out;
+  for (let from = 0; from < 64; from++) {
+    const piece = state.board[from];
+    if (!piece || piece.color !== color || piece.type !== 'p') continue;
+    if (piece.ench !== 'squire') continue;
+    if (isFrozen(state, piece)) continue;
+    for (const to of heralds) {
+      if (to === from) continue;
+      out.push({ type: 'swap', from, to });
+    }
+  }
+  return out;
+}
+
 export function bindActions(state: GameState, color: Color = state.turn): BindAction[] {
   if (inCheck(state, color)) return [];
   const out: BindAction[] = [];
