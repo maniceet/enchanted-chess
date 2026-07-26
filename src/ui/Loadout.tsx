@@ -17,6 +17,10 @@ import { ENCH_NAME, EnchRune, PieceGlyph, PIECE_NAME } from './Pieces';
 import { play } from './sound';
 
 const ALL_POWERS: PowerName[] = ['teleport', 'relocate', 'decree', 'revive', 'chrono'];
+/** Everything a King can be given, including the one nobody is offered by default. Destined
+ *  Death belongs to Wittex; a traveller only holds it because the road handed them the Dark
+ *  Word, so it is grantable but never in the standard four. */
+const EVERY_POWER: PowerName[] = [...ALL_POWERS, 'doom'];
 const POWER_NAME: Record<PowerName, string> = {
   teleport: 'Teleport',
   relocate: 'Relocate',
@@ -67,7 +71,7 @@ export function LoadoutBuilder({
   const check = validateLoadout(state, color, loadout, budget);
   const selectedPiece = selected ? state.board[parseSquare(selected)] : null;
   const knows = (ench: Enchantment) => !book || book.includes(ench);
-  const offeredPowers = powers ? ALL_POWERS.filter((p) => powers.includes(p)) : ALL_POWERS;
+  const offeredPowers = powers ? EVERY_POWER.filter((p) => powers.includes(p)) : ALL_POWERS;
 
   const assign = (square: string, ench: Enchantment | null) => {
     const next = { ...loadout.enchantments };

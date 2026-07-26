@@ -23,8 +23,10 @@ import {
   CAMPAIGN,
   HOUSE,
   innkeeperLoadout,
+  fortifyRooks,
   raiseArchbishops,
   raiseDragons,
+  venomPawn,
   searchOptionsFor,
   type House,
 } from '../engine/ai';
@@ -100,7 +102,6 @@ import {
   resetRun,
   campaignBudget,
   carriedBy,
-  firstBlood,
   knowsTheTruth,
   MANA_CAP,
   oddsInWords,
@@ -265,6 +266,10 @@ interface Setup {
   dragons?: number;
   /** Bishops raised by Holy Orders. Road only, same reasoning as `dragons`. */
   archbishops?: number;
+  /** Pawns the road has poisoned this walk. Which pawns is rolled at the board. */
+  venomPawns?: number;
+  /** Rooks carrying Taunt from the Gift of Fortification, this walk. */
+  fortifiedRooks?: number;
   /** The keeper's cruelties in force for this game. Road only. */
   trials?: Trial[];
   /** Which colour the traveller has. White everywhere except The Second Chair, where the keeper
@@ -339,7 +344,17 @@ function startingState(setup: Setup): GameState {
     onTheRoad && setup.archbishops
       ? raiseArchbishops(mounted2, player, { count: setup.archbishops, taunt: false })
       : mounted2;
-  return onTheRoad && setup.silentKing ? silenceKing(ordained2, player) : ordained2;
+  // The road's own gifts, applied after the loadout so they can never overwrite an enchantment
+  // the player spent mana on: both helpers skip a piece that already carries one.
+  const venomed =
+    onTheRoad && setup.venomPawns
+      ? venomPawn(ordained2, player, { count: setup.venomPawns })
+      : ordained2;
+  const fortified =
+    onTheRoad && setup.fortifiedRooks
+      ? fortifyRooks(venomed, player, { count: setup.fortifiedRooks })
+      : venomed;
+  return onTheRoad && setup.silentKing ? silenceKing(fortified, player) : fortified;
 }
 
 function replay(saved: Saved): GameState[] {
@@ -654,7 +669,11 @@ export default function App() {
         // Spoils are offered on a seat's *first* fall only. A powerup you can farm is a chore
         // with a reward attached — beat the drunk, resign, repeat — so the only way to get more
         // of them is to get further, which is the direction the game wants the player facing.
-        const spoils = firstBlood(run, seat) ? offerSpoils(run) : [];
+        // Every seat that falls puts something on the table, not only the first time it does.
+        // Spoils on first blood alone meant a run's shape was fixed by which seats you had ever
+        // beaten rather than by this walk, and a walk with nothing to decide between boards is
+        // a ladder with a story on it.
+        const spoils = offerSpoils(run);
         setRun((r) => (found ? takeRelic(winSeat(r, seat), found) : winSeat(r, seat)));
         setPaid(purseFor(run, seat));
         // The Dragonlord tells you a little more each time he falls, and the fifth time he
@@ -1227,6 +1246,8 @@ export default function App() {
       budget: isHouse(merged.opponent) ? campaignBudget(run) : BUDGET,
       dragons: isHouse(merged.opponent) ? run.dragons : 0,
       archbishops: isHouse(merged.opponent) ? run.archbishops : 0,
+      venomPawns: isHouse(merged.opponent) ? run.venomPawns : 0,
+      fortifiedRooks: isHouse(merged.opponent) ? run.fortifiedRooks : 0,
       trials: isHouse(merged.opponent) ? run.trials : [],
     };
     setSetup(next);
@@ -2108,7 +2129,14 @@ export default function App() {
           // The traveller spends mana on the road; Black and every duel spend the flat four.
           budget={color === 'w' ? (setup.budget ?? BUDGET) : BUDGET}
           powers={
-            color === 'w' && isHouse(setup.opponent) && !run.divineCall ? [] : undefined
+            color === 'w' && isHouse(setup.opponent)
+              ? run.divineCall
+                ? // The standard four, plus the Dark Word if the road has handed it over.
+                  (['teleport', 'relocate', 'decree', 'revive', 'chrono'] as PowerName[]).concat(
+                    run.doomCall ? (['doom'] as PowerName[]) : [],
+                  )
+                : []
+              : undefined
           }
           onBack={() => {
             // Black backs up to White's builder in a hotseat duel. White backs out to wherever

@@ -28,7 +28,14 @@ const KEY = 'enchanted-chess:run';
  *  the same army better. Two more points is another armoured knight, or a Taunt queen with a
  *  pawn's worth left over — enough that the fifth seat feels like a different fight rather than
  *  the same one with better luck. */
-export const MANA_START = 2;
+/** Mana is *this run's* strength, not a savings account.
+ *
+ *  It used to be permanent, which quietly made the road a grind: a player's power came from how
+ *  many attempts they had made rather than from how this walk was going, and two runs never
+ *  differed from each other. Now it starts at one every time and is only ever earned at a board,
+ *  so the shape of a run is something that happens inside the run. Gold is the thing that
+ *  crosses between them — see `loseRun`. */
+export const MANA_START = 1;
 export const MANA_CAP = 10;
 
 /** What each seat pays the *first* time it is beaten, whether or not the run survives
@@ -126,7 +133,10 @@ export type Powerup =
   | 'lesson'
   | 'whetstone'
   | 'dragonblood'
-  | 'holyorders';
+  | 'holyorders'
+  | 'venom'
+  | 'fortify'
+  | 'doomcall';
 
 export const POWERUP: Record<
   Powerup,
@@ -138,8 +148,8 @@ export const POWERUP: Record<
     weight: 32,
   },
   mana: {
-    name: 'A Point of Mana',
-    flavour: 'Something settles behind your ribs and stays there. One more point, for good.',
+    name: 'Two Points of Mana',
+    flavour: 'Something settles behind your ribs. It will not last past this walk, and it is real while it does.',
     weight: 28,
   },
   hoard: {
@@ -154,7 +164,7 @@ export const POWERUP: Record<
   },
   whetstone: {
     name: 'The Whetstone',
-    flavour: 'Two points of mana at once, and a headache that lasts a week.',
+    flavour: 'Four points of mana at once, and a headache that lasts a week.',
     weight: 9,
   },
   dragonblood: {
@@ -168,6 +178,24 @@ export const POWERUP: Record<
       'A bishop of yours is called away for a night and comes back with a second peak on his hat and a great deal more to say.',
     weight: 3,
   },
+  venom: {
+    name: 'Venom',
+    flavour:
+      'A flask goes into the water butt and one of your pawns drinks before you can say which. You will find out when somebody takes it.',
+    weight: 16,
+  },
+  fortify: {
+    name: 'Gift of Fortification',
+    flavour:
+      'A mason spends the night on one of your towers and will not be paid for it. "You will want it standing," is all he says.',
+    weight: 12,
+  },
+  doomcall: {
+    name: 'The Dark Word',
+    flavour:
+      'You find it written inside the cover of a book nobody sold you, in a hand that presses hard enough to tear. Reading it once is enough to know it, and once is all anybody gets.',
+    weight: 2,
+  },
 };
 
 const POWERUP_ORDER: Powerup[] = [
@@ -176,8 +204,11 @@ const POWERUP_ORDER: Powerup[] = [
   'hoard',
   'lesson',
   'whetstone',
+  'venom',
+  'fortify',
   'dragonblood',
   'holyorders',
+  'doomcall',
 ];
 
 /** What this powerup will actually do, given the book you already hold. */
@@ -190,11 +221,17 @@ export function powerupEffect(state: RunState, up: Powerup): string {
     case 'mana':
       return state.mana >= MANA_CAP
         ? `Your meter is full, so this one is symbolic. He presses ${SYMBOLIC_GOLD.mana} gold on you instead, which is still better than nothing.`
-        : `+1 mana, for good. You would sit down with ${Math.min(MANA_CAP, state.mana + 1)} of ${MANA_CAP}.`;
+        : `+2 mana for this walk. You would sit down with ${Math.min(MANA_CAP, state.mana + 2)} of ${MANA_CAP}.`;
     case 'whetstone':
       return state.mana >= MANA_CAP
         ? `Nothing left to sharpen. Symbolic now, and worth ${SYMBOLIC_GOLD.whetstone} gold, which is still better than nothing.`
-        : `+2 mana, for good. You would sit down with ${Math.min(MANA_CAP, state.mana + 2)} of ${MANA_CAP}.`;
+        : `+4 mana for this walk. You would sit down with ${Math.min(MANA_CAP, state.mana + 4)} of ${MANA_CAP}.`;
+    case 'venom':
+      return 'One of your pawns carries Poison for the rest of the walk. Which one is not up to you.';
+    case 'fortify':
+      return 'One of your rooks carries Taunt for the rest of the walk — four points of mana you did not spend.';
+    case 'doomcall':
+      return 'Your King learns Destined Death: once a game, after move 10, mark an enemy piece and it falls three of its turns later.';
     case 'lesson':
       return unlearned(state).length
         ? 'The Sorcerer teaches you one enchantment, now, for nothing.'
@@ -225,6 +262,12 @@ const FAMILY: Record<Powerup, string> = {
   lesson: 'lesson',
   dragonblood: 'dragon',
   holyorders: 'dragon',
+  // The three that change the pieces themselves share a family, so a table never offers two
+  // board-altering gifts at once and the choice stays "what kind of walk is this" rather than
+  // "which of these two similar things is bigger".
+  venom: 'army',
+  fortify: 'army',
+  doomcall: 'word',
 };
 
 /** Whether this powerup would do anything at all for this traveller right now.
@@ -239,6 +282,12 @@ function worthOffering(state: RunState, up: Powerup): boolean {
   const metTheDragon = (state.beaten.rolain ?? 0) > 0;
   if (up === 'dragonblood') return metTheDragon;
   if (up === 'holyorders') return metTheDragon && state.archbishops < 2;
+  // The Dark Word is Wittex's own, and it is not put in a traveller's hands at the first table.
+  // After the Innkeeper: far enough in that the board has a shape to mark, early enough that a
+  // rare thing is still worth hoping for.
+  if (up === 'doomcall') return state.keeper && !state.doomCall;
+  if (up === 'fortify') return state.fortifiedRooks < 2;
+  if (up === 'venom') return state.venomPawns < 4;
   return true;
 }
 
@@ -290,11 +339,11 @@ export function takePowerup(
     case 'mana':
       return state.mana >= MANA_CAP
         ? save({ ...state, gold: state.gold + SYMBOLIC_GOLD.mana })
-        : save({ ...state, mana: Math.min(MANA_CAP, state.mana + 1) });
+        : save({ ...state, mana: Math.min(MANA_CAP, state.mana + 2) });
     case 'whetstone':
       return state.mana >= MANA_CAP
         ? save({ ...state, gold: state.gold + SYMBOLIC_GOLD.whetstone })
-        : save({ ...state, mana: Math.min(MANA_CAP, state.mana + 2) });
+        : save({ ...state, mana: Math.min(MANA_CAP, state.mana + 4) });
     case 'lesson': {
       const left = unlearned(state);
       // A free lesson with nothing left to learn is an insult, so he pays instead.
@@ -311,6 +360,14 @@ export function takePowerup(
         : save({ ...state, dragons: Math.min(2, state.dragons + 1) });
     case 'holyorders':
       return save({ ...state, archbishops: Math.min(2, state.archbishops + 1) });
+    case 'venom':
+      // Eight pawns, and the road never poisons more than half of them: past that it stops
+      // being a hazard the opponent has to respect and becomes a wall they cannot approach.
+      return save({ ...state, venomPawns: Math.min(4, state.venomPawns + 1) });
+    case 'fortify':
+      return save({ ...state, fortifiedRooks: Math.min(2, state.fortifiedRooks + 1) });
+    case 'doomcall':
+      return save({ ...state, doomCall: true });
   }
 }
 
@@ -364,9 +421,16 @@ export interface RunState {
   /** Knights turned into Dragons by Dragonblood, permanently. Capped at two — there are only
    *  two knights to turn. */
   dragons: number;
-  /** Bishops raised to Archbishops by Holy Orders, permanently. Capped at two, for the same
-   *  reason dragons are: there are only two bishops to raise. */
+  /** Bishops raised to Archbishops by Holy Orders. Capped at two, for the same reason dragons
+   *  are: there are only two bishops to raise. Lost with the run. */
   archbishops: number;
+  /** Pawns the road has poisoned, this walk. Which pawns is decided at the board, not here —
+   *  see `venomPawn` — so the same count can play out differently twice. */
+  venomPawns: number;
+  /** Rooks given Taunt by the Gift of Fortification, this walk. */
+  fortifiedRooks: number;
+  /** The Dark Word: your King may speak Destined Death. Rare, and gone when the walk ends. */
+  doomCall: boolean;
   /** Relics taken off the road's cleverest men. Permanent, like everything else in the book. */
   relics: Relic[];
   /** Whether the back room has been walked into since it opened. The Sorcerer's row glistens
@@ -426,6 +490,9 @@ const FRESH: RunState = {
   beaten: {},
   walkPurse: 0,
   mana: MANA_START,
+  venomPawns: 0,
+  fortifiedRooks: 0,
+  doomCall: false,
   dragons: 0,
   archbishops: 0,
   relics: [],
@@ -631,9 +698,13 @@ export function takeRelic(state: RunState, relic: Relic): RunState {
  *  first reach Kyrax. It also eases the curve where the curve is steepest, because new ground
  *  is precisely where the seats outclass you. */
 export function lessonEarned(state: RunState): number {
-  const reached = state.progress.length;
-  return reached > state.best && state.mana < MANA_CAP ? 1 : 0;
+  return state.progress.length > state.best ? LESSON_GOLD : 0;
 }
+
+/** Gold for reaching ground you never had. Paid in coin rather than in mana because mana does
+ *  not cross between runs any more — a defeat has to hand back the currency that does, or it
+ *  hands back nothing. */
+export const LESSON_GOLD = 15;
 
 /** The attempt ends. Everything you were paid on the way is already banked — and if the
  *  Innkeeper has ever fallen to you, this is the walk back on which the back room opens. */
@@ -644,7 +715,16 @@ export function loseRun(state: RunState): RunState {
     // `best` rises on a defeat as well as on a win: getting further and then losing is still
     // getting further, and if it did not count here the lesson could be earned twice.
     best: Math.max(state.best, state.progress.length),
-    mana: Math.min(MANA_CAP, state.mana + lesson),
+    gold: state.gold + lesson,
+    // Everything the walk itself built is left on the road. This is the line that makes the
+    // game a roguelike rather than a ladder: strength is something you assemble inside a run
+    // and lose with it, and what crosses over is gold and what gold has already taught you.
+    mana: MANA_START,
+    dragons: 0,
+    archbishops: 0,
+    venomPawns: 0,
+    fortifiedRooks: 0,
+    doomCall: false,
     progress: [],
     active: false,
     dragonUsedThisRun: false,

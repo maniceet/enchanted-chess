@@ -828,11 +828,18 @@ describe('Immolation', () => {
   });
 });
 
-/** Destined Death — the Dark Lord's power, and the only one that may be called twice.
+/** Destined Death — the Dark Lord's power.
  *
  *  Mark an enemy piece and it dies three of its owner's turns later. It moves, defends and
- *  captures normally until then: the mark takes a piece, it does not still one. */
+ *  captures normally until then: the mark takes a piece, it does not still one.
+ *
+ *  Two rules arrived after playtesting and both are load-bearing: it is spent by being used,
+ *  like every other King's word, and it may not be spoken until after move ten. Every scenario
+ *  here therefore starts at `ply: LATE` — a sentence passed on move two is a free piece against
+ *  an opponent who has not yet developed anything worth marking. */
 describe('Destined Death', () => {
+  /** Comfortably past the gate: `DOOM_FROM_MOVE` is counted in whole moves, ply in half ones. */
+  const LATE = 24;
   const doom = (state: GameState, target: string) =>
     applyAction(state, {
       type: 'power',
@@ -845,7 +852,7 @@ describe('Destined Death', () => {
   it('takes the piece three of its owner’s turns later, not before', () => {
     const state = position(
       { e1: 'wk', h1: 'wr', e8: 'bk', a8: 'br', h8: 'bn' },
-      { powers: { w: 'doom' } },
+      { powers: { w: 'doom' }, ply: LATE },
     );
     let s = ok(doom(state, 'h8'));
     expect(at(s, 'h8')!.type, 'still there the moment it is marked').toBe('n');
@@ -865,7 +872,7 @@ describe('Destined Death', () => {
   it('lets the marked piece move and capture normally while it waits', () => {
     const state = position(
       { e1: 'wk', e8: 'bk', h8: 'bn', f4: 'wp' },
-      { powers: { w: 'doom' } },
+      { powers: { w: 'doom' }, ply: LATE },
     );
     let s = ok(doom(state, 'h8'));
     s = wait(s, 'h8', 'g6');
@@ -877,27 +884,38 @@ describe('Destined Death', () => {
   });
 
   it('never offers the King, on either side', () => {
-    const state = position({ e1: 'wk', e8: 'bk', a8: 'br' }, { powers: { w: 'doom' } });
+    const state = position({ e1: 'wk', e8: 'bk', a8: 'br' }, { powers: { w: 'doom' }, ply: LATE });
     const targets = powerActions(state, 'w').map((a) => (a.args as { target: number }).target);
     expect(targets).not.toContain(parseSquare('e8'));
     expect(targets).toContain(parseSquare('a8'));
     expect(isError(doom(state, 'e8')), 'and refuses it outright').toBe(true);
   });
 
-  it('may be called again and again, unlike every other power', () => {
+  it('is spent by being spoken, like every other King’s word', () => {
+    // It used to be repeatable, which made Wittex less an opponent than a timer: mark, wait,
+    // mark again, and a player meeting him for the first time could not be taught the rule fast
+    // enough to answer it.
     const state = position(
       { e1: 'wk', e8: 'bk', a8: 'br', h8: 'bn' },
-      { powers: { w: 'doom' } },
+      { powers: { w: 'doom' }, ply: LATE },
     );
-    let s = ok(doom(state, 'a8'));
-    expect(s.powers.w.used, 'never spent').toBe(false);
-    s = wait(s, 'h8', 'g6');
-    s = ok(doom(s, 'g6'));
-    expect(s.doomed.length, 'two men under sentence at once').toBe(2);
+    const s = ok(doom(state, 'a8'));
+    expect(s.powers.w.used, 'spent').toBe(true);
+    expect(powerActions(s, 'w'), 'and offers nothing further').toHaveLength(0);
+  });
+
+  it('may not be spoken until after move ten, on either side', () => {
+    const early = position({ e1: 'wk', e8: 'bk', a8: 'br' }, { powers: { w: 'doom' }, ply: 0 });
+    expect(powerActions(early, 'w'), 'nothing on the table yet').toHaveLength(0);
+    expect(isError(doom(early, 'a8')), 'and refused if asked for directly').toBe(true);
+    expect(powerUnavailableReason(early, 'w')).toBe('not until move 11');
+
+    const late = position({ e1: 'wk', e8: 'bk', a8: 'br' }, { powers: { w: 'doom' }, ply: LATE });
+    expect(powerActions(late, 'w').length, 'and available once the game has a shape').toBeGreaterThan(0);
   });
 
   it('does not offer the same piece twice', () => {
-    const state = position({ e1: 'wk', e8: 'bk', a8: 'br' }, { powers: { w: 'doom' } });
+    const state = position({ e1: 'wk', e8: 'bk', a8: 'br' }, { powers: { w: 'doom' }, ply: LATE });
     const s = ok(doom(state, 'a8'));
     const after = ok(move(s, 'e8', 'd8'));
     expect(powerActions(after, 'w').length, 'the only target is already marked').toBe(0);
@@ -908,7 +926,7 @@ describe('Destined Death', () => {
     // only thing under discussion is the knight and what stands on its square afterwards.
     const state = position(
       { e1: 'wk', a5: 'bk', h8: 'bn', h1: 'wr' },
-      { powers: { w: 'doom' } },
+      { powers: { w: 'doom' }, ply: LATE },
     );
     let s = ok(doom(state, 'h8'));
     s = wait(s, 'a5', 'a6');

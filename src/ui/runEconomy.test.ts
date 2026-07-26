@@ -15,6 +15,7 @@ import {
   loadRun,
   loseRun,
   lessonEarned,
+  LESSON_GOLD,
   opensTheShop,
   clearsUntilTruth,
   hasTrial,
@@ -408,18 +409,20 @@ describe('Foreshadowing', () => {
  * the way was already banked, so an attempt was never wasted — but there was no moment of being
  * paid for it, which is what makes losing feel like time spent rather than progress. */
 describe('the lesson: what a defeat is worth', () => {
-  it('pays a point of mana for falling further than ever before', () => {
-    const fresh = { ...loadRun(), mana: 2, best: 1, progress: ['drunkard', 'innkeeper'] } as RunState;
-    expect(lessonEarned(fresh)).toBe(1);
-    expect(loseRun(fresh).mana).toBe(3);
+  it('pays gold for falling further than ever before', () => {
+    // Gold rather than mana, because mana does not cross between runs any more. A defeat has to
+    // hand back the currency that does, or it hands back nothing.
+    const fresh = { ...loadRun(), gold: 0, best: 1, progress: ['drunkard', 'innkeeper'] } as RunState;
+    expect(lessonEarned(fresh)).toBe(LESSON_GOLD);
+    expect(loseRun(fresh).gold).toBe(LESSON_GOLD);
   });
 
   it('pays nothing for ground already covered, so it cannot be farmed', () => {
     // The whole point of tying this to `best` rather than to the seat you died at: losing to
-    // the Drunken Knight forty times must not be a mana faucet.
-    const again = { ...loadRun(), mana: 2, best: 4, progress: ['drunkard'] } as RunState;
+    // the Drunken Knight forty times must not be a faucet.
+    const again = { ...loadRun(), gold: 7, best: 4, progress: ['drunkard'] } as RunState;
     expect(lessonEarned(again)).toBe(0);
-    expect(loseRun(again).mana).toBe(2);
+    expect(loseRun(again).gold).toBe(7);
   });
 
   it('raises `best` on a defeat, so the same ground never pays twice', () => {
@@ -429,9 +432,30 @@ describe('the lesson: what a defeat is worth', () => {
     expect(lessonEarned({ ...after, progress: ['drunkard', 'innkeeper'] } as RunState)).toBe(0);
   });
 
-  it('stops at the ceiling rather than overflowing it', () => {
-    const full = { ...loadRun(), mana: MANA_CAP, best: 0, progress: ['drunkard'] } as RunState;
-    expect(lessonEarned(full)).toBe(0);
-    expect(loseRun(full).mana).toBe(MANA_CAP);
+  it('strips the walk back to nothing, which is what makes this a roguelike', () => {
+    // Mana, dragons, archbishops and the road's gifts are all *this run's* strength. What
+    // crosses over is gold and what gold has already taught you.
+    const rich = {
+      ...loadRun(),
+      mana: 9,
+      dragons: 2,
+      archbishops: 1,
+      venomPawns: 3,
+      fortifiedRooks: 2,
+      doomCall: true,
+      gold: 40,
+      taught: ['taunt'],
+      best: 9,
+      progress: ['drunkard'],
+    } as RunState;
+    const after = loseRun(rich);
+    expect(after.mana).toBe(MANA_START);
+    expect(after.dragons).toBe(0);
+    expect(after.archbishops).toBe(0);
+    expect(after.venomPawns).toBe(0);
+    expect(after.fortifiedRooks).toBe(0);
+    expect(after.doomCall).toBe(false);
+    expect(after.gold, 'gold survives').toBe(40);
+    expect(after.taught, 'and so does the book').toEqual(['taunt']);
   });
 });

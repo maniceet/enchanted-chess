@@ -19,6 +19,9 @@ export interface PositionOpts {
   frozen?: string[];
   ep?: string;
   castling?: boolean;
+  /** Half-moves already played. Needed by anything with a "not before move N" gate — Destined
+   *  Death is barred until after move ten, so a scenario testing it has to start late. */
+  ply?: number;
   clock?: ClockState;
 }
 
@@ -51,6 +54,7 @@ export function position(spec: Record<string, string>, opts: PositionOpts = {}):
     ...base,
     board,
     turn: opts.turn ?? 'w',
+    ply: opts.ply ?? base.ply,
     castling: opts.castling ? base.castling : { w: noRights, b: noRights },
     ep: opts.ep ? parseSquare(opts.ep) : null,
     frozen,

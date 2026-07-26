@@ -46,9 +46,30 @@ function removalExposesKing(state: GameState, color: Color, from: number): boole
 
 /** Every King-power activation legally available to `color` right now.
  *  Global restriction: a power may never be activated while your King is in check (§2.4). */
-/** Destined Death is the one power that is not spent by being used. Every other King speaks
- *  once a game; the Dark Lord keeps speaking. */
-export const REPEATABLE: ReadonlySet<PowerName> = new Set<PowerName>(['doom']);
+/** Powers that survive being used. Empty, and kept as a set rather than deleted because the
+ *  concept is load-bearing in three places and one of them is the UI's "used" label.
+ *
+ *  Destined Death used to live here — the Dark Lord kept speaking while every other King spoke
+ *  once. That made him less an opponent than a timer: mark a piece, wait, mark another, and a
+ *  player who had never met him could not be taught the rule fast enough to answer it. It is
+ *  once a game now, like every other word. */
+export const REPEATABLE: ReadonlySet<PowerName> = new Set<PowerName>();
+
+/** Destined Death is barred until the game has a shape.
+ *
+ *  It takes a piece off the board three of its own turns later, which on move two is simply a
+ *  free piece against an opponent who has not developed anything worth marking, and there is no
+ *  counterplay to a sentence passed before either side has committed. Waiting until after move
+ *  ten means the mark lands on a piece the victim has chosen to put somewhere, which is a
+ *  decision being punished rather than a coin toss. Engine-level, so it binds Wittex exactly as
+ *  it binds the player. */
+export const DOOM_FROM_MOVE = 10;
+
+/** Whether Destined Death may be spoken yet. `ply` counts half-moves from zero, so "after move
+ *  ten" is the point at which both sides have had ten. */
+export function doomUnlocked(state: GameState): boolean {
+  return state.ply >= DOOM_FROM_MOVE * 2;
+}
 
 export function powerActions(state: GameState, color: Color = state.turn): PowerAction[] {
   const ps = state.powers[color];
@@ -110,6 +131,7 @@ export function powerActions(state: GameState, color: Color = state.turn): Power
       // Destined Death. The King is immune, exactly as he is to Decree and to every other
       // enchantment (§2.4a) — the Dark Lord may unmake an army but not a crown. A piece
       // already marked is not offered again: a second mark on the same man buys nothing.
+      if (!doomUnlocked(state)) break;
       for (const { square, piece } of piecesOf(state, opposite(color))) {
         if (piece.type === 'k') continue;
         if (state.doomed.some((d) => d.pieceId === piece.id)) continue;
@@ -163,7 +185,9 @@ export function powerUnavailableReason(state: GameState, color: Color): string |
   if (!powerActions(state, color).length) {
     if (ps.power === 'revive') return 'no affordable piece';
     if (ps.power === 'chrono') return 'no clock';
-    if (ps.power === 'doom') return 'nothing left to mark';
+    if (ps.power === 'doom') {
+      return doomUnlocked(state) ? 'nothing left to mark' : `not until move ${DOOM_FROM_MOVE + 1}`;
+    }
     return 'no legal target';
   }
   return null;

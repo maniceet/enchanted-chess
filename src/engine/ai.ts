@@ -368,6 +368,58 @@ export function raiseArchbishops(
   return { ...state, board };
 }
 
+/** Venom: a pawn of yours carries Poison, chosen by the road rather than by you.
+ *
+ *  Randomised on purpose. Every other way to spend strength in this game is a decision made at
+ *  a table with full information, and a roguelike needs at least one thing that simply happens
+ *  to you and has to be played around — a Poison pawn on b2 is a different game from one on e2,
+ *  and neither was chosen. `pick` takes the roll so a run can be replayed exactly. */
+export function venomPawn(
+  state: GameState,
+  color: Color,
+  options: { count?: number; pick?: () => number } = {},
+): GameState {
+  const roll = options.pick ?? Math.random;
+  const board = state.board.slice() as (Piece | null)[];
+  // Only bare pawns are eligible: overwriting an enchantment the player paid mana for would be
+  // taking with one hand while giving with the other.
+  const eligible = board
+    .map((piece, square) => ({ piece, square }))
+    .filter(({ piece }) => piece && piece.color === color && piece.type === 'p' && !piece.ench)
+    .map(({ square }) => square);
+  let left = options.count ?? 1;
+  const pool = [...eligible];
+  while (left > 0 && pool.length) {
+    const [square] = pool.splice(Math.floor(roll() * pool.length), 1);
+    board[square] = { ...board[square]!, ench: 'poison' };
+    left--;
+  }
+  return { ...state, board };
+}
+
+/** Fortification: a rook of yours carries Taunt.
+ *
+ *  A rook is the carrier Taunt is worst value on at four points of mana — three times the base
+ *  cost — so as a gift it is worth exactly what a player would never buy, which is the point of
+ *  a gift. It also puts a shield on the back rank, where a rook starts, which is the half of the
+ *  board Taunt actually works in. */
+export function fortifyRooks(
+  state: GameState,
+  color: Color,
+  options: { count?: number } = {},
+): GameState {
+  let done = 0;
+  const count = options.count ?? 1;
+  const board = state.board.map((piece) => {
+    if (!piece || piece.color !== color || piece.type !== 'r' || piece.ench || done >= count) {
+      return piece;
+    }
+    done++;
+    return { ...piece, ench: 'taunt' as const, shieldBroken: false };
+  });
+  return { ...state, board };
+}
+
 export interface InnkeeperOptions {
   /** Reuse a table across turns so the house keeps what it learned last move. */
   table?: TranspositionTable;

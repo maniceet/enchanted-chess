@@ -147,8 +147,14 @@ export function Board({
                 /* The Open Board runs to the death sentence too: a marked piece and the number
                    of turns it has left are both on the table, always. */
                 <span className="doom-mark" aria-hidden="true">
+                  {/* A skull, not the abstract diamond this used to be. Destined Death is the
+                      one effect on the board that ends with a piece simply gone, and a shape
+                      the player has to be taught to read is the wrong shape for that. */}
                   <svg viewBox="0 0 24 24">
-                    <path d="M12 2.2 21 12l-9 9.8L3 12z" />
+                    <path
+                      fillRule="evenodd"
+                      d="M12 2.4c-4.3 0-7.8 3.2-7.8 7.3 0 2.4 1.2 4.2 2.6 5.3v3.5c0 .9.7 1.6 1.6 1.6h1.3v-2.5h1.5v2.5h1.6v-2.5h1.5v2.5h1.3c.9 0 1.6-.7 1.6-1.6V15c1.4-1.1 2.6-2.9 2.6-5.3 0-4.1-3.5-7.3-7.8-7.3ZM8.9 8.6a2 2 0 1 1 0 4 2 2 0 0 1 0-4Zm6.2 0a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM12 13.1l1.1 2.3h-2.2Z"
+                    />
                   </svg>
                   <em>{Math.max(0, Math.ceil((doomIn.diesAtPly - state.ply) / 2))}</em>
                 </span>
