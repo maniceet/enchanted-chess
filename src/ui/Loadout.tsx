@@ -73,6 +73,21 @@ export function LoadoutBuilder({
   const selectedPiece = selected ? state.board[parseSquare(selected)] : null;
   const knows = (ench: Enchantment) => !book || book.includes(ench);
   const offeredPowers = powers ? EVERY_POWER.filter((p) => powers.includes(p)) : ALL_POWERS;
+  /** A King may carry up to three words. Three rather than all of them because the choice is
+   *  the point: holding every word is the same as holding none, since nothing is given up. */
+  const MAX_WORDS = 3;
+  const chosen: PowerName[] = loadout.powers ? [...loadout.powers] : [loadout.power];
+  const toggleWord = (word: PowerName) => {
+    const has = chosen.includes(word);
+    // Never empty: a King with no words at all is the silent-King state, which the road grants
+    // and the builder must not be able to produce by unticking the last box.
+    const next = has
+      ? chosen.filter((w) => w !== word)
+      : [...chosen, word].slice(-MAX_WORDS);
+    if (!next.length) return;
+    play('power');
+    onChange({ ...loadout, powers: next, power: next[0] });
+  };
 
   const assign = (square: string, ench: Enchantment | null) => {
     const next = { ...loadout.enchantments };
@@ -164,9 +179,11 @@ export function LoadoutBuilder({
                 </p>
               ) : (
                 <p className="muted">
-                  Your King already carries{' '}
-                  <strong className="hint-strong">{POWER_NAME[loadout.power]}</strong>. Click the
-                  King to change it.
+                  Your King carries{' '}
+                  <strong className="hint-strong">
+                    {chosen.map((w) => POWER_NAME[w]).join(', ')}
+                  </strong>
+                  . Click the King to change {chosen.length === 1 ? 'it' : 'them'}.
                 </p>
               )}
               <p className="muted immunity">“The King bows to no enchantment.”</p>
@@ -176,7 +193,11 @@ export function LoadoutBuilder({
           {/* The power picker only opens when the King is actually selected. */}
           {selectedPiece?.type === 'k' && (
             <div className="panel">
-              <h3>King’s power, choose exactly one</h3>
+              <h3>King’s words, choose up to three</h3>
+              <p className="muted">
+                Each is spoken once, and spending one leaves the others. Which of the three a
+                position wants is the decision — carrying all of them would not be one.
+              </p>
               <p className="muted immunity">
                 The King can never be enchanted, is immune to Poison and Martyr, and cannot be
                 named by Decree.
@@ -189,17 +210,17 @@ export function LoadoutBuilder({
               )}
               <div className="power-cards">
                 {offeredPowers.map((power) => {
-                  const active = loadout.power === power;
+                  const active = chosen.includes(power);
+                  const full = chosen.length >= MAX_WORDS && !active;
                   const needsReserve = power === 'revive';
                   return (
                     <button
                       type="button"
                       key={power}
-                      className={`power-card ${active ? 'is-active' : ''}`}
-                      onClick={() => {
-                        play('power');
-                        onChange({ ...loadout, power });
-                      }}
+                      className={`power-card ${active ? 'is-active' : ''} ${full ? 'is-full' : ''}`}
+                      disabled={full}
+                      title={full ? `Three already chosen. Drop one first.` : undefined}
+                      onClick={() => toggleWord(power)}
                     >
                       <span className="power-name">{POWER_NAME[power]}</span>
                       <span className="power-text">{POWER_TEXT[power]}</span>
@@ -283,7 +304,7 @@ export function LoadoutBuilder({
             </>
           ) : (
             <>
-              King’s power: <strong>{POWER_NAME[loadout.power]}</strong>
+              King’s words: <strong>{chosen.map((w) => POWER_NAME[w]).join(' · ')}</strong>
             </>
           )}
         </span>

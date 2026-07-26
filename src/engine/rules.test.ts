@@ -384,7 +384,7 @@ describe('King powers', () => {
     );
     expect(at(swapped, 'b2')!.type).toBe('k');
     expect(at(swapped, 'e1')!.type).toBe('n');
-    expect(swapped.powers.w.used).toBe(true);
+    expect(swapped.powers.w.spent).toContain('relocate');
   });
 
   it('Decree freezes an enemy piece for exactly its next turn', () => {
@@ -424,7 +424,7 @@ describe('King powers', () => {
     expect(at(revived, 'b1')).toMatchObject({ type: 'n', color: 'w', ench: null, moved: true });
     expect(revived.powers.w.reserve).toBe(0);
     expect(revived.graveyard.w).toEqual(['p', 'r']);
-    expect(revived.powers.w.used).toBe(true);
+    expect(revived.powers.w.spent).toContain('revive');
     expect(powerActions(revived, 'w')).toHaveLength(0); // once per game
   });
 
@@ -489,7 +489,7 @@ describe('Clocks and Time Manipulation', () => {
     );
     expect(bent.clock!.w.bonusIncrementMs).toBe(1_000);
     expect(bent.clock!.w.ms).toBe(180_000 - 1_000 + 2_000 + 1_000);
-    expect(bent.powers.w.used).toBe(true);
+    expect(bent.powers.w.spent).toContain('chrono');
 
     const black = ok(applyAction(bent, { type: 'move', from: parseSquare('e8'), to: parseSquare('d8'), spentMs: 0 }));
     const later = ok(
@@ -908,7 +908,7 @@ describe('Destined Death', () => {
       { powers: { w: 'doom' }, ply: LATE },
     );
     const s = ok(doom(state, 'a8'));
-    expect(s.powers.w.used, 'spent').toBe(true);
+    expect(s.powers.w.spent, 'spent').toContain('doom');
     expect(powerActions(s, 'w'), 'and offers nothing further').toHaveLength(0);
   });
 

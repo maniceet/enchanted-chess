@@ -64,13 +64,13 @@ export function position(spec: Record<string, string>, opts: PositionOpts = {}):
     },
     powers: {
       w: {
-        power: opts.powers?.w ?? 'teleport',
-        used: opts.powerUsed?.w ?? false,
+        powers: [opts.powers?.w ?? 'teleport'],
+        spent: opts.powerUsed?.w ? [opts.powers?.w ?? 'teleport'] : [],
         reserve: opts.reserve?.w ?? 0,
       },
       b: {
-        power: opts.powers?.b ?? 'teleport',
-        used: opts.powerUsed?.b ?? false,
+        powers: [opts.powers?.b ?? 'teleport'],
+        spent: opts.powerUsed?.b ? [opts.powers?.b ?? 'teleport'] : [],
         reserve: opts.reserve?.b ?? 0,
       },
     },

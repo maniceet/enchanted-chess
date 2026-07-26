@@ -75,7 +75,9 @@ describe('A room', () => {
     expect(room.phase).toBe('playing');
     expect(room.state!.board[parseSquare('a2')]!.ench).toBe('poison');
     expect(room.state!.board[parseSquare('d7')]!.ench).toBe('taunt');
-    expect(room.state!.powers.b.power).toBe('revive');
+    // A King now holds a list of words rather than one. A room that submitted a single
+    // power gets a King who knows exactly that one, which is what keeps the protocol stable.
+    expect(room.state!.powers.b.powers).toEqual(['revive']);
     expect(room.state!.clock!.control.id).toBe('3+2');
   });
 

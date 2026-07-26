@@ -68,9 +68,20 @@ export interface CastleRights {
   readonly queenRookFile: number | null;
 }
 
+/** What a King may say, and what he has already said.
+ *
+ *  A King used to know exactly one word. That made the choice at the builder a guess — you
+ *  picked Teleport or Revive before seeing a single move and lived with it for two hours — and
+ *  it made the power itself a formality, since there was never a question of *which* to spend.
+ *  Three words, each once, turns it into a decision made at the board: the interesting question
+ *  is no longer what your King knows but which of the three this position wants.
+ *
+ *  A seat still brings one. The road is not a duel. */
 export interface PowerState {
-  readonly power: PowerName;
-  readonly used: boolean;
+  /** The words this King knows. At most three, chosen before the first move and public. */
+  readonly powers: readonly PowerName[];
+  /** The ones already spoken. Each word is once per game, and nothing restores them. */
+  readonly spent: readonly PowerName[];
   /** Unspent loadout budget. Only Revive consumes it. */
   readonly reserve: number;
 }

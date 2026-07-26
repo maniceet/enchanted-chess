@@ -8,6 +8,7 @@ import {
   searchOptionsFor,
 } from './ai';
 import { initialState } from './board';
+import type { House } from './ai';
 import type { Enchantment } from './types';
 import { BUDGET, ENCHANTMENTS, ENCH_COST, validateLoadout } from './loadout';
 

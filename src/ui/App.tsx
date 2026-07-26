@@ -32,7 +32,7 @@ import {
 } from '../engine/ai';
 import { bindActions, inCheck, legalMoves, shieldBreakActions } from '../engine/movegen';
 import { toSan } from '../engine/notation';
-import { REVIVE_COST, powerActions, powerUnavailableReason } from '../engine/powers';
+import { REVIVE_COST, powerActions, powerReason, powerUnavailableReason } from '../engine/powers';
 import {
   isError,
   type Action,
@@ -359,7 +359,9 @@ function withRoadGifts(state: GameState, color: Color, run: RunState | null): Ga
 function silenceKing(state: GameState, color: Color): GameState {
   return {
     ...state,
-    powers: { ...state.powers, [color]: { ...state.powers[color], used: true } },
+    // Knows nothing, rather than having already spent it. With three words the old trick — mark
+    // it used — would have silenced one of three and left two speakable.
+    powers: { ...state.powers, [color]: { ...state.powers[color], powers: [], spent: [] } },
   };
 }
 
@@ -1204,16 +1206,16 @@ export default function App() {
     setSelected(null);
   };
 
-  const startPower = () => {
+  const startPower = (power: PowerName) => {
     if (!state) return;
-    const reason = powerUnavailableReason(state, state.turn);
-    if (reason) {
+    // Per word, not per King: two of the three may be unusable while the third is fine, and a
+    // single yes/no for the whole set would refuse a legal call.
+    if (powerReason(state, state.turn, power)) {
       refuse(null);
       return;
     }
     play('select');
     setSelected(null);
-    const power = state.powers[state.turn].power;
     if (power === 'chrono') {
       commit({ type: 'power', power: 'chrono', args: { kind: 'chrono' } });
       return;
@@ -3111,7 +3113,7 @@ function PlayerBar({
 }: {
   state: GameState;
   color: Color;
-  onPower: () => void;
+  onPower: (power: PowerName) => void;
   powerMode: PowerMode | null;
   setPowerMode: (m: PowerMode | null) => void;
   remainingMs: number | null;
@@ -3227,20 +3229,38 @@ function PlayerBar({
         </span>
       )}
 
-      <button
-        type="button"
-        className={`power-btn ${powerMode && active ? 'is-armed' : ''}`}
-        onClick={onPower}
-        disabled={!active || Boolean(reason)}
-        title={`${POWER_NAME[ps.power]}: ${POWER_TEXT[ps.power]}${
-          ps.power === 'chrono' ? `\n\nWorth here: ${timePowerEffect(state.clock)}` : ''
-        }${
-          reason ? `\n\nUnavailable: ${reason}` : ''
-        }\n\nReserve: ${ps.reserve} point${ps.reserve === 1 ? '' : 's'}\n\nThe King bows to no enchantment.`}
-      >
-        ⚡ {silent ? 'No power' : POWER_NAME[ps.power]}
-        {reason ? <span className="power-reason"> · {reason}</span> : null}
-      </button>
+      {/* One button per word the King knows. He may hold three, each spent once, and which one
+          this position wants is the decision the whole feature exists for — so they are all on
+          the bar at once rather than behind a menu. */}
+      {silent || !ps.powers.length ? (
+        <button type="button" className="power-btn" disabled>
+          ⚡ No power
+          {reason ? <span className="power-reason"> · {reason}</span> : null}
+        </button>
+      ) : (
+        ps.powers.map((word) => {
+          const why = powerReason(state, color, word);
+          return (
+            <button
+              key={word}
+              type="button"
+              className={`power-btn ${
+                powerMode && active && powerMode.kind === word ? 'is-armed' : ''
+              } ${why === 'used' ? 'is-spent' : ''}`}
+              onClick={() => onPower(word)}
+              disabled={!active || Boolean(why)}
+              title={`${POWER_NAME[word]}: ${POWER_TEXT[word]}${
+                word === 'chrono' ? `\n\nWorth here: ${timePowerEffect(state.clock)}` : ''
+              }${
+                why ? `\n\nUnavailable: ${why}` : ''
+              }\n\nReserve: ${ps.reserve} point${ps.reserve === 1 ? '' : 's'}\n\nThe King bows to no enchantment.`}
+            >
+              ⚡ {POWER_NAME[word]}
+              {why ? <span className="power-reason"> · {why}</span> : null}
+            </button>
+          );
+        })
+      )}
 
       <span className="reserve" title="Unspent enchantment points, usable only by Revive">
         reserve {ps.reserve}

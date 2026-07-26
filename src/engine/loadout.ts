@@ -111,7 +111,11 @@ export const POWER_TEXT: Record<PowerName, string> = {
 export interface Loadout {
   /** Starting square (e.g. "d1") → enchantment. One per piece, maximum. */
   readonly enchantments: Readonly<Record<string, Enchantment>>;
+  /** The single word a seat brings, and the fallback for anything that has not been taught to
+   *  choose three. Kept so saved games, the seats and the online protocol all still parse. */
   readonly power: PowerName;
+  /** Up to three words, for a King allowed to choose. When present this wins. */
+  readonly powers?: readonly PowerName[];
 }
 
 export const emptyLoadout = (power: PowerName = 'teleport'): Loadout => ({
@@ -228,7 +232,14 @@ export function applyLoadout(
     board,
     powers: {
       ...state.powers,
-      [color]: { power: loadout.power, used: false, reserve: check.reserve },
+      // `powers` may name up to three. A Loadout that still carries a single `power` is read as
+      // a King who knows that one word, which keeps every existing caller — seats, duels, saved
+      // games — working unchanged.
+      [color]: {
+        powers: loadout.powers ?? [loadout.power],
+        spent: [],
+        reserve: check.reserve,
+      },
     },
   };
 }

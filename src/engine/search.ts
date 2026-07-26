@@ -99,8 +99,15 @@ export function positionHash(state: GameState): number {
   for (const marker of state.frozen) {
     if (marker.untilPly > state.ply) hash = (hash ^ FROZEN_KEYS[marker.pieceId & 127]) >>> 0;
   }
-  if (!state.powers.w.used) hash = (hash ^ POWER_KEYS[0]) >>> 0;
-  if (!state.powers.b.used) hash = (hash ^ POWER_KEYS[1]) >>> 0;
+  // A King may hold three words and spend them separately, so the hash has to distinguish
+  // "two left" from "one left" — a single spent/unspent bit would collide positions that are
+  // genuinely different and hand the transposition table a wrong score.
+  for (const word of state.powers.w.powers) {
+    if (!state.powers.w.spent.includes(word)) hash = (hash ^ POWER_KEYS[0]) >>> 0;
+  }
+  for (const word of state.powers.b.powers) {
+    if (!state.powers.b.spent.includes(word)) hash = (hash ^ POWER_KEYS[1]) >>> 0;
+  }
   return hash >>> 0;
 }
 

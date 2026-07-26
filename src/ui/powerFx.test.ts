@@ -12,8 +12,8 @@ function board(fen: string, power: 'teleport' | 'relocate' | 'decree' | 'revive'
   return {
     ...state,
     powers: {
-      w: { power, used: false, reserve: 4 },
-      b: { power, used: false, reserve: 4 },
+      w: { powers: [power], spent: [], reserve: 4 },
+      b: { powers: [power], spent: [], reserve: 4 },
     },
   } as GameState;
 }

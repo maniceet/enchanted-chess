@@ -803,9 +803,13 @@ export function evaluate(state: GameState, color: Color, rankedPassers = true): 
   // every legal move twice at every leaf, which costs more depth than the term is worth.
   score += kingSafety(state, color) - kingSafety(state, opposite(color));
 
-  // An unspent King power is a card still in hand.
-  if (!state.powers[color].used) score += 30;
-  if (!state.powers[opposite(color)].used) score -= 30;
+  // Every unspoken word is a card still in hand, and a King may hold three.
+  const unspoken = (c: Color) => {
+    const ps = state.powers[c];
+    return ps.powers.filter((w) => !ps.spent.includes(w)).length;
+  };
+  score += 30 * unspoken(color);
+  score -= 30 * unspoken(opposite(color));
   return score;
 }
 

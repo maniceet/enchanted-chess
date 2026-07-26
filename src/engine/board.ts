@@ -153,8 +153,8 @@ export function initialState(opts: StartOptions = {}): GameState {
     frozen: [],
     doomed: [],
     powers: {
-      w: { power: powers.w, used: false, reserve: reserve.w },
-      b: { power: powers.b, used: false, reserve: reserve.b },
+      w: { powers: [powers.w], spent: [], reserve: reserve.w },
+      b: { powers: [powers.b], spent: [], reserve: reserve.b },
     },
     graveyard: { w: [], b: [] },
     repetition: {},

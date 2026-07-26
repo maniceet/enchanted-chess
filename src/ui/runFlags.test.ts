@@ -26,7 +26,12 @@ function build(opts: {
   const withBoon =
     onTheRoad && opts.boon ? raiseDragons(armored, 'w', { count: 1, taunt: true }) : armored;
   return onTheRoad && opts.silentKing
-    ? { ...withBoon, powers: { ...withBoon.powers, w: { ...withBoon.powers.w, used: true } } }
+    ? {
+        ...withBoon,
+        // A silent King knows nothing rather than having spent it: an empty word list, not a
+        // spent one, which is also what the bar reads to say "No power".
+        powers: { ...withBoon.powers, w: { ...withBoon.powers.w, powers: [], spent: [] } },
+      }
     : withBoon;
 }
 
@@ -39,12 +44,12 @@ describe('Run flags never apply away from the road', () => {
   });
 
   it('a stale silentKing leaves the King able to call when there is no House opposite', () => {
-    expect(build({ silentKing: true }).powers.w.used).toBe(false);
+    expect(build({ silentKing: true }).powers.w.powers.length).toBeGreaterThan(0);
   });
 
   it('but both still apply on the road, where they mean something', () => {
     expect(whiteDragons(build({ house: 'kyrax', boon: true }))).toBe(1);
-    expect(build({ house: 'rolain', silentKing: true }).powers.w.used).toBe(true);
+    expect(build({ house: 'rolain', silentKing: true }).powers.w.powers).toHaveLength(0);
   });
 
   it('a House opponent still gets its own profile quirks', () => {

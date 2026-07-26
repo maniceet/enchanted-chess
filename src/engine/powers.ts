@@ -71,12 +71,27 @@ export function doomUnlocked(state: GameState): boolean {
   return state.ply >= DOOM_FROM_MOVE * 2;
 }
 
+/** Everything still available to `color`: each word it knows and has not yet spoken, unioned.
+ *
+ *  A King may know three. The union is the point — the decision the player makes at the board is
+ *  *which* of them this position wants, so all of them have to be on the table at once. */
 export function powerActions(state: GameState, color: Color = state.turn): PowerAction[] {
   const ps = state.powers[color];
-  if ((ps.used && !REPEATABLE.has(ps.power)) || inCheck(state, color)) return [];
+  if (inCheck(state, color)) return [];
+  const out: PowerAction[] = [];
+  for (const word of ps.powers) {
+    if (ps.spent.includes(word) && !REPEATABLE.has(word)) continue;
+    out.push(...actionsForPower(state, color, word));
+  }
+  return out;
+}
+
+/** The activations of one word, ignoring whether it has been spent. */
+function actionsForPower(state: GameState, color: Color, power: PowerName): PowerAction[] {
+  const ps = state.powers[color];
   const out: PowerAction[] = [];
 
-  switch (ps.power) {
+  switch (power) {
     case 'teleport': {
       const landing = safeEmptySquares(state, color);
       const enemyKing = findKing(state, opposite(color));
@@ -192,21 +207,42 @@ export function seatPowerActions(state: GameState, color: Color = state.turn): P
   );
 }
 
-/** Why a power button is unusable, for the UI (spec §4: greyed with reason). */
-export function powerUnavailableReason(state: GameState, color: Color): string | null {
+/** Why one word is unusable, for the UI (spec §4: greyed with reason).
+ *
+ *  Per word rather than per King, now that a King knows three: "used" on one of them says
+ *  nothing about the other two, and a single reason for the whole set would be a lie about at
+ *  least one of them. */
+export function powerReason(state: GameState, color: Color, power: PowerName): string | null {
   const ps = state.powers[color];
-  if (ps.used && !REPEATABLE.has(ps.power)) return 'used';
+  if (!ps.powers.includes(power)) return 'not known';
+  if (ps.spent.includes(power) && !REPEATABLE.has(power)) return 'used';
   if (state.turn !== color) return 'not your turn';
   if (inCheck(state, color)) return 'in check';
-  if (!powerActions(state, color).length) {
-    if (ps.power === 'revive') return 'no affordable piece';
-    if (ps.power === 'chrono') return 'no clock';
-    if (ps.power === 'doom') {
+  if (!actionsForPower(state, color, power).length) {
+    if (power === 'revive') return 'no affordable piece';
+    if (power === 'chrono') return 'no clock';
+    if (power === 'doom') {
       return doomUnlocked(state) ? 'nothing left to mark' : `not until move ${DOOM_FROM_MOVE + 1}`;
     }
     return 'no legal target';
   }
   return null;
+}
+
+/** Why *nothing* can be spoken this turn, when no single word is available. Null when at least
+ *  one is, which is what the UI needs to decide whether to offer the choice at all. */
+export function powerUnavailableReason(state: GameState, color: Color): string | null {
+  const ps = state.powers[color];
+  if (!ps.powers.length) return 'no power';
+  if (state.turn !== color) return 'not your turn';
+  if (inCheck(state, color)) return 'in check';
+  if (powerActions(state, color).length) return null;
+  const reasons = ps.powers.map((w) => powerReason(state, color, w));
+  // With one word there is nothing to summarise — say exactly why that word cannot be spoken,
+  // which is what the button has always said and what the tests assert. Summarising is only
+  // needed when a King holds several and they are unavailable for different reasons.
+  if (reasons.length === 1) return reasons[0];
+  return reasons.every((r) => r === 'used') ? 'used' : 'no legal target';
 }
 
 export function samePowerArgs(a: PowerArgs, b: PowerArgs): boolean {

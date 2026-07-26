@@ -3804,3 +3804,17 @@ button.primary:hover:not(:disabled) {
   border-color: rgb(223 112 80 / 55%);
   box-shadow: inset 0 0 0 1px rgb(223 112 80 / 30%);
 }
+
+/* A word already chosen, and one that cannot be until room is made.
+   Three is a real ceiling, so the cards have to say which state they are in. */
+.power-card.is-full {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* A word already spoken. It stays on the bar rather than vanishing: knowing that Teleport is
+   gone is as much a part of the open board as knowing it was ever there. */
+.power-btn.is-spent {
+  opacity: 0.45;
+  text-decoration: line-through;
+}

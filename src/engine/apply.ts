@@ -424,9 +424,14 @@ function applyPower(state: GameState, action: PowerAction): GameState | EngineEr
 
   const powers = {
     ...state.powers,
-    // Destined Death is never spent: the Dark Lord may call it again next turn, and the turn
-    // after that. Every other King speaks once.
-    [color]: { ...state.powers[color], used: !REPEATABLE.has(action.power), reserve },
+    // The word spoken is spent, not the King: he may know three and this only uses one.
+    [color]: {
+      ...state.powers[color],
+      spent: REPEATABLE.has(action.power)
+        ? state.powers[color].spent
+        : [...state.powers[color].spent, action.power],
+      reserve,
+    },
   };
 
   return settle(
