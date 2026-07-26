@@ -13,7 +13,7 @@ import { isError } from '../engine/types';
 import type { Action, GameState, MoveAction } from '../engine/types';
 import { Board } from './Board';
 import { DRILLS, loadDrilled, rememberDrilled, type Drill } from './drills';
-import { ENCH_NAME } from './Pieces';
+import { ENCH_NAME, EnchRune } from './Pieces';
 import { play } from './sound';
 
 export function DrillsPage({ onBack }: { onBack: () => void }) {
@@ -150,11 +150,14 @@ export function DrillsPage({ onBack }: { onBack: () => void }) {
         <div className="drill-list">
           {DRILLS.map((d) => (
             <button type="button" key={d.id} className="drill-card" onClick={() => open(d)}>
-              <span className="drill-name">
-                {d.title}
-                {done.includes(d.id) && <span className="drill-done"> ✓</span>}
+              <EnchRune ench={d.id} shield={d.id === 'taunt' ? 'dormant' : undefined} />
+              <span className="drill-text">
+                <span className="drill-name">
+                  {d.title}
+                  {done.includes(d.id) && <span className="drill-done"> ✓</span>}
+                </span>
+                <span className="drill-ench">{ENCH_NAME[d.id]}</span>
               </span>
-              <span className="drill-ench">{ENCH_NAME[d.id]}</span>
             </button>
           ))}
         </div>
@@ -181,7 +184,11 @@ export function DrillsPage({ onBack }: { onBack: () => void }) {
             draggingFrom={null}
             flipped={false}
             onSquare={onSquare}
-            onLift={(square) => onSquare(square)}
+            /* Deliberately inert. `onLift` fires on pointer-down and `onSquare` on click, so
+               routing both into the same handler selected a piece on press and immediately
+               deselected it on release — only press-and-hold "worked". The drills are
+               click-to-move only; the game screen is where dragging lives. */
+            onLift={() => {}}
           />
           <div className="drill-actions">
             <button type="button" onClick={() => open(drill)}>

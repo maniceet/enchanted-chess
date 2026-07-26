@@ -3835,11 +3835,22 @@ button.primary:hover:not(:disabled) {
 }
 .drill-card {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  align-items: center;
+  gap: 12px;
   padding: 12px 14px;
   text-align: left;
+}
+/* The rune at card scale: board runes are 20px corner marks, here it is the subject. */
+.drill-card .rune {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.drill-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 .drill-name {
   font-weight: 600;
@@ -3949,5 +3960,56 @@ button.primary:hover:not(:disabled) {
   }
   .sq-shatter::after {
     animation-duration: 0.01ms;
+  }
+}
+
+/* A captured piece leaves a ghost fading on the square it died on, under the capturer sliding
+   in. Poison shows two, Immolation up to three — the deaths are *seen*, not inferred from a
+   suddenly emptier board. */
+.piece-ghost {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+  pointer-events: none;
+  animation: ghost-out 320ms ease forwards;
+}
+@keyframes ghost-out {
+  from {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+}
+
+/* A promotion is the one move that changes what a piece *is*; it gets a beat of crowning
+   rather than an unceremonious costume change. */
+.slot-crowned .piece {
+  animation: crown-pop 650ms cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes crown-pop {
+  0% {
+    transform: scale(0.55);
+    filter: drop-shadow(0 0 10px rgb(244 205 114 / 95%));
+  }
+  60% {
+    filter: drop-shadow(0 0 8px rgb(244 205 114 / 70%));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 2px 2px rgb(40 22 8 / 45%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piece-ghost {
+    animation-duration: 0.01ms;
+  }
+  .slot-crowned .piece {
+    animation: none;
   }
 }

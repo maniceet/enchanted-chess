@@ -1,10 +1,10 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { FILES, fileOf, inOwnHalf, rankOf, squareName } from '../engine/board';
 import { isFrozen } from '../engine/apply';
 import { isShielded } from '../engine/movegen';
 import { ENCH_TEXT } from '../engine/loadout';
-import type { GameState, MoveAction } from '../engine/types';
+import type { GameState, MoveAction, Piece } from '../engine/types';
 import { ENCH_NAME, EnchRune, PieceGlyph, PIECE_NAME, type ShieldState } from './Pieces';
 
 export interface BoardProps {
@@ -97,6 +97,51 @@ export function Board({
    *
    * `prefers-reduced-motion` is honoured in the stylesheet: the transition is 0ms there, so
    * this effect degrades to exactly the old teleport. */
+  /* The two changes the slide cannot show, shown here.
+   *
+   * A capture removes its piece from the state, so by the time React renders there is nothing
+   * left to animate — the victim simply stops existing between frames. So the previous board is
+   * diffed against the new one, and a departed piece leaves a short-lived ghost fading on the
+   * square it died on, underneath the capturer sliding in. Capped at three departures: one is a
+   * capture, two is Poison, three is Immolation at full burn — anything more is not a move, it
+   * is the review slider jumping, and a screenful of ghosts there would be noise.
+   *
+   * A promotion keeps the piece's id and changes its type, which the slide renders as an
+   * unceremonious costume change. Those ids get a beat of crowning instead. */
+  interface Ghost {
+    id: number;
+    square: number;
+    piece: Piece;
+  }
+  const [ghosts, setGhosts] = useState<readonly Ghost[]>([]);
+  const [crowned, setCrowned] = useState<ReadonlySet<number>>(new Set());
+  const prevBoardRef = useRef<GameState['board'] | null>(null);
+  useEffect(() => {
+    const prev = prevBoardRef.current;
+    prevBoardRef.current = state.board;
+    if (!prev || prev === state.board) return;
+    const now = new Map<number, Piece>();
+    for (const piece of state.board) if (piece) now.set(piece.id, piece);
+    const departed: Ghost[] = [];
+    const risen = new Set<number>();
+    prev.forEach((piece, square) => {
+      if (!piece) return;
+      const cur = now.get(piece.id);
+      if (!cur) departed.push({ id: piece.id, square, piece });
+      else if (cur.type !== piece.type) risen.add(piece.id);
+    });
+    const timers: number[] = [];
+    if (departed.length > 0 && departed.length <= 3) {
+      setGhosts(departed);
+      timers.push(window.setTimeout(() => setGhosts([]), 340));
+    }
+    if (risen.size > 0) {
+      setCrowned(risen);
+      timers.push(window.setTimeout(() => setCrowned(new Set()), 700));
+    }
+    return () => timers.forEach(clearTimeout);
+  }, [state.board]);
+
   const boardRef = useRef<HTMLDivElement>(null);
   const slotRects = useRef(new Map<number, { left: number; top: number }>());
   useLayoutEffect(() => {
@@ -175,8 +220,23 @@ export function Board({
                   <path d="M7 6a4 4 0 0 1 0 8h10a4 4 0 0 1 0-8M7 10h10M6 17h12v2H6z" />
                 </svg>
               )}
+              {ghosts.map((g) =>
+                g.square === s ? (
+                  <div className="piece-ghost" key={`ghost-${g.id}`} aria-hidden="true">
+                    <PieceGlyph
+                      type={g.piece.type}
+                      color={g.piece.color}
+                      ench={g.piece.ench}
+                      shield="none"
+                    />
+                  </div>
+                ) : null,
+              )}
               {piece && (
-                <div className="piece-slot" data-piece-id={piece.id}>
+                <div
+                  className={`piece-slot ${crowned.has(piece.id) ? 'slot-crowned' : ''}`}
+                  data-piece-id={piece.id}
+                >
                   <PieceGlyph
                     type={piece.type}
                     color={piece.color}
