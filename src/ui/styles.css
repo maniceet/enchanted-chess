@@ -1289,7 +1289,17 @@ h1 {
 }
 
 .power-btn {
-  flex: none;
+  /* `flex: none` plus `nowrap` meant this button never gave way, so whenever its label grew
+     past the column it pushed the whole layout wider than the viewport and the page scrolled
+     sideways — the board sliding off the right edge with it. Two different things grow that
+     label: a landscape phone, which narrows the column, and Android's font scale, which at the
+     2.0 accessibility setting doubles every font size in the WebView. Both were reproduced on a
+     device. It shrinks and trails off now; the full text is in the tooltip regardless. */
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 4px 10px;
   font-size: 12px;
   white-space: nowrap;
@@ -1622,9 +1632,17 @@ h1 {
 
 .home-title {
   font-family: Luminari, 'Papyrus', 'Iowan Old Style', 'Palatino Linotype', Palatino, fantasy, serif;
-  font-size: clamp(38px, 8vw, 66px);
+  /* The floor is what binds on a phone — 8vw is about 31px there — and Android's WebView
+     multiplies every font size by the system font scale, so at the 2.0 accessibility setting a
+     38px floor became 76px and "Enchanted" needed about 396px inside a 393px viewport. It ran
+     off the right edge of the very first screen. 34 leaves it room at 2.0 while staying close
+     to the intended size at 1.0. */
+  font-size: clamp(34px, 8vw, 66px);
   font-weight: 400;
   letter-spacing: 0.06em;
+  /* Belt and braces: a font scale we have not thought of should wrap the word, never clip it.
+     Losing half a word off the side of the screen is worse than an ugly break. */
+  overflow-wrap: break-word;
   color: var(--gold);
   text-shadow: 3px 3px 0 #000, 0 0 22px rgb(226 98 44 / 35%);
 }
@@ -2888,15 +2906,4 @@ body {
     display: none;
   }
 
-  /* The power button is `flex: none` and `white-space: nowrap`, so it never shrinks — in a
-     column this narrow "Relocate · not your turn" ran straight out past the board and printed
-     over the status panel beside it. Let it give way and trail off; the full text is in the
-     tooltip either way. */
-  .power-btn {
-    flex: 0 1 auto;
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
 }

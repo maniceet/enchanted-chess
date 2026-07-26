@@ -186,7 +186,34 @@ so it exercises the artifact Play ships on the OS version the app targets:
   `●●●` indicator is up, and after the reply lands.
 - **Persistence**: a duel survived `force-stop` and a reinstall over the top.
 
-Two bugs were found this way and fixed, both invisible on a desktop:
+## Large font scale
+
+Android's font size setting goes to **2.0**, and the WebView applies it to every font size in
+the page — including ones written in `px`. It is a real setting real people use, Play's
+accessibility guidance expects apps to survive it, and it is a good stress test besides: it is
+the cheapest way to find layouts that cannot cope with their own text growing.
+
+```bash
+adb shell settings put system font_scale 2.0   # then force-stop and relaunch
+adb shell settings put system font_scale 1.0   # put it back
+```
+
+Checked at 1.5 and 2.0 across the menu, the prologue, the Rules page, the road, the story cards,
+the reveal screen and a live board. Two things broke, both now fixed:
+
+- The home title ran off the right edge. `clamp(38px, 8vw, 66px)` looks viewport-relative but
+  the 38px floor is what binds on a phone, and doubling it gave "Enchanted" about 396px of text
+  in a 393px viewport.
+- Worse, the board screen **scrolled sideways**. The King's power button was `flex: none` with
+  `white-space: nowrap`, so it never gave way; its doubled label pushed the column wider than
+  the viewport and dragged the whole layout — board included — off the right of the screen.
+
+The second one is worth dwelling on. That same button had already been caught overflowing in
+landscape, and the fix was applied *inside the landscape media query* — so the underlying fault
+was still there, waiting for any other reason for the label to grow. Font scale was that reason.
+The rule is global now.
+
+Two earlier bugs were found the same way and fixed, both also invisible on a desktop:
 
 - The inn inherited the prologue's scroll offset, so on a phone you arrived below the only seat
   you were allowed to play, looking at a column of `LOCKED`.
