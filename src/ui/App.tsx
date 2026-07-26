@@ -185,6 +185,10 @@ function faceAsset(face: (typeof FACE)[House | 'you']): string {
  *  give each beat a face without duplicating prose or adding UI-only story objects. */
 const STORY_FACE_BY_TITLE: Record<string, House | 'you'> = {
   'The Law of Lothar': 'you',
+  'Nowhere To Put A Hand': 'you',
+  'A Drawn Board': 'you',
+  'The Door Behind The Bar': 'innkeeper',
+  'Back To The Inn': 'innkeeper',
   'The Drunken Knight': 'drunkard',
   'A Cup, Freely Given': 'drunkard',
   'The Innkeeper': 'innkeeper',
@@ -205,6 +209,7 @@ const STORY_FACE_BY_TITLE: Record<string, House | 'you'> = {
   'The Name': 'kyrax',
   'Not A Costume': 'kyrax',
   'The Dragonlord, Still Bound': 'kyrax',
+  'He Has Not Moved': 'kyrax',
 };
 
 function storyFace(card: StoryCard): House | 'you' {
@@ -959,6 +964,13 @@ export default function App() {
   // landing. Black in every ordinary walk; White when the keeper has turned the board round.
   const houseColor: Color = (setup.player ?? 'w') === 'w' ? 'b' : 'w';
   houseColorRef.current = houseColor;
+  /* The first two seats bring no King's word, and the engine expresses that by handing their
+   * King a power already spent — which is the right trick for legality and the wrong thing to
+   * say out loud. Without this the Drunken Knight's bar reads "⚡ Teleport · used" from move
+   * one: a power he never had, marked as though he had already spent it. On a board whose whole
+   * law is that everything is knowable, that is not a cosmetic slip, it is a false statement. */
+  const houseSilent = isHouse(setup.opponent) && HOUSE[setup.opponent].power === null;
+  const silentFor = (color: Color) => (color === houseColor ? houseSilent : Boolean(setup.silentKing));
   // A traveller in the second chair looks at their own men, so the board turns with them. Set
   // when a game begins rather than held as derived state, because the manual flip button has to
   // keep working afterwards.
@@ -1633,7 +1645,9 @@ export default function App() {
     const speaker = storyFace(card.card);
     const face = FACE[speaker];
     const speakerName = speaker === 'you' ? 'The traveller' : HOUSE[speaker].label;
-    const beatLabel = card.card.cta
+    const beatLabel = card.card.title === 'The Law of Lothar'
+      ? 'THE OPENING'
+      : card.card.cta
       ? 'AFTER THE BOARD'
       : card.card.lesson
         ? 'AN ENCOUNTER'
@@ -2380,15 +2394,26 @@ export default function App() {
                     </p>
                   )}
                   <div className="reveal-power">
-                    {color === 'w' && setup.silentKing ? (
-                      <>
-                        <strong>No power</strong>
-                        <span className="muted">
-                          {' '}
-                          Your King has no Divine Call yet. Beat Princess Rolain and he learns
-                          to speak once a game; until then he only moves.
-                        </span>
-                      </>
+                    {silentFor(color) ? (
+                      color === houseColor ? (
+                        <>
+                          <strong>No power</strong>
+                          <span className="muted">
+                            {' '}
+                            This King brings no Divine Call at all. The first tables of the road
+                            are chess with a little magic on it, and nothing more.
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <strong>No power</strong>
+                          <span className="muted">
+                            {' '}
+                            Your King has no Divine Call yet. Beat Princess Rolain and he learns
+                            to speak once a game; until then he only moves.
+                          </span>
+                        </>
+                      )
                     ) : (
                       <>
                         <strong>{POWER_NAME[loadout.power]}</strong>
@@ -2461,7 +2486,7 @@ export default function App() {
             setPowerMode={setPowerMode}
             remainingMs={remainingFor(flipped ? 'w' : 'b')}
             house={isHouse(setup.opponent) && (flipped ? 'w' : 'b') === houseColor && setup.opponent}
-            silent={Boolean(setup.silentKing) && (flipped ? 'w' : 'b') !== houseColor}
+            silent={silentFor(flipped ? 'w' : 'b')}
             pondering={pondering && (flipped ? 'w' : 'b') === houseColor}
             bubble={(flipped ? 'w' : 'b') === houseColor ? bubbles.house : bubbles.you}
             bubbleSide="below"
@@ -2503,7 +2528,7 @@ export default function App() {
             setPowerMode={setPowerMode}
             remainingMs={remainingFor(flipped ? 'b' : 'w')}
             house={isHouse(setup.opponent) && (flipped ? 'b' : 'w') === houseColor && setup.opponent}
-            silent={Boolean(setup.silentKing) && (flipped ? 'b' : 'w') !== houseColor}
+            silent={silentFor(flipped ? 'b' : 'w')}
             pondering={pondering && (flipped ? 'b' : 'w') === houseColor}
             bubble={(flipped ? 'b' : 'w') === houseColor ? bubbles.house : bubbles.you}
             bubbleSide="above"
