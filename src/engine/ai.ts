@@ -205,12 +205,12 @@ export const HOUSE: Record<House, HouseProfile> = {
   ardax: {
     label: 'Prince Ardax',
     blurb: 'The Dragonlord’s son. Rides a shielded dragon, and practices necromancy: what falls does not stay down.',
-    depth: 9,
+    depth: 8,
     sample: 40,
     budgetMs: 800,
-    maxNodes: 90_000,
+    maxNodes: 52_000,
     // Six, and he shows the player what Revive is for before Kyrax uses it on them.
-    mana: 6,
+    mana: 5,
     pauseMs: 280,
     banter: 0.8,
     power: 'revive',
@@ -228,12 +228,12 @@ export const HOUSE: Record<House, HouseProfile> = {
     label: 'Dark Lord Wittex',
     blurb:
       'The wise man on the road, under the name he uses in Shivlar. He never needed dragons. He marks a piece and it dies, and he can do it again next turn.',
-    depth: 10,
+    depth: 9,
     sample: 64,
     budgetMs: 1200,
-    maxNodes: 125_000,
+    maxNodes: 85_000,
     // Ten, the ceiling, and the only King on the road who may speak Destined Death.
-    mana: 10,
+    mana: 8,
     pauseMs: 320,
     banter: 0.9,
     power: 'doom',
@@ -248,11 +248,11 @@ export const HOUSE: Record<House, HouseProfile> = {
   kyrax: {
     label: 'Dragonlord Kyrax',
     blurb: 'Both his dragons are shielded, and he has read this board before you sat down.',
-    depth: 9,
+    depth: 8,
     sample: 60,
     budgetMs: 1000,
-    maxNodes: 115_000,
-    mana: 8,
+    maxNodes: 70_000,
+    mana: 6,
     // No fixed word: he is met more often than anyone on the road — five times before he
     // will say Wittex's name — and an opponent you sit down with five times should not open
     // the same way five times. Never Destined Death; that one is his brother's.

@@ -121,9 +121,9 @@ export function kyraxCard(timesBeatenBefore: number): StoryCard {
     title: naming ? 'The Name' : bound ? 'Not A Costume' : EPILOGUE.title,
     lines: [...EPILOGUE.lines, ...tell],
     lesson: naming
-      ? 'The road has an eighth seat now, and it always did. Dark Lord Wittex carries Destined Death: he names one of your pieces and it dies three of your turns later, and unlike every other King he may name another one next turn.'
+      ? 'The road has an eighth seat now, and it always did. Dark Lord Wittex carries Destined Death: once in the game, and not before move ten, he names one of your pieces and it dies three of your turns later. It moves and captures normally until the hour comes.'
       : bound
-        ? 'Destined Death is the one power on the road that is not once per game. Trade a marked piece off, or spend it, before the third turn takes it for nothing.'
+        ? 'Destined Death comes once and lands after move ten. Trade a marked piece off, or spend it, before the third turn takes it for nothing.'
         : undefined,
     cta: naming ? 'South →' : undefined,
   };
@@ -467,6 +467,47 @@ export const FREED: StoryCard = {
     'The road is finished. Duel another captain at this table — every enchantment, ten points each, no gold and no ladder — and see what the game is when the opponent is not written down in advance.',
   cta: 'Take the far table \u2192',
 };
+
+/** Rolain's card after she falls, which is not the same card twice.
+ *
+ *  The first time, she hands over the Divine Call — it is the moment the player's King learns to
+ *  speak, and the whole beat is the gift. Every time after that she has nothing left to give and
+ *  the card said otherwise: it re-granted a power already held, re-explained the four words, and
+ *  re-delivered two warnings about men the player has since beaten. A card that tells you
+ *  something you demonstrably know is the game not watching.
+ *
+ *  So the grant happens once. After that she is simply a woman who keeps losing to you and keeps
+ *  turning up, which is a better character note than the lecture was. */
+export function rolainCard(timesBeatenBefore: number): StoryCard {
+  const base = STORY.rolain.after;
+  if (timesBeatenBefore === 0) return base;
+
+  const again: string[][] = [
+    [
+      '"Again," she says, and swings down off the horse this time, which she did not do before.',
+      '"You will notice I have stopped explaining things to you. That is not rudeness. There is nothing left that I know and you do not."',
+      'She looks at the board a while longer than she needs to.',
+      '"He is still my father. I would like you to remember that when you get there, and I know perfectly well that you cannot afford to."',
+    ],
+    [
+      'She does not get off the horse this time, and she does not commiserate.',
+      '"You are getting better and I am not. I have thought about why, and I do not care for the answer."',
+      '"Go on. The road does not get shorter for being walked twice."',
+    ],
+    [
+      'This time she is waiting for you before the board is even set, and she says the thing she has not said.',
+      '"Beat him and something in this valley wakes up. Beat him and lose to whatever is behind him, and it goes back to sleep for another eleven years, and I do not think it survives that."',
+      '"So do not just beat him. Keep going."',
+    ],
+  ];
+  const tell = again[Math.min(timesBeatenBefore - 1, again.length - 1)];
+  return {
+    title: 'She Is Already Turning The Horse',
+    lines: tell,
+    // No lesson: the teaching happened the first time, and repeating it is the fault this fixes.
+    cta: base.cta,
+  };
+}
 
 /** The second sitting, and every one after it. He is unchanged. You are not. */
 export const KYRAX_RETURN: StoryCard = {

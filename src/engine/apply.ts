@@ -285,7 +285,11 @@ function applyBind(state: GameState, action: BindAction): GameState | EngineErro
   const victim = state.board[action.target]!;
   // `+ 3` is the Martyr number: this ply, the owner's reply, and back to the binder — which
   // lands on exactly one lost turn for the piece named.
-  const frozen = [...state.frozen, { pieceId: victim.id, untilPly: state.ply + 3 }];
+  // Two of the victim's own turns, not one. A binding costs the Archbishop its whole move, and
+  // buying a single lost tempo with a whole tempo is a trade nobody should take — the piece was
+  // back before the Archbishop had done anything with the time. `+5` because a full round is
+  // two ply: the victim is stilled on ply+1 and again on ply+3, and moves again at ply+5.
+  const frozen = [...state.frozen, { pieceId: victim.id, untilPly: state.ply + 5 }];
 
   return settle(
     endTurn({ ...state, frozen, ep: null, log: [...state.log, action] }, { spentMs: action.spentMs }),

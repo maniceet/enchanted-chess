@@ -129,6 +129,7 @@ import {
   STORY,
   drawCard,
   kyraxCard,
+  rolainCard,
   relicCard,
   runOverCard,
   type StoryCard,
@@ -749,7 +750,11 @@ export default function App() {
         // gives you the name. Read *before* `winSeat` lands, so the count is what it was when
         // he sat down.
         const base =
-          seat === 'kyrax' ? kyraxCard(run.beaten.kyrax ?? 0) : STORY[seat].after;
+          seat === 'kyrax'
+            ? kyraxCard(run.beaten.kyrax ?? 0)
+            : seat === 'rolain'
+              ? rolainCard(run.beaten.rolain ?? 0)
+              : STORY[seat].after;
         const beat = found ? relicCard(base, found) : base;
         // Beating the last seat ends the attempt, so the epilogue returns to the inn. Sending
         // it back to the road put the player on a ladder they had just finished, every seat
