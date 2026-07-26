@@ -70,6 +70,22 @@ NO ACCOUNT, NO ADS, NO TRACKING
 Free. Plays entirely offline, including on a plane. Collects nothing whatsoever.
 ```
 
+**Release notes** for the first release (500 max per language) — 233 chars
+
+```
+First release.
+
+The full campaign: seven opponents from the inn's taps to the Dragonlord's
+table, six enchantments, five King powers, and a board where both sides know
+everything before the first move.
+
+Plays offline. Collects nothing.
+```
+
+Every later release replaces this and needs a matching `versionCode` bump in
+`android/app/build.gradle` — the Console rejects an upload whose `versionCode` it has already
+seen, and it is the single easiest thing to forget.
+
 ---
 
 ## Categorisation

@@ -102,9 +102,19 @@ adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n com.maniceet.enchantedchess/.MainActivity
 ```
 
-Homebrew installs the command-line tools at `cmdline-tools/latest-2`, and `avdmanager` from the
-`PATH` then fails with `Package path is not valid` and an empty list of valid paths — it is
-looking for `cmdline-tools/latest`. Call the binary under `latest/bin` directly, as above.
+Two traps, both of which cost an hour once:
+
+- Homebrew installs the command-line tools at `cmdline-tools/latest-2`, and `avdmanager` from
+  the `PATH` then fails with `Package path is not valid` and an *empty* list of valid paths — it
+  is looking for `cmdline-tools/latest`. Call the binary under `latest/bin` directly, as above.
+- If an `sdkmanager` download is ever interrupted, it leaves `$ANDROID_HOME/.temp/PackageOperationNN`
+  behind, and every later download of that package then **appears to run and silently fetches
+  nothing** — no error, no progress, an empty target directory. `rm -rf "$ANDROID_HOME/.temp"`
+  and it works immediately. Two separate attempts at the API 36 image were lost to this before
+  the cause was clear; the giveaway is a `system-images/android-NN` directory containing only
+  `.installer`.
+
+Swap `android-36` for `android-35` above to test the other API level; both have been used here.
 
 ## Verifying the artifact that actually ships
 
@@ -155,13 +165,16 @@ The rules that reject an upload rather than merely making it worse, and where th
   Capacitor's App plugin registers an AndroidX `OnBackPressedCallback` on the activity's
   `OnBackPressedDispatcher` (`AppPlugin.java`), and that dispatcher is what the framework routes
   through `OnBackInvokedCallback` when predictive back is active. No manifest opt-in is needed.
-  **This is read from the source, not observed** — see the gap below.
+  **Confirmed on an Android 16 emulator, not merely read from the source**: all four back levels
+  behave there exactly as they do on 15.
 - **targetSdk 36** clears Play's current floor. `minSdk` is 24.
 - **One permission**, `INTERNET`, declared by the WebView. Nothing is sent through it.
 
 ## What has actually been observed
 
-Verified on a Pixel 6 AVD, API 35, by playing the opening of a run:
+Verified on Pixel 6 AVDs at **API 35 (Android 15) and API 36 (Android 16)**, by playing the
+opening of a run. The API 36 pass was done against the release bundle rather than the debug APK,
+so it exercises the artifact Play ships on the OS version the app targets:
 
 - **The back button**, all four levels: Rules → inn, reveal → inn, a live board → inn, and only
   at the inn does it leave the app. The duel in progress survived every one of those.
@@ -216,16 +229,4 @@ writes and says why `INTERNET` is the only permission.
 - **The upload keystore does not exist.** Nothing can be published until it does; see above.
 - **Contact email** is not filled in. It is required and becomes public on the listing, which
   makes it the developer's to choose, not something to commit on their behalf.
-- **Everything has been observed on API 35, and the app targets 36.** That is the one gap that
-  matters, because Android 16 is exactly where predictive back changes who receives the back
-  press. The reasoning above says the AndroidX dispatcher carries it, and the reasoning is
-  probably right, but the back stack is important enough here to deserve being watched rather
-  than argued about. Create an Android 16 AVD and repeat the four back-button checks:
-
-  ```bash
-  sdkmanager 'system-images;android-36;google_apis_playstore;arm64-v8a'
-  "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n ec_a16 \
-    -k 'system-images;android-36;google_apis_playstore;arm64-v8a' -d pixel_6
-  ```
-
 - Emulator only, arm64 only. Not yet run on physical hardware.
