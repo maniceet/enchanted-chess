@@ -56,6 +56,7 @@ import { spriteUrl } from './pixel';
 import { describeHead, headIndex, jumpHead, stepHead } from './rewind';
 import { dressStatusBar, onBackButton } from './native';
 import { strangerReset } from './stranger';
+import { lastPower, powerSquares } from './powerFx';
 import {
   ARDAX,
   ARDAX_PALETTE,
@@ -500,6 +501,28 @@ export default function App() {
   } | null>(null);
 
   const state = history[history.length - 1] ?? null;
+
+  /* A King power costs a whole turn and can move a piece across the board, freeze one, or
+   * bring one back from the dead — and the board used to simply look different afterwards,
+   * with no sign that anything had been spent. Reported as: "it seems very abrupt as to what
+   * happened." A move at least has a piece leaving somewhere and arriving somewhere; a power
+   * had nothing to watch.
+   *
+   * Read off the state's own log rather than off the click handler, so your power, the
+   * opponent's, and one replayed from a server all announce themselves the same way instead of
+   * each needing its own hook. */
+  const [powerFx, setPowerFx] = useState<{ power: PowerName; squares: number[] } | null>(null);
+  useEffect(() => {
+    const played = lastPower(state);
+    if (!played) return;
+    const before = history[history.length - 2];
+    if (!before) return;
+    setPowerFx({ power: played.power, squares: powerSquares(before, state!, played) });
+    // Long enough to notice and follow, short enough not to sit in the way of the reply.
+    const done = setTimeout(() => setPowerFx(null), 1800);
+    return () => clearTimeout(done);
+  }, [state?.ply]);
+
   /** Every rule, every legal move and every commit reads `state`, which is always the live
    *  position. Only the display reads `shown`. Keeping those two names apart is what makes
    *  rewind safe: there is no path by which a rewound board can be played from. */
@@ -571,6 +594,14 @@ export default function App() {
     if (selected === null) return new Set<number>();
     return new Set(binds.filter((b) => b.from === selected).map((b) => b.target));
   }, [binds, selected]);
+
+  /* Empty while rewinding: a flash belongs to the live board, and lighting squares on a
+     position the player has scrolled back to would claim something just happened when it did
+     not. */
+  const powerFlashSquares = useMemo(
+    () => new Set<number>(reviewing ? [] : (powerFx?.squares ?? [])),
+    [powerFx, reviewing],
+  );
 
   const powerTargets = useMemo(() => {
     if (!powerMode) return new Set<number>();
@@ -2329,12 +2360,19 @@ export default function App() {
             breakTargets={breakTargets}
             bindTargets={bindTargets}
             powerTargets={powerTargets}
+            powerFlash={powerFlashSquares}
             lastMove={lastMove}
             checkedKing={checkedKing}
             denySquare={deny}
             flipped={flipped}
             onSquare={onSquare}
           />
+          {powerFx && !reviewing ? (
+            <div className="power-called" role="status">
+              <span className="power-called-bolt">⚡</span>
+              {POWER_NAME[powerFx.power]}
+            </div>
+          ) : null}
           <PlayerBar
             state={shown}
             reviewing={reviewing}

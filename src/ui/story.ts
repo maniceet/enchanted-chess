@@ -200,7 +200,9 @@ export const STORY: Record<House, Beat> = {
       title: 'A Fine Game Indeed',
       lines: [
         '"A fine game indeed," he says, and means it, which from him is a parade.',
-        'He tells you the road to the castle passes a woman on a grey horse, and that you should let her teach you what she offers.',
+        'Then he sits back, and the warmth goes out of it. "Understand what you have just done. Me and the knight, that was the taps. Everyone gets the taps. What comes after does not care how you did here."',
+        '"From the milestone on they bring things to the board that you have not seen and cannot yet answer, and they are not being sporting about it. You will lose. Probably several times. That is not the road going wrong, that is the road."',
+        'He tells you it passes a woman on a grey horse, and that you should let her teach you what she offers, because she is the last person on it who will offer anything for free.',
       ],
     },
   },

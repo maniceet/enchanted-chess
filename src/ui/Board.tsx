@@ -16,6 +16,8 @@ export interface BoardProps {
   bindTargets: Set<number>;
   /** Squares a pending King power may act on. */
   powerTargets: Set<number>;
+  /** Squares a King power *just* acted on, lit briefly so the turn does not pass in silence. */
+  powerFlash: ReadonlySet<number>;
   lastMove: { from: number; to: number } | null;
   checkedKing: number | null;
   denySquare: number | null;
@@ -61,6 +63,7 @@ export function Board({
   breakTargets,
   bindTargets,
   powerTargets,
+  powerFlash,
   lastMove,
   checkedKing,
   denySquare,
@@ -100,6 +103,7 @@ export function Board({
             isBreak ? 'sq-break' : '',
             isBind ? 'sq-bind' : '',
             powerTargets.has(s) ? 'sq-power' : '',
+            powerFlash.has(s) ? 'sq-power-fx' : '',
             lastMove && (lastMove.from === s || lastMove.to === s) ? 'sq-last' : '',
             checkedKing === s ? 'sq-check' : '',
             denySquare === s ? 'sq-deny' : '',

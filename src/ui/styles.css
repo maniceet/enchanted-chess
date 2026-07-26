@@ -2658,7 +2658,16 @@ h1 {
        made it wider than the column holding it, and the page scrolled sideways by the
        difference. Found by setting Android's Display size to its largest step, where the CSS
        viewport drops to about 320px and the overhang stops being subtle. */
-    --board: min(calc(100vw - 36px), 88svh, 600px);
+    --board: min(calc(100vw - 16px), 88svh, 600px);
+  }
+
+  /* The board is the thing people came for, and on a phone every pixel of page gutter is a
+     pixel off the squares. 18px a side was a desktop margin that had simply never been
+     revisited for a 393px screen; 8px still reads as a margin and hands the board 20px back,
+     which is most of a square. The board's own `calc` above tracks this number — they are one
+     decision in two places, so change them together. */
+  .app {
+    padding-inline: 8px;
   }
 
   .layout,
@@ -2918,4 +2927,90 @@ body {
     display: none;
   }
 
+}
+
+/* ---------------------------------------------------------------------------
+   A King power announcing itself.
+
+   A power costs a whole turn and can throw a piece across the board, still one
+   where it stands, or bring one back from the graveyard — and until this, the
+   board simply looked different afterwards. There was nothing to watch. A move
+   has a piece leaving one square and arriving at another; a power had no such
+   event, which is what made it feel abrupt rather than dramatic.
+
+   Two cues, deliberately: a ring that pulses on the squares involved, so the eye
+   is told *where*, and a short banner over the board naming the power, so it is
+   told *what*. Either alone leaves half the question open — a ring with no name
+   is a mystery, a name with no ring is a notification.
+   --------------------------------------------------------------------------- */
+
+@keyframes power-ring {
+  0%   { box-shadow: inset 0 0 0 2px rgb(233 189 95 / 0%),  0 0 0 0 rgb(233 189 95 / 55%); }
+  18%  { box-shadow: inset 0 0 0 3px rgb(233 189 95 / 95%), 0 0 18px 4px rgb(226 98 44 / 55%); }
+  100% { box-shadow: inset 0 0 0 2px rgb(233 189 95 / 0%),  0 0 0 0 rgb(233 189 95 / 0%); }
+}
+
+.sq-power-fx {
+  animation: power-ring 1.8s ease-out;
+  /* Above its neighbours so the ring is not clipped by the next square's background. */
+  z-index: 3;
+}
+
+@keyframes power-called {
+  0%   { opacity: 0; transform: translate(-50%, 6px) scale(0.96); }
+  12%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  72%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -6px) scale(1); }
+}
+
+.power-called {
+  position: absolute;
+  left: 50%;
+  top: 12%;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border: 1px solid rgb(233 189 95 / 55%);
+  border-radius: 3px;
+  background: rgb(20 12 6 / 88%);
+  color: var(--gold);
+  font-family: var(--display);
+  font-size: 15px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 #000;
+  white-space: nowrap;
+  /* Announcing, not blocking: the banner sits over the board and must never eat a tap meant
+     for the square beneath it. */
+  pointer-events: none;
+  animation: power-called 1.8s ease-out forwards;
+}
+
+.power-called-bolt {
+  font-size: 16px;
+}
+
+/* The board column is the positioning context for the banner. */
+.board-column {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Still say what happened, just without the movement: the cue is information, not decoration,
+     and removing it entirely would put this player back where the complaint started. */
+  .sq-power-fx,
+  .power-called {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+
+  .sq-power-fx {
+    box-shadow: inset 0 0 0 3px rgb(233 189 95 / 90%);
+  }
+
+  .power-called {
+    opacity: 1;
+  }
 }

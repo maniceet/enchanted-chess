@@ -77,6 +77,26 @@ const HERO_BUILDS = {
       },
     },
   },
+  /* The far end of a finished run: the ceiling mana, the boons the road hands out, and the
+   * budget spent on the pieces that carry them. This is the build the question "can the top of
+   * the ladder still beat a player who has everything?" is actually about — measuring Kyrax and
+   * Wittex against a four-point traveller answers a different, easier question. */
+  maxed: {
+    mana: 10,
+    dragons: 2,
+    archbishops: 2,
+    loadout: {
+      ...emptyLoadout(),
+      power: 'teleport' as const,
+      enchantments: {
+        d1: 'taunt' as const,
+        b1: 'taunt' as const,
+        g1: 'taunt' as const,
+        e2: 'taunt' as const,
+        d2: 'taunt' as const,
+      },
+    },
+  },
 } as const;
 
 type HeroBuild = keyof typeof HERO_BUILDS;
@@ -106,7 +126,14 @@ function build(who: House, seed: number, hero: HeroBuild): GameState {
   const { loadout, mana } = HERO_BUILDS[hero];
   // The seat always spends the duelling four; only the traveller's purse varies.
   const ready = applyLoadout(applyLoadout(base, 'w', loadout, mana), 'b', black);
-  const mounted = profile.dragons ? raiseDragons(ready, 'b', profile.dragons) : ready;
+  // The traveller's own boons, when the build carries them. Raised before the seat's so the
+  // two sides are built by the same code path and a bug in it cannot favour one of them.
+  const spec = HERO_BUILDS[hero] as { dragons?: number; archbishops?: number };
+  const heroMounted = spec.dragons ? raiseDragons(ready, 'w', { count: spec.dragons }) : ready;
+  const heroOrdained = spec.archbishops
+    ? raiseArchbishops(heroMounted, 'w', { count: spec.archbishops })
+    : heroMounted;
+  const mounted = profile.dragons ? raiseDragons(heroOrdained, 'b', profile.dragons) : heroOrdained;
   const ordained = profile.archbishops
     ? raiseArchbishops(mounted, 'b', profile.archbishops)
     : mounted;
