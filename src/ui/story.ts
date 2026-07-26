@@ -149,12 +149,12 @@ export const KYRAX_BOUND_STILL: StoryCard = {
 export const ROLAIN_LENDS: StoryCard = {
   title: 'What Are You Doing Here',
   lines: [
-    'You do not remember leaving the hall. You remember the board, and the two shielded dragons on it, and the particular silence of a man who never had to think.',
+    'You do not remember leaving the hall. You remember the board, and the two dragons on it, and the particular silence of a man who never had to think.',
     'The grey horse is standing in the road outside, and Rolain is standing beside it with her arms folded.',
     '"What are you doing here," she says. It is not a question. "You went in with a season of practice and a borrowed opinion about dragons. Of course he broke you."',
     'You start to say something about the law, and about how the law is the only thing left. She is not listening. She is unbuckling the harness.',
     '"Then take mine."',
-    'The dragon comes off her hand and onto yours the way a hawk changes arms: no ceremony, all weight. It is shielded. Her father shields his; she has never bothered, and today she has bothered.',
+    'The dragon comes off her hand and onto yours the way a hawk changes arms: no ceremony, all weight. And it is shielded, which hers has never been. "He does not bother," she says. "He has two and he has never needed to. I have one and I am lending it to somebody he has already beaten, so it goes out wearing steel."',
     '"My father taught me that board," she says, mounting. "He did not teach me everything he knows. He taught me everything he thinks is worth knowing, which is not the same thing, and it is the gap you will beat him in."',
     'You thank her. It comes out badly. She is already riding.',
     '"Go back up," she calls, without turning. "He will not have moved."',
@@ -213,10 +213,10 @@ export const STORY: Record<House, Beat> = {
       lines: [
         'She hears about you before she sees you: a traveller who means to unseat the Dragonlord, over a board, under the old law.',
         'She rides into the inn yard to see whether the story is worth anything, and brings a dragon with her.',
-        '"You have never played one," she says. "You will not learn it at his table. You will learn it here."',
+        '"You have never played one," she says. "He rides two. You will not learn them at his table, with both of them already on you. You will learn one here, from me, slowly."',
       ],
       lesson:
-        'A Dragon moves as a knight and as a bishop, both. Hers wears no enchantment. Her father’s will.',
+        'A Dragon moves as a knight and as a bishop, both. She brings one. Her father brings two, and neither of them wears anything: on that board the dragons are the whole of the difficulty and there is nothing else to strip off them first.',
     },
     after: {
       title: 'Two Warnings',
