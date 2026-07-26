@@ -134,7 +134,8 @@ honest answer is that there is a reference in a character's name and description
 | `screenshots/01-the-board.png` | Phone screenshot — a live board with an enchanted pawn |
 | `screenshots/02-the-road.png` | Phone screenshot — the seven seats of the campaign |
 | `screenshots/03-the-open-board.png` | Phone screenshot — both loadouts revealed before move one |
-| `screenshots/04-loadout.png` | Phone screenshot — the builder, budget and enchantment costs |
+| `screenshots/04-loadout.png` | Phone screenshot — the builder, the ten-point budget and the cost maths |
+| `screenshots/05-the-shelf.png` | Phone screenshot — the whole shelf, Herald and Squire side by side |
 | `screenshots-tablet/01-the-board.png` | Tablet screenshot — the three-column board layout |
 | `screenshots-tablet/02-the-road.png` | Tablet screenshot — the seven seats, two columns |
 | `screenshots-tablet/03-rules.png` | Tablet screenshot — the Rules, set as a page |

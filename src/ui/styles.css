@@ -1052,6 +1052,11 @@ h1 {
 .rune-swift .rune-stroke { stroke: var(--frost); }
 .rune-herald .rune-fill { fill: var(--gold); }
 .rune-herald .rune-stroke { stroke: #6b4a12; }
+/* The Squire trades with the Herald, so it borrows the Herald's gold — they are a pair and the
+   colour should say so — but as arrows rather than a banner, which is what keeps them apart at
+   24px where the shape is all a player has. */
+.rune-squire .rune-fill { fill: var(--gold); }
+.rune-squire .rune-stroke { stroke: var(--gold); stroke-width: 1.8; fill: none; stroke-linecap: round; }
 .rune-poison .rune-fill { fill: var(--moss); }
 .rune-immolation .rune-fill { fill: var(--ember); }
 .rune-immolation .rune-stroke { stroke: var(--ember); stroke-width: 1.8; fill: none; stroke-linecap: round; }

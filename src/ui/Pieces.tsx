@@ -203,6 +203,16 @@ export function EnchRune({ ench, shield }: { ench: Enchantment; shield?: ShieldS
           <path className="rune-stroke" d="M6 2.6v18.8" />
         </>
       )}
+      {ench === 'squire' && (
+        /* Two arrows trading places, which is the whole move and matches the ⇄ the chronicle
+           writes. Deliberately unlike the Herald's flag it works with: at 24px a player has to
+           tell the pair apart at a glance, and one is a banner while the other is an exchange. */
+        <>
+          <path className="rune-stroke" d="M4.6 8.4h14.8M4.6 15.6h14.8" />
+          <path className="rune-fill" d="M15.6 4.6 21 8.4l-5.4 3.8z" />
+          <path className="rune-fill" d="M8.4 11.8 3 15.6l5.4 3.8z" />
+        </>
+      )}
       {ench === 'poison' && (
         <>
           <path className="rune-fill" d="M12 2.6a7 7 0 0 1 4.4 12.4v2.6a1.6 1.6 0 0 1-1.6 1.6H9.2a1.6 1.6 0 0 1-1.6-1.6V15A7 7 0 0 1 12 2.6z" />
