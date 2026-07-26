@@ -86,6 +86,7 @@ import {
   lendDragon,
   loadRun,
   loseRun,
+  lessonEarned,
   nextSeat,
   purseFor,
   purseSoFar,
@@ -687,8 +688,10 @@ export default function App() {
         // Any other defeat, and a draw, ends the attempt. The gold is already banked.
         const purse = purseSoFar(run);
         const reached = run.progress.length;
-        // Asked before `loseRun`, which is what actually opens the room.
+        // Both asked before `loseRun`, which is what actually opens the room and banks the
+        // mana — afterwards `best` has already risen and the lesson reads as zero.
         const opening = opensTheShop(run);
+        const lesson = lessonEarned(run);
         setRun((r) => loseRun(r));
         // A draw is not a defeat and must not be narrated as one. A stalemate especially: it is
         // usually something the player *did*, and telling them "the walk back is short and
@@ -702,7 +705,7 @@ export default function App() {
         setTimeout(
           () =>
             setCard({
-              card: drawn ?? runOverCard(reached, purse, run.sorcerer, opening),
+              card: drawn ?? runOverCard(reached, purse, run.sorcerer, opening, lesson),
               then: () => setPhase('home'),
             }),
           900,

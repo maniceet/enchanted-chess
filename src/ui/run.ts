@@ -617,11 +617,34 @@ export function takeRelic(state: RunState, relic: Relic): RunState {
   return save({ ...state, relics: [...state.relics, relic], taught });
 }
 
+/** Mana taken home from a defeat, and the reasoning behind it.
+ *
+ *  A run that ends in a loss used to hand back nothing at all. Everything earned on the way was
+ *  already banked, so the attempt was not *wasted* — but there was no moment of being paid for
+ *  it, and a roguelike that never pays out on a loss teaches the player that losing is simply
+ *  time spent. Reported as: the power scaling is tough and we do not reward for losses.
+ *
+ *  So falling further than you ever have before is worth a point of mana, permanently. It is
+ *  tied to `best` rather than to the seat you died at, which is the whole design: you cannot
+ *  farm it by losing to the Drunken Knight forty times, and it pays exactly when the road has
+ *  actually taught you something — the run where you first reach the Wit, the run where you
+ *  first reach Kyrax. It also eases the curve where the curve is steepest, because new ground
+ *  is precisely where the seats outclass you. */
+export function lessonEarned(state: RunState): number {
+  const reached = state.progress.length;
+  return reached > state.best && state.mana < MANA_CAP ? 1 : 0;
+}
+
 /** The attempt ends. Everything you were paid on the way is already banked — and if the
  *  Innkeeper has ever fallen to you, this is the walk back on which the back room opens. */
 export function loseRun(state: RunState): RunState {
+  const lesson = lessonEarned(state);
   return save({
     ...state,
+    // `best` rises on a defeat as well as on a win: getting further and then losing is still
+    // getting further, and if it did not count here the lesson could be earned twice.
+    best: Math.max(state.best, state.progress.length),
+    mana: Math.min(MANA_CAP, state.mana + lesson),
     progress: [],
     active: false,
     dragonUsedThisRun: false,

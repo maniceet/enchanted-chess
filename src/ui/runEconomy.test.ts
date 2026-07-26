@@ -14,6 +14,7 @@ import {
   takePowerup,
   loadRun,
   loseRun,
+  lessonEarned,
   opensTheShop,
   clearsUntilTruth,
   hasTrial,
@@ -400,5 +401,37 @@ describe('Foreshadowing', () => {
 
   it('leaves the memory hole in the mouth of the man nobody listens to', () => {
     expect(pool('drunkard', 'lose').join(' ')).toMatch(/Before what/i);
+  });
+});
+
+/* The road used to hand back nothing at all when a run ended in a loss. Everything earned on
+ * the way was already banked, so an attempt was never wasted — but there was no moment of being
+ * paid for it, which is what makes losing feel like time spent rather than progress. */
+describe('the lesson: what a defeat is worth', () => {
+  it('pays a point of mana for falling further than ever before', () => {
+    const fresh = { ...loadRun(), mana: 2, best: 1, progress: ['drunkard', 'innkeeper'] } as RunState;
+    expect(lessonEarned(fresh)).toBe(1);
+    expect(loseRun(fresh).mana).toBe(3);
+  });
+
+  it('pays nothing for ground already covered, so it cannot be farmed', () => {
+    // The whole point of tying this to `best` rather than to the seat you died at: losing to
+    // the Drunken Knight forty times must not be a mana faucet.
+    const again = { ...loadRun(), mana: 2, best: 4, progress: ['drunkard'] } as RunState;
+    expect(lessonEarned(again)).toBe(0);
+    expect(loseRun(again).mana).toBe(2);
+  });
+
+  it('raises `best` on a defeat, so the same ground never pays twice', () => {
+    const first = { ...loadRun(), mana: 2, best: 1, progress: ['drunkard', 'innkeeper'] } as RunState;
+    const after = loseRun(first);
+    expect(after.best).toBe(2);
+    expect(lessonEarned({ ...after, progress: ['drunkard', 'innkeeper'] } as RunState)).toBe(0);
+  });
+
+  it('stops at the ceiling rather than overflowing it', () => {
+    const full = { ...loadRun(), mana: MANA_CAP, best: 0, progress: ['drunkard'] } as RunState;
+    expect(lessonEarned(full)).toBe(0);
+    expect(loseRun(full).mana).toBe(MANA_CAP);
   });
 });

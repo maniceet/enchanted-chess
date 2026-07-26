@@ -402,6 +402,9 @@ export function runOverCard(
   /** This is the defeat that opens the back room, so the card says so in the keeper's voice
    *  rather than leaving the player to notice a new row on the menu. */
   justOpened = false,
+  /** Mana taken home for reaching new ground. A reward the player is not told about is not a
+   *  reward, it is an accounting entry. */
+  lesson = 0,
 ): StoryCard {
   const walk =
     reached === 0
@@ -423,6 +426,11 @@ export function runOverCard(
       purse > 0
         ? `The ${purse} gold you were handed along the way is already in your pocket, seat by seat as you took them, and a defeat does not reach back for it.`
         : 'Nobody hands you anything, because you covered no ground. That is the honest rate.',
+      ...(lesson > 0
+        ? [
+            'And you went further than you have ever gone. Nobody pays you for it and nobody says well done, but you sit down differently next time, and the difference is real: **+1 mana, permanently.** The road only teaches this way, by taking you somewhere new and then beating you there.',
+          ]
+        : []),
       justOpened
         ? 'The keeper is drying a glass when you come in, and he does not ask. He tips his head at the door behind the bar, the one you have walked past every night this week. "You have the coin now," he says. "Go and learn something. Walking it again the way you walked it will only get you here again."'
         : sorcerer
@@ -431,7 +439,9 @@ export function runOverCard(
     ],
     lesson: justOpened
       ? 'The Sorcerer will see you now. Spend the gold: what he teaches is permanent, and the Sorting Chest is where you lay it across your mana before your next walk.'
-      : 'Enchantments you buy are permanent. Progress on the road is not. That is the whole trade.',
+      : lesson > 0
+        ? 'New ground is worth a point of mana, once each. Getting further is the only thing a defeat pays for — so a run that ends deeper than the last was not wasted.'
+        : 'Enchantments you buy are permanent. Progress on the road is not. That is the whole trade.',
     cta: 'Back to the inn →',
   };
 }
