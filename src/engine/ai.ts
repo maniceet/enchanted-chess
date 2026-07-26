@@ -185,14 +185,14 @@ export const HOUSE: Record<House, HouseProfile> = {
     label: 'The Armored Knight',
     blurb:
       'Guards the castle gate in full plate, and every pawn he owns wears the same. Plate is for standing in: it holds on his four ranks and nowhere else.',
-    depth: 8,
+    depth: 7,
     sample: 40,
     // Redundant with `sample: 40` today, and kept anyway: it pins the guarantee that this seat
     // understands the magic it is wearing, so tuning his sample down later cannot quietly make
     // him blind to his own armour again. `seats.test.ts` enforces it.
     magic: true,
     budgetMs: 600,
-    maxNodes: 55_000,
+    maxNodes: 38_000,
     // Four, like the Wit — but every point of it goes into Taunt, so the same purse buys a
     // harder afternoon. The armour is the difficulty here, not the arithmetic.
     mana: 4,

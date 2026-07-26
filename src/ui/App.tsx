@@ -54,7 +54,6 @@ import {
   TRAVELLER_LINES,
   type BanterMood,
 } from './banter';
-import { spriteUrl } from './pixel';
 import { describeHead, headIndex, jumpHead, stepHead } from './rewind';
 import { dressStatusBar, onBackButton } from './native';
 import { strangerReset } from './stranger';
@@ -165,18 +164,52 @@ const PLAYTEST_ENABLED =
   (import.meta as { env?: Record<string, string> }).env?.VITE_PLAYTEST === '1';
 const BENCH_KEY = 'enchanted-chess:bench';
 const PROMO_ORDER: PieceType[] = ['q', 'r', 'b', 'n'];
-const FACE: Record<House | 'you', { rows: string[]; palette: Record<string, string>; key: string }> = {
-  drunkard: { rows: DRUNKARD, palette: DRUNKARD_PALETTE, key: 'drunkard' },
-  innkeeper: { rows: INNKEEPER, palette: INNKEEPER_PALETTE, key: 'innkeeper' },
-  wit: { rows: WIT, palette: WIT_PALETTE, key: 'wit' },
-  rolain: { rows: ROLAIN, palette: ROLAIN_PALETTE, key: 'rolain' },
-  armored: { rows: ARMORED, palette: ARMORED_PALETTE, key: 'armored' },
-  ardax: { rows: ARDAX, palette: ARDAX_PALETTE, key: 'ardax' },
-  kyrax: { rows: KYRAX, palette: KYRAX_PALETTE, key: 'kyrax' },
+const FACE: Record<House | 'you', { rows: string[]; palette: Record<string, string>; key: string; asset: string }> = {
+  drunkard: { rows: DRUNKARD, palette: DRUNKARD_PALETTE, key: 'drunkard', asset: 'drunkard' },
+  innkeeper: { rows: INNKEEPER, palette: INNKEEPER_PALETTE, key: 'innkeeper', asset: 'innkeeper' },
+  wit: { rows: WIT, palette: WIT_PALETTE, key: 'wit', asset: 'wit' },
+  rolain: { rows: ROLAIN, palette: ROLAIN_PALETTE, key: 'rolain', asset: 'rolain' },
+  armored: { rows: ARMORED, palette: ARMORED_PALETTE, key: 'armored', asset: 'armored' },
+  ardax: { rows: ARDAX, palette: ARDAX_PALETTE, key: 'ardax', asset: 'ardax' },
+  kyrax: { rows: KYRAX, palette: KYRAX_PALETTE, key: 'kyrax', asset: 'kyrax' },
   // The Wit's own face, in Shivlar's colours. Recognising it is the point.
-  wittex: { rows: WIT, palette: WITTEX_PALETTE, key: 'wittex' },
-  you: { rows: TRAVELLER, palette: TRAVELLER_PALETTE, key: 'traveller' },
+  wittex: { rows: WIT, palette: WITTEX_PALETTE, key: 'wittex', asset: 'wit' },
+  you: { rows: TRAVELLER, palette: TRAVELLER_PALETTE, key: 'traveller', asset: 'traveller' },
 };
+
+function faceAsset(face: (typeof FACE)[House | 'you']): string {
+  return `/portraits/${face.asset}.png`;
+}
+
+/** Story cards are intentionally data-first. This small index lets the presentation layer
+ *  give each beat a face without duplicating prose or adding UI-only story objects. */
+const STORY_FACE_BY_TITLE: Record<string, House | 'you'> = {
+  'The Law of Lothar': 'you',
+  'The Drunken Knight': 'drunkard',
+  'A Cup, Freely Given': 'drunkard',
+  'The Innkeeper': 'innkeeper',
+  'A Fine Game Indeed': 'innkeeper',
+  'Princess Rolain': 'rolain',
+  'Two Warnings': 'rolain',
+  'What Are You Doing Here': 'rolain',
+  'The Wit': 'wit',
+  'When To Spend It': 'wit',
+  'The Armored Knight': 'armored',
+  'The Seams': 'armored',
+  'Prince Ardax': 'ardax',
+  'What Does Not Stay Down': 'ardax',
+  'Dark Lord Wittex': 'wittex',
+  'The Town Wakes': 'wittex',
+  'Dragonlord Kyrax': 'kyrax',
+  'The Valley, After': 'kyrax',
+  'The Name': 'kyrax',
+  'Not A Costume': 'kyrax',
+  'The Dragonlord, Still Bound': 'kyrax',
+};
+
+function storyFace(card: StoryCard): House | 'you' {
+  return STORY_FACE_BY_TITLE[card.title] ?? 'you';
+}
 
 const isHouse = (o: Setup['opponent']): o is House => o !== 'table' && o !== 'online';
 
@@ -1595,37 +1628,60 @@ export default function App() {
    *  over a board that has just finished. */
   /** `onSeeBoard` is only passed by the copy that is sitting on top of a finished board. A
    *  story card between screens has no position behind it to look at. */
-  const storyCard = (onSeeBoard?: () => void) =>
-    card && (
-      <div className="story">
-        <h2 className="story-title">{card.card.title}</h2>
-        {card.card.lines.map((line, i) => (
-          <p key={i} className="story-line">
-            {line}
-          </p>
-        ))}
-        {card.card.lesson && <p className="story-lesson">{card.card.lesson}</p>}
-        <div className="menu-actions">
-          <button
-            type="button"
-            className="primary"
-            onClick={() => {
-              play('select');
-              const go = card.then;
-              setCard(null);
-              go();
-            }}
-          >
-            {card.card.cta ?? 'Onward →'}
-          </button>
-          {onSeeBoard && (
-            <button type="button" className="quiet" onClick={onSeeBoard}>
-              See the board
+  const storyCard = (onSeeBoard?: () => void) => {
+    if (!card) return null;
+    const speaker = storyFace(card.card);
+    const face = FACE[speaker];
+    const speakerName = speaker === 'you' ? 'The traveller' : HOUSE[speaker].label;
+    const beatLabel = card.card.cta
+      ? 'AFTER THE BOARD'
+      : card.card.lesson
+        ? 'AN ENCOUNTER'
+        : 'A BEAT FROM THE ROAD';
+
+    return (
+      <div className={`story story-face-${face.key}`}>
+        <aside className="story-portrait" aria-label={`Portrait of ${speakerName}`}>
+          <div className="story-portrait-frame">
+            <span className="story-portrait-glow" aria-hidden="true" />
+            <img src={faceAsset(face)} alt={speakerName} />
+          </div>
+          <span className="story-portrait-kicker">{beatLabel}</span>
+          <strong>{speakerName}</strong>
+          <span>{speaker === 'you' ? 'the one who kept walking' : 'waiting at the next table'}</span>
+        </aside>
+        <div className="story-copy">
+          <span className="story-eyebrow">THE CHRONICLE · {beatLabel}</span>
+          <h2 className="story-title">{card.card.title}</h2>
+          {card.card.lines.map((line, i) => (
+            <p key={i} className="story-line">
+              {line}
+            </p>
+          ))}
+          {card.card.lesson && <p className="story-lesson">{card.card.lesson}</p>}
+          <div className="menu-actions">
+            <button
+              type="button"
+              className="primary"
+              onClick={() => {
+                play('select');
+                const go = card.then;
+                setCard(null);
+                go();
+              }}
+            >
+              {card.card.cta ?? 'Onward →'}
             </button>
-          )}
+            {onSeeBoard && (
+              <button type="button" className="quiet" onClick={onSeeBoard}>
+                See the board
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
+  };
   const storyBody = storyCard();
 
   if (phase === 'story' && card) {
@@ -1813,7 +1869,7 @@ export default function App() {
                 <img
                   alt=""
                   className="cast-face"
-                  src={spriteUrl(FACE[who].rows, FACE[who].palette, FACE[who].key)}
+                  src={faceAsset(FACE[who])}
                 />
                 <span className="cast-name">
                   <span className="cast-step">{i + 1}</span>
@@ -2389,7 +2445,7 @@ export default function App() {
                   className={`rail-seat ${done ? 'rail-done' : ''} ${here ? 'rail-here' : ''}`}
                   title={`${HOUSE[who].label}${done ? ' — beaten' : here ? ' — at this table' : ''} · pays ${purseFor(run, who)}`}
                 >
-                  <img alt="" src={spriteUrl(FACE[who].rows, FACE[who].palette, FACE[who].key)} />
+                  <img alt="" src={faceAsset(FACE[who])} />
                 </span>
               );
             })}
@@ -3053,7 +3109,7 @@ function PlayerBar({
         >
           <img
             alt=""
-            src={spriteUrl(face.rows, face.palette, face.key)}
+            src={faceAsset(face)}
           />
           {bubble && <span className={`bubble bubble-${bubbleSide}`}>{bubble}</span>}
           {retorts?.open && (
