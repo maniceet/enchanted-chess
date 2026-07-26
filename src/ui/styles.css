@@ -2847,3 +2847,56 @@ body {
 .player {
   -webkit-touch-callout: none;
 }
+
+/* ---------------------------------------------------------------------------
+   A phone lying on its side.
+
+   Every other breakpoint in this file asks about width, and a landscape phone
+   answers "narrow" — a Pixel 6 turned sideways is about 870 CSS px — so it
+   inherited the one-column phone stack: board on top, panels underneath, and a
+   viewport barely 390px tall to hold all of it. Found on an emulator: the board
+   ran off the bottom edge at rank 5, so you had to scroll to see your own back
+   rank between moves, while half the screen sat empty to the right.
+
+   Width is the wrong question when the screen is short. Here height is the
+   constraint, so the board is sized by it and the panels take the room that
+   turning the phone actually bought you.
+   --------------------------------------------------------------------------- */
+@media (max-height: 560px) and (min-aspect-ratio: 1/1) {
+  :root {
+    /* Not a fraction of the height: the board column carries the title bar and the seat's
+       name and power button above it, and a plain `86vh` measured from the top of the page
+       still pushed rank 1 off the bottom. Subtract that chrome instead, so what is left is
+       what the board gets. */
+    --board: min(calc(100svh - 196px), 600px);
+  }
+
+  /* Left deliberately alone: the narrow board column trips the container query that stacks
+     the seat's avatar, name and power button onto three rows, and forcing them back onto one
+     line pushed the row wider than its column, so the power button rendered on top of the
+     status panel beside it. The extra rows cost height, which the reservation above already
+     pays for. A readable stack beats a cramped row printed over its neighbour. */
+
+  .layout,
+  .layout-run {
+    grid-template-columns: var(--board) minmax(220px, 1fr);
+    padding-top: 6px;
+  }
+
+  /* The seat rail is a progress ornament; at 390px of height the board outranks it. */
+  .rail {
+    display: none;
+  }
+
+  /* The power button is `flex: none` and `white-space: nowrap`, so it never shrinks — in a
+     column this narrow "Relocate · not your turn" ran straight out past the board and printed
+     over the status panel beside it. Let it give way and trail off; the full text is in the
+     tooltip either way. */
+  .power-btn {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

@@ -386,6 +386,18 @@ export default function App() {
   const [offer, setOffer] = useState<{ spoils: Powerup[]; then: 'home' | 'house' } | null>(null);
   useEffect(() => online.subscribe(setNet), []);
 
+  /* A change of screen is a change of page, and a page starts at the top.
+   *
+   * Found on an Android emulator, invisible on a desktop where every screen fits without
+   * scrolling: the prologue is long enough on a phone to need two swipes, and the inn then
+   * inherited that offset. You arrived at the road already scrolled past the one seat you are
+   * allowed to play, looking at a column of LOCKED — the game's first impression being that it
+   * is closed. Phase only, deliberately: `game` covers the whole duel, so this never yanks the
+   * board out from under a player mid-move. */
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [phase]);
+
   // The server drives an online game: when it sends a position, that is the position.
   useEffect(() => {
     if (!net.state) return;

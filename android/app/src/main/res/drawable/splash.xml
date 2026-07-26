@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The window background the system paints before the WebView has anything to show. It is the
+     tavern's own brown, so the first frame of the app is the game's colour rather than the
+     white flash a default theme gives you. Drawn rather than a bitmap so it fits every screen. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splashBackground" />
+    <item android:gravity="center">
+        <bitmap
+            android:src="@mipmap/ic_launcher_foreground"
+            android:gravity="center" />
+    </item>
+</layer-list>

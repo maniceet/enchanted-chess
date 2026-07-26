@@ -90,13 +90,49 @@ reset. Without it, losing the keystore ends the listing.
 - Content rating questionnaire, a 512×512 icon, a 1024×500 feature graphic, and at least two
   phone screenshots.
 
+## Running it on an emulator
+
+```bash
+export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
+sdkmanager emulator 'system-images;android-35;google_apis_playstore;arm64-v8a'
+"$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n ec_pixel \
+  -k 'system-images;android-35;google_apis_playstore;arm64-v8a' -d pixel_6
+"$ANDROID_HOME/emulator/emulator" -avd ec_pixel -no-audio -no-boot-anim &
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n com.maniceet.enchantedchess/.MainActivity
+```
+
+Homebrew installs the command-line tools at `cmdline-tools/latest-2`, and `avdmanager` from the
+`PATH` then fails with `Package path is not valid` and an empty list of valid paths — it is
+looking for `cmdline-tools/latest`. Call the binary under `latest/bin` directly, as above.
+
+## What has actually been observed
+
+Verified on a Pixel 6 AVD, API 35, by playing the opening of a run:
+
+- **The back button**, all four levels: Rules → inn, reveal → inn, a live board → inn, and only
+  at the inn does it leave the app. The duel in progress survived every one of those.
+- **Safe-area insets**: content clears the punch-hole in portrait, the left cutout in
+  landscape, and the gesture bar at the bottom in both.
+- **The status bar** paints `#140c06` — no white strip above the tavern, and no white flash on
+  launch now that the splash is a themed drawable rather than a bitmap.
+- **No layout jitter.** The board's top edge is identical before a move, while the opponent's
+  `●●●` indicator is up, and after the reply lands.
+- **Persistence**: a duel survived `force-stop` and a reinstall over the top.
+
+Two bugs were found this way and fixed, both invisible on a desktop:
+
+- The inn inherited the prologue's scroll offset, so on a phone you arrived below the only seat
+  you were allowed to play, looking at a column of `LOCKED`.
+- A landscape phone answers "narrow" to every `max-width` breakpoint in the stylesheet, so it
+  got the one-column phone stack in a viewport 390px tall: the board ran off the bottom edge at
+  rank 5, and you scrolled to see your own back rank between moves.
+
 ## Known gaps
 
-- **Nothing here has been run on a device or emulator.** The web bundle is verified in a
-  browser and the APK builds and contains the right assets, but the back button, the safe-area
-  insets and the status bar are reasoned about, not observed. Install the debug APK and check
-  those three first.
-- No adaptive icon: the launcher icon is still the Capacitor default. The generated
-  `public/icons/*.png` cover the web manifest, not `android/app/src/main/res/mipmap-*`.
-- No splash screen.
-- Portrait is declared in the web manifest but not pinned in `AndroidManifest.xml`.
+- Portrait is declared in the web manifest but deliberately **not** pinned in
+  `AndroidManifest.xml` — landscape earns its keep, with the board beside the panels and the
+  reveal screen in two columns.
+- Play Console listing assets are not made: feature graphic (1024×500), phone screenshots,
+  privacy policy URL, content rating questionnaire, data safety form.
+- Emulator only, arm64 only. Not yet run on physical hardware.
