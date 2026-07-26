@@ -164,11 +164,24 @@ Enrol in **Play App Signing** at first upload. It makes the key above only an *u
 Google can reset if it is ever lost; without it, losing that file ends the ability to update this
 listing at all.
 
+## Contact email
+
+```
+variantgamess@gmail.com
+```
+
+Chosen deliberately as a separate address rather than a personal one: Play publishes this on the
+listing, permanently and in public, where it will be scraped. (Two esses — `variantgames@` was
+taken.)
+
 ## Still to do before submitting
 
-- **Contact email.** Required and made public on the listing. Deliberately not filled in here —
-  it is the developer's own address to choose and publish, not something to be committed to a
-  repository on their behalf.
-- **Signing.** The upload keystore does not exist yet. See `ANDROID.md`; it must be created and
-  held by the developer, and never enters this repository.
-- `versionCode` is 1 and must increase on every upload after the first.
+- Nothing in this document. Every field the Console asks for is written down above, the assets
+  are in this folder, and the bundle is signed.
+- `versionCode` is 1 and must increase on **every** upload after the first. It is the easiest
+  thing to forget and the Console rejects a repeat outright.
+- A new personal developer account is likely to need a closed test — on the order of 12 testers
+  opted in for 14 continuous days — before production access opens. Same `.aab`, so the wait
+  runs in the background. Check the current requirement in the Console; the numbers move.
+- **Nothing has run on physical hardware.** Emulator only, arm64 only. Install the bundle on a
+  real phone and play a seat before going to production; a closed test covers this by itself.
