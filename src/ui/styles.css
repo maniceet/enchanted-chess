@@ -3873,3 +3873,81 @@ button.primary:hover:not(:disabled) {
   flex-wrap: wrap;
   justify-content: center;
 }
+
+/* -- motion ------------------------------------------------------------------
+   Three rules, one philosophy: motion is information. A piece slides so the eye
+   can follow what moved; a screen fades so a change of place reads as travel;
+   a shield shatters so T2 ("the attacker does not move") is *seen* costing the
+   turn. Nothing here loops, sparkles, or decorates. */
+
+/* The sliding slot for a piece and everything that travels with it (rune, doom
+   skull). FLIP in Board.tsx sets the transform; this is the release spring. */
+.piece-slot {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  transition: transform 150ms ease;
+  z-index: 2;
+}
+
+/* A change of screen is a change of place; arriving should take a beat. Applies
+   to every phase root without each screen opting in — the topbar stays put. */
+.app > *:not(.topbar) {
+  animation: stage-in 200ms ease-out;
+}
+@keyframes stage-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The shield takes the blow: a hard flash and a burst ring, percussive steps()
+   like the rest of the game's effects. On the *target* square — the attacker,
+   pointedly, does not move, which is the whole lesson of T2. */
+.sq-shatter::after {
+  content: '';
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  border: 3px solid #cfe3f5;
+  box-shadow:
+    0 0 0 2px rgb(207 227 245 / 55%),
+    inset 0 0 12px rgb(207 227 245 / 85%);
+  z-index: 4;
+  pointer-events: none;
+  animation: shield-shatter 500ms steps(5, end) forwards;
+}
+@keyframes shield-shatter {
+  0% {
+    opacity: 1;
+    transform: scale(0.4);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piece-slot {
+    transition: none;
+  }
+  .app > *:not(.topbar) {
+    animation: none;
+  }
+  .sq-shatter::after {
+    animation-duration: 0.01ms;
+  }
+}

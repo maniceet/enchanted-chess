@@ -25,6 +25,7 @@ export function DrillsPage({ onBack }: { onBack: () => void }) {
   const [praise, setPraise] = useState<string | null>(null);
   const [deny, setDeny] = useState<number | null>(null);
   const [lastMove, setLastMove] = useState<{ from: number; to: number } | null>(null);
+  const [shatter, setShatter] = useState<number | null>(null);
 
   const step = drill?.steps[stepIx] ?? null;
   const finished = drill !== null && stepIx >= drill.steps.length;
@@ -81,6 +82,12 @@ export function DrillsPage({ onBack }: { onBack: () => void }) {
       return;
     }
     play(action.type === 'shieldBreak' ? 'capture' : 'move');
+    if (action.type === 'shieldBreak') {
+      // The same shatter the game shows: the drill is where the rule is being taught, so this
+      // is the one place the effect must never be missing.
+      setShatter(action.target);
+      window.setTimeout(() => setShatter(null), 600);
+    }
     const settled = step.reply ? (applyAction(after, step.reply) as GameState) : after;
     setState(isError(settled) ? after : settled);
     setLastMove(
@@ -169,6 +176,7 @@ export function DrillsPage({ onBack }: { onBack: () => void }) {
             lastMove={lastMove}
             checkedKing={null}
             denySquare={deny}
+            shatterSquare={shatter}
             hoverSquare={null}
             draggingFrom={null}
             flipped={false}

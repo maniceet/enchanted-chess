@@ -694,6 +694,18 @@ export default function App() {
     return () => clearTimeout(done);
   }, [state?.ply]);
 
+  /* A shield-break announced the same way a power is: derived from the log, so mine, the
+   * seat's, and a replayed one all flash alike. The ring bursts on the *target* — the attacker
+   * staying put is the entire content of rule T2, and the effect is how the rule is felt. */
+  const [breakFx, setBreakFx] = useState<number | null>(null);
+  useEffect(() => {
+    const last = state?.log[state.log.length - 1];
+    if (!last || last.type !== 'shieldBreak') return;
+    setBreakFx(last.target);
+    const done = setTimeout(() => setBreakFx(null), 600);
+    return () => clearTimeout(done);
+  }, [state?.ply]);
+
   /** Every rule, every legal move and every commit reads `state`, which is always the live
    *  position. Only the display reads `shown`. Keeping those two names apart is what makes
    *  rewind safe: there is no path by which a rewound board can be played from. */
@@ -2667,6 +2679,7 @@ export default function App() {
             bindTargets={bindTargets}
             powerTargets={powerTargets}
             powerFlash={powerFlashSquares}
+            shatterSquare={reviewing ? null : breakFx}
             lastMove={lastMove}
             checkedKing={checkedKing}
             denySquare={deny}
