@@ -105,22 +105,24 @@ export function Stats({ onBack }: { onBack: () => void }) {
               Wipe the slate
             </button>
           )}
-          {/* The Innkeeper teaches each rule once, ever. This is the one place to ask for the
-              course again — worth having because "once, ever" is also what a rule half-read
-              mid-game looks like from the player's side. */}
-          <button
-            type="button"
-            onClick={() => {
-              forgetLessons();
-              onBack();
-            }}
-          >
-            Hear the Innkeeper’s lessons again
-          </button>
         </div>
 
         <TallyTable title="Enchantments" rows={enchantmentTallies(records)} label="Enchantment" />
         <TallyTable title="King powers" rows={powerTallies(records)} label="Power" />
+
+        {/* The Innkeeper teaches each rule once, ever. This is the one place to ask for the
+            course again — worth having because "once, ever" is also what a rule half-read
+            mid-game looks like from the player's side. Its own row, after the tallies: it is
+            a door, not a statistic, and it sat inside the Colour table looking like one. */}
+        <button
+          type="button"
+          onClick={() => {
+            forgetLessons();
+            onBack();
+          }}
+        >
+          Hear the Innkeeper’s lessons again
+        </button>
       </div>
     </>
   );

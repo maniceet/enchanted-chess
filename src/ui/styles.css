@@ -435,11 +435,25 @@ h1 {
 }
 
 .cell-square {
+  /* The square name is orientation, not content. At desktop width it sits readably in the
+   * corner; on a phone the glyph fills the cell and the label showed as clipped fragments
+   * ("2", ")1") peeking from behind the piece — debris, not information. There the piece's
+   * tooltip still names the square; the printed label waits for room. */
   position: absolute;
   bottom: 1px;
   right: 3px;
   font-size: 8px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 3px;
+  background: rgb(0 0 0 / 45%);
   color: var(--muted);
+  pointer-events: none;
+}
+@media (max-width: 600px) {
+  .cell-square {
+    display: none;
+  }
 }
 
 .ench-list {
