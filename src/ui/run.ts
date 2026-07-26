@@ -488,6 +488,60 @@ export const TRIAL: Record<Trial, { name: string; flavour: string; effect: strin
 
 export const TRIALS: Trial[] = ['black', 'timed', 'deadly'];
 
+/** Playtest shortcut: start every run at the eighth table.
+ *
+ *  Dev builds only, and the gate is deliberate rather than decorative. A traveller who begins
+ *  the game having already beaten the Dragonlord five times has no campaign left — the road,
+ *  the economy and the entire story are skipped — so this reaching a shipped build would not be
+ *  a bug, it would be the game deleted.
+ *
+ *  The first version of this shipped the seeded state inside the production bundle. It never
+ *  fired — `DEV` is false there — but the data sat in the released app, which for a switch that
+ *  hands the player a finished campaign is closer than it should ever be. Unreachable is not
+ *  the same as absent.
+ *
+ *  What fixed it was making the state a *function*: with the branches folded away it becomes
+ *  unreferenced and tree-shaking removes it, where a module-level object survived. I first
+ *  blamed the `env?.DEV` optional chaining for defeating Vite's text substitution, and that was
+ *  wrong — reverting only that does not reproduce the leak. Written bare anyway, because it is
+ *  the form Vite documents and there is no reason to be clever here.
+ *
+ *  `npm run check:devgate` fails the build if this ever leaks again, and has been tested
+ *  against a real leak rather than assumed to work.
+ *
+ *  Set to false to walk the road normally in dev. */
+const DEV = (import.meta as unknown as { env: { DEV: boolean } }).env.DEV;
+
+/** The state a traveller reaches after clearing the road five times: every seat down, the
+ *  Dragonlord's spell worn through, the whole book learned, and the eighth chair open.
+ *
+ *  A function rather than a const so that when `DEV` folds to `false` both call sites vanish,
+ *  this becomes unreferenced, and tree-shaking takes it with them. As a module-level object it
+ *  survived minification even with the branches gone — checked, not assumed. */
+const atWittex = (): Partial<RunState> => ({
+  progress: ['drunkard', 'innkeeper', 'rolain', 'wit', 'armored', 'ardax', 'kyrax'],
+  active: true,
+  gold: 200,
+  taught: [...SPELLBOOK],
+  keeper: true,
+  sorcerer: true,
+  sorcererSeen: true,
+  divineCall: true,
+  dragon: true,
+  attempts: 9,
+  best: 7,
+  clears: 5,
+  // Five falls is what `knowsTheTruth` wants: below it Wittex is not on the road at all.
+  beaten: { drunkard: 5, innkeeper: 5, rolain: 5, wit: 5, armored: 5, ardax: 5, kyrax: 5 },
+  walkPurse: 120,
+  mana: MANA_CAP,
+  venom: ['c'],
+  fortifiedRooks: 1,
+  doomCall: true,
+  dragons: 2,
+  archbishops: 2,
+});
+
 const FRESH: RunState = {
   progress: [],
   mode: 'classic',
@@ -570,6 +624,9 @@ function sanitize(raw: unknown): RunState {
 export function loadRun(): RunState {
   try {
     const raw = localStorage.getItem(KEY);
+    // Nothing saved yet and the shortcut is on: sit straight down at the eighth table rather
+    // than making the road be walked again to look at one opponent.
+    if (!raw && DEV) return save({ ...FRESH, ...atWittex() });
     return sanitize(raw ? JSON.parse(raw) : null);
   } catch {
     return { ...FRESH };
@@ -871,5 +928,5 @@ export function resetRun(): RunState {
   } catch {
     /* nothing to forget */
   }
-  return { ...FRESH };
+  return DEV ? save({ ...FRESH, ...atWittex() }) : { ...FRESH };
 }
