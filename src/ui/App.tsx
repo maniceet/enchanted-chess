@@ -2499,12 +2499,18 @@ export default function App() {
                   : color === 'w'
                     ? setup.white
                     : setup.black;
-              const check = validateLoadout(
-                base,
-                color,
-                loadout,
-                color === 'w' ? (setup.budget ?? BUDGET) : BUDGET,
-              );
+              /* Each side against its own purse. Black was checked against the ten-point duel
+               * budget even when the seat opposite was the Drunken Knight with his single point
+               * of mana — so the reveal printed "0/10 spent · 10 reserve" for a man the ladder
+               * gives one. On a board whose law is that everything shown is true, a wrong number
+               * here is not cosmetic. */
+              const budgetFor =
+                color === 'w'
+                  ? (setup.budget ?? BUDGET)
+                  : isHouse(setup.opponent)
+                    ? HOUSE[setup.opponent].mana
+                    : BUDGET;
+              const check = validateLoadout(base, color, loadout, budgetFor);
               return (
                 <div className="panel reveal-side" key={color}>
                   <h3>
@@ -2594,8 +2600,7 @@ export default function App() {
                     )}
                   </div>
                   <div className="reveal-budget">
-                    {check.spent}/{color === 'w' ? (setup.budget ?? BUDGET) : BUDGET} spent ·{' '}
-                    {check.reserve} reserve
+                    {check.spent}/{budgetFor} spent · {check.reserve} reserve
                   </div>
                 </div>
               );
@@ -3225,7 +3230,10 @@ function StatusPanel({ state, powerMode }: { state: GameState; powerMode: PowerM
       {/* Every armed state carries its exit: the hint says what to tap, this says you don't have to. */}
       {hint && <p className="status-hint">{hint} Tap elsewhere to cancel.</p>}
       <p className="muted">
-        move {state.fullmove} · fifty-move clock {state.halfmove}
+        move {state.fullmove}
+        {/* The rule only deserves the room once it is in sight: the last quarter of the count.
+            Phrased as what will happen, not as the engine's internal counter. */}
+        {state.halfmove >= 75 ? ` · draw in ${100 - state.halfmove} half-moves` : ''}
         {state.ep !== null ? ` · en passant ${squareName(state.ep)}` : ''}
       </p>
     </div>
@@ -3371,7 +3379,10 @@ function PlayerBar({
       {silent || !ps.powers.length ? (
         <button type="button" className="power-btn" disabled>
           ⚡ No power
-          {reason ? <span className="power-reason"> · {reason}</span> : null}
+          {/* Only a reason that adds something: "No power · no power" was the bar stuttering. */}
+          {reason && reason !== 'no power' ? (
+            <span className="power-reason"> · {reason}</span>
+          ) : null}
         </button>
       ) : (
         ps.powers.map((word) => {
