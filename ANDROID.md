@@ -312,6 +312,30 @@ is two people on one device with every enchantment, and works offline.
 | Download size | 2.68 MB |
 | Tablet | 10" landscape (1280×800 CSS px): rail left, board centre, panels right — the desktop layout, and it holds |
 
+## The real minimum is the WebView, not minSdkVersion
+
+`minSdkVersion` is 24, and on its own that number is misleading. The game is a web bundle in a
+system WebView, and **Android System WebView updates through Play independently of the OS**, so
+what actually decides whether the app renders is the WebView version on the device, not the
+Android version. An Android 7 phone that still gets Play updates has a current engine; the
+number in the manifest says nothing about it either way.
+
+Two consequences, both handled:
+
+- **The JS floor is pinned.** `vite.config.ts` sets `build.target: 'chrome87'` rather than
+  leaving Vite's default, which moves between major versions and would silently shift the floor
+  under a shipped app. A few kB of transpilation is cheaper than a white screen.
+- **The one load-bearing modern CSS feature has a fallback.** Container queries need Chrome 105+
+  and are what hide the capture tray and reserve when the board column is narrow. On an older
+  engine those rules are ignored, the bar keeps contents too wide for it, and the board screen
+  scrolls sideways — a failure `npm run check:overflow` can never catch, because it runs in a
+  current Chrome where the query works. Plain `@media` rules now mirror them. They are an
+  approximation, not a replacement: a landscape phone has a wide viewport and a narrow column,
+  which only the container query can express, so both are present.
+
+`:has()` is also used, for the Rules table on mobile, and is purely cosmetic — an old engine
+gets slightly taller rows and nothing else.
+
 ## Known gaps
 
 - Portrait is declared in the web manifest but deliberately **not** pinned in

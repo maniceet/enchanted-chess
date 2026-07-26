@@ -660,6 +660,31 @@ h1 {
   }
 }
 
+/* The same two rules again as plain media queries, and not redundantly.
+ *
+ * Container queries need a WebView of Chrome 105 or newer. Android System WebView updates
+ * through Play independently of the OS, so almost every device that can install this has one —
+ * but "almost every" is not "every", and on an older engine the rules above are simply ignored,
+ * the tray and reserve stay in a bar too narrow for them, and the board screen scrolls sideways.
+ * That is exactly the failure `npm run check:overflow` cannot catch, because it runs in a
+ * current Chrome where the container query works.
+ *
+ * On a phone the board column tracks the viewport, so viewport width is a good approximation of
+ * column width — good enough to save the layout on an old engine. It is only an approximation:
+ * a landscape phone has a wide viewport and a narrow column, which is the case the container
+ * query above exists for and this cannot express. Both, therefore, rather than either. */
+@media (max-width: 536px) {
+  .player > .tray {
+    display: none;
+  }
+}
+
+@media (max-width: 446px) {
+  .player > .reserve {
+    display: none;
+  }
+}
+
 .board-wrap {
   position: relative;
   width: var(--board);
