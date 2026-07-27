@@ -34,6 +34,7 @@ import {
 import { bindActions, canActFrom, inCheck, legalMoves, shieldBreakActions, swapActions } from '../engine/movegen';
 import { ScrollHint } from './ScrollHint';
 import { useArmed } from './useArmed';
+import { Purse } from './Purse';
 import { toSan } from '../engine/notation';
 import { REVIVE_COST, powerActions, powerReason, powerUnavailableReason } from '../engine/powers';
 import {
@@ -1693,10 +1694,7 @@ export default function App() {
               and prose sitting on it permanently gets read once and then becomes furniture. */}
           {(run.gold > 0 || run.attempts > 0) && (
             <div className="run-strip">
-              <span className="coin-pill coin-pill-dark">
-                <span className="coin-mark">◈</span>
-                {run.gold}
-              </span>
+              <Purse gold={run.gold} dark />
               <span>
                 attempt <strong>{run.attempts + (run.active ? 0 : 1)}</strong>
               </span>
@@ -2100,10 +2098,7 @@ export default function App() {
             taps again, with everyone on it carrying something different.
           </p>
           <div className="run-strip">
-            <span className="coin-pill coin-pill-dark">
-              <span className="coin-mark">◈</span>
-              {run.gold}
-            </span>
+            <Purse gold={run.gold} dark />
             <span>
               seat <strong>{Math.min(won.length + 1, roadFor(run).length)}</strong>/
               {roadFor(run).length}
