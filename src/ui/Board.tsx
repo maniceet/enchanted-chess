@@ -44,7 +44,10 @@ function describe(state: GameState, square: number): string {
   const piece = state.board[square];
   if (!piece) return squareName(square);
   const name = `${piece.color === 'w' ? 'White' : 'Black'} ${PIECE_NAME[piece.type]} on ${squareName(square)}`;
-  if (!piece.ench) return name;
+  // The chains say "bound"; the words say for how long (spec §4: chains + duration). It is
+  // always one turn — every binding in the game expires at the end of its owner's next turn.
+  const bound = isFrozen(state, piece) ? '\nBound: cannot move this turn. It still attacks and defends.' : '';
+  if (!piece.ench) return name + bound;
   const shield = shieldStateOf(state, square);
   const shieldNote =
     piece.ench === 'taunt'
@@ -56,7 +59,7 @@ function describe(state: GameState, square: number): string {
             ? '\nShield: down (undefended right now)'
             : '\nShield: asleep (past the middle, in enemy ground)'
       : '';
-  return `${name}\n\n${ENCH_NAME[piece.ench]}: ${ENCH_TEXT[piece.ench]}${shieldNote}`;
+  return `${name}${bound}\n\n${ENCH_NAME[piece.ench]}: ${ENCH_TEXT[piece.ench]}${shieldNote}`;
 }
 
 export function Board({
