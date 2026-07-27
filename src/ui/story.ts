@@ -267,12 +267,13 @@ export const STORY: Record<House, Beat> = {
         'Your King carries up to three words and spends each once, a whole turn apiece, and never while in check.',
     },
     after: {
-      title: 'When To Spend It',
+      title: 'When To Spend Them',
       lines: [
         '"Hm," he says, which from him is an ovation.',
         '"You have the Divine Call already. The princess gave it to you, which is very like her, and she will not have told you the difficult part, which is very like her too."',
-        '"The difficult part is this: it is one word, once, and every position in the game will look like the right one. Spend it early and you have bought a small advantage at full price. Hold it forever and you die with it in your mouth."',
-        '"Spend it on the move that is impossible without it. Not the good move. The impossible one. If you cannot name what it makes possible, you are not ready to say it."',
+        '"The difficult part is this: three words, one turn each, and every position in the game will look like the right one for one of them. Spend early and you have bought a small advantage at full price. Hold all three to the end and you die with them in your mouth."',
+        '"Spend a word on the move that is impossible without it. Not the good move. The impossible one. If you cannot name what it makes possible, you are not ready to say it."',
+        '"And three is three chances to be wrong about that. She will have called it generosity."',
       ],
     },
   },
