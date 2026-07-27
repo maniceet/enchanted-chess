@@ -43,9 +43,9 @@ export function Rules({ onBack }: { onBack: () => void }) {
           passing.
         </p>
         <p>
-          What is new is this: before the first move, each captain spends <strong>four points
-          of enchantment</strong> upon their own pieces, and grants their King a single power.
-          Then <strong>both loadouts are laid open on the table</strong>.
+          What is new is this: before the first move, each captain spends <strong>points
+          of enchantment</strong> upon their own pieces, and teaches their King <strong>up to
+          three words</strong>. Then <strong>both loadouts are laid open on the table</strong>.
         </p>
         <p>
           That is the whole of the law here, and it is not sentiment. It is arithmetic. Magic
@@ -154,10 +154,12 @@ export function Rules({ onBack }: { onBack: () => void }) {
           piece, and a King never captures into check.
         </p>
 
-        <h3>The Five Powers</h3>
+        <h3>The King’s Words</h3>
         <p>
-          Every captain takes exactly one, and it is free. It is used <em>instead of moving</em>,
-          once in the whole game, and never while your King is in check.
+          A captain teaches their King <strong>up to three</strong> of these, and they are free.
+          Each is spoken <em>instead of moving</em>, <strong>once each in the whole game</strong>,
+          and never while your King is in check. Which of the three a position wants is the
+          decision the whole thing exists for — carrying all of them would not be one.
         </p>
         <table>
           <thead>
@@ -196,7 +198,7 @@ export function Rules({ onBack }: { onBack: () => void }) {
         <h3>Your Turn</h3>
         <p>
           On your turn you do exactly one of three things: make a legal move, strike a shield, or
-          call your King’s power. Then the board settles in order: the captured go to the
+          speak one of your King’s words. Then the board settles in order: the captured go to the
           graveyard, poison takes its taker, martyrdom stills its killer, crowns are placed,
           shields are recounted, and the position is judged.
         </p>

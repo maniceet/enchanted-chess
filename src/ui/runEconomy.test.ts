@@ -1,3 +1,4 @@
+import { FAMILY } from './run';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CAMPAIGN, FULL_ROAD, HOUSE, WITTEX_CLEARS_REQUIRED, searchOptionsFor } from '../engine/ai';
 import { kyraxCard } from './story';
@@ -159,14 +160,11 @@ describe('Mana', () => {
   it('offers exactly two, never the same one twice, never two of a kind', () => {
     // Two from one family is not a choice, it is one reward at two sizes: a Whetstone beside a
     // Point of Mana is just the Whetstone, and a Hoard beside a Purse is just the Hoard.
-    const kin: Record<string, string> = {
-      purse: 'gold',
-      hoard: 'gold',
-      mana: 'mana',
-      whetstone: 'mana',
-      lesson: 'lesson',
-      dragonblood: 'dragon',
-    };
+    // The real table, not a copy of it. This was a hand-written map that had fallen four
+    // entries behind — venom, fortify, doomcall and holyorders were all missing — so any pair
+    // drawn from those classified as `undefined` twice and would have failed the moment the
+    // draw order shifted. It did, the first time a new gift was added.
+    const kin = FAMILY;
     for (const run of [loadRun(), takePowerup(loadRun(), 'dragonblood')]) {
       for (let seed = 0; seed < 80; seed++) {
         const spoils = offerSpoils(run, seeded(seed));

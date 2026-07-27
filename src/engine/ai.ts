@@ -194,7 +194,7 @@ export const HOUSE: Record<House, HouseProfile> = {
   armored: {
     label: 'The Armored Knight',
     blurb:
-      'Guards the castle gate in full plate, and every pawn he owns wears the same. Plate is for standing in: it holds on his four ranks and nowhere else.',
+      'Guards the castle gate in full plate, and puts the same on the two pawns in front of it. His centre is armoured; his flanks are not. Plate is for standing in: it holds on his four ranks and nowhere else.',
     depth: 6,
     sample: 40,
     // Redundant with `sample: 40` today, and kept anyway: it pins the guarantee that this seat
@@ -389,14 +389,26 @@ export function armorArmy(state: GameState, color: Color, scope: ArmorScope = 'a
    * were making him impossible to convert against, which is a different and much less enjoyable
    * thing. Two is enough that a shield has to be answered and few enough that the game still
    * ends. */
-  let left = scope === 'few' ? 2 : 4;
-  const halved = state.board.map((piece) => {
-    if (!piece || piece.color !== color || piece.type !== 'p' || piece.ench || left <= 0) {
-      return piece;
-    }
-    left--;
-    return { ...piece, ench: 'taunt' as const, shieldBroken: false };
-  });
+  /* Which pawns, not merely how many.
+   *
+   * Walking the board in square order armoured whichever pawns came first — a2 and b2, a flank
+   * the game is not fought over — so the seat whose whole identity is "he holds ground" was
+   * plating the one file nobody contests, while his centre stood bare. Armour the middle
+   * outwards instead: it is the ground that matters, it is where the plate is worth a turn to
+   * break, and it makes the encounter legible from the first glance at the board. */
+  const wanted = scope === 'few' ? [3, 4] : [3, 4, 2, 5];
+  const homeRank = color === 'w' ? 1 : 6;
+  const plated = new Set(
+    wanted
+      .map((file) => homeRank * 8 + file)
+      .filter((square) => {
+        const piece = state.board[square];
+        return piece && piece.color === color && piece.type === 'p' && !piece.ench;
+      }),
+  );
+  const halved = state.board.map((piece, square) =>
+    piece && plated.has(square) ? { ...piece, ench: 'taunt' as const, shieldBroken: false } : piece,
+  );
   return { ...state, board: halved };
 }
 

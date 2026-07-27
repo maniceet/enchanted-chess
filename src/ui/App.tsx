@@ -2589,9 +2589,18 @@ export default function App() {
                       what the Open Board forbids. */}
                   {color === 'b' && isHouse(setup.opponent) && HOUSE[setup.opponent].armored && (
                     <p className="reveal-dragons">
-                      {HOUSE[setup.opponent].armored === 'pawns'
-                        ? 'Every pawn he owns is armoured: each carries Taunt on top of whatever is listed above, and it costs him nothing from the four. '
-                        : 'Every piece he owns is armoured: each one carries Taunt on top of whatever is listed above, and it costs him nothing from the four. '}
+                      {/* One line per scope. `few` fell through to the "every piece" branch, so
+                          the Armored Knight — who plates exactly two pawns — was announced as
+                          fielding an entirely armoured army. On a board whose law is that
+                          everything shown is true, that is the worst kind of wrong: it is a
+                          promise the position cannot keep. */}
+                      {HOUSE[setup.opponent].armored === 'few'
+                        ? 'His centre is armoured: the two pawns in front of his gate carry Taunt, and it costs him nothing from his mana. The flanks are bare. '
+                        : HOUSE[setup.opponent].armored === 'half'
+                          ? 'His middle four pawns are armoured: each carries Taunt on top of whatever is listed above, and it costs him nothing from his mana. The flanks are bare. '
+                          : HOUSE[setup.opponent].armored === 'pawns'
+                            ? 'Every pawn he owns is armoured: each carries Taunt on top of whatever is listed above, and it costs him nothing from his mana. '
+                            : 'Every piece he owns is armoured: each one carries Taunt on top of whatever is listed above, and it costs him nothing from his mana. '}
                       While one of them is defended and standing in his own half, you cannot take
                       it at all — you must spend a whole turn breaking the shield first. Plate is
                       for standing in: the moment one of his crosses the middle, it is wearing
@@ -2622,7 +2631,7 @@ export default function App() {
                           <span className="muted">
                             {' '}
                             Your King has no Divine Call yet. Beat Princess Rolain and he learns
-                            to speak once a game; until then he only moves.
+                            three words, each spoken once; until then he only moves.
                           </span>
                         </>
                       )
@@ -3454,7 +3463,8 @@ function PlayerBar({
           ) : null}
         </button>
       ) : (
-        ps.powers.map((word) => {
+        <span className="player-words">
+        {ps.powers.map((word) => {
           // Once the game is over there are no turns, so "not your turn" is a false statement
           // on a finished board. A spent word keeps its strikethrough; the rest just go quiet.
           const live = powerReason(state, color, word);
@@ -3478,7 +3488,8 @@ function PlayerBar({
               {why ? <span className="power-reason"> · {why}</span> : null}
             </button>
           );
-        })
+        })}
+        </span>
       )}
 
       <span className="reserve" title="Unspent enchantment points, usable only by Revive">

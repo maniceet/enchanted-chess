@@ -185,7 +185,7 @@ export const ROLAIN_LENDS: StoryCard = {
     '"Go back up," she calls, without turning. "He will not have moved."',
   ],
   lesson:
-    'Her dragon takes the place of one of your knights, and it carries her Taunt. Everything else is exactly as you built it: your own enchantments are untouched, your King keeps his power, and the dragon costs you nothing from the four. It is lent, not bought.',
+    'Her dragon takes the place of one of your knights, and it carries her Taunt. Everything else is exactly as you built it: your own enchantments are untouched, your King keeps his words, and the dragon costs you nothing from your mana. It is lent, not bought.',
   cta: 'Ride back up →',
 };
 
@@ -200,7 +200,7 @@ export const STORY: Record<House, Beat> = {
         'He waves you into it without looking up. His hand finds a piece the way a hand finds a cup: by habit, and not always the right one.',
       ],
       lesson:
-        'Every piece moves as it always has. What is new is the mana each captain spends on enchantments before the first move, and the one power the King may call.',
+        'Every piece moves as it always has. What is new is the mana each captain spends on enchantments before the first move, and the words the King may call — three of them, once each, later on the road.',
     },
     after: {
       title: 'A Cup, Freely Given',
@@ -247,7 +247,8 @@ export const STORY: Record<House, Beat> = {
       title: 'Two Warnings',
       lines: [
         '"Good. You saw the shape of it." She is already turning the horse.',
-        '"Take this as well, since you have earned it and nobody else was going to offer. They call it the Divine Call: one word from your King, once in a game, spent instead of a move. He can throw a piece across the board, or trade places with one, or still an enemy where it stands, or call a fallen piece back up. Choose which word he knows before you sit down."',
+        '"Take this as well, since you have earned it and nobody else was going to offer. They call it the Divine Call. Your King learns three words and speaks each of them once, one to a turn, instead of moving. He can throw a piece across the board, or trade places with one, or still an enemy where it stands, or call a fallen piece back up."',
+        '"Choose the three before you sit down, and choose them for the game you expect to be in. Carrying all of them would not be a choice, and carrying one was never enough."',
         '"Two things, then. My brother practises necromancy, so what you take from him does not always stay taken. And there is a man in full plate at the fifth table who has spent every point he owns on shields, which is a stupid way to build an army and a very annoying one to sit opposite."',
         '"Learn the shield on him, because it is the only thing he has. It only works in his own half — a shield is a thing you stand behind, not a thing you carry, and it sleeps the moment its owner crosses the middle. Make him come to you. Everyone forgets. Do not be everyone."',
         '"Beat them anyway."',
@@ -263,7 +264,7 @@ export const STORY: Record<House, Beat> = {
         '"They call me the Wit," he says. "You will find out why, and you will not enjoy it."',
       ],
       lesson:
-        'The King may call one power in the whole game, instead of moving, and never while in check.',
+        'Your King carries up to three words and spends each once, a whole turn apiece, and never while in check.',
     },
     after: {
       title: 'When To Spend It',
@@ -481,7 +482,7 @@ export function runOverCard(
         : 'Nobody hands you anything, because you covered no ground. That is the honest rate.',
       ...(lesson > 0
         ? [
-            'And you went further than you have ever gone. Nobody pays you for it and nobody says well done, but you sit down differently next time, and the difference is real: **+1 mana, permanently.** The road only teaches this way, by taking you somewhere new and then beating you there.',
+            'And you went further than you have ever gone. Nobody pays you for it and nobody says well done, but the road settles up in the only currency that survives a defeat: **fifteen gold**, for ground nobody had walked before. Spend it on something that cannot be taken off you.',
           ]
         : []),
       justOpened
@@ -493,7 +494,7 @@ export function runOverCard(
     lesson: justOpened
       ? 'The Sorcerer will see you now. Spend the gold: what he teaches is permanent, and the Sorting Chest is where you lay it across your mana before your next walk.'
       : lesson > 0
-        ? 'New ground is worth a point of mana, once each. Getting further is the only thing a defeat pays for — so a run that ends deeper than the last was not wasted.'
+        ? 'New ground pays fifteen gold, once for each seat you reach for the first time. Getting further is the only thing a defeat pays for — so a run that ends deeper than the last was not wasted.'
         : 'Enchantments you buy are permanent. Progress on the road is not. That is the whole trade.',
     cta: 'Back to the inn →',
   };

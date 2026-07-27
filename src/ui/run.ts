@@ -160,6 +160,7 @@ export const DROPS: Partial<Record<House, { relic: Relic; chance: number }[]>> =
  *  Dragonblood is the thing you tell somebody about afterwards. */
 export type Powerup =
   | 'purse'
+  | 'wellspring'
   | 'mana'
   | 'hoard'
   | 'lesson'
@@ -178,6 +179,12 @@ export const POWERUP: Record<
     name: 'A Purse',
     flavour: 'Ten gold, in a bag that has clearly held more.',
     weight: 32,
+  },
+  wellspring: {
+    name: 'A Deeper Well',
+    flavour:
+      'You drink from a spring behind the inn that nobody mentions and nobody owns. It does not do anything, that night. It is still there in the morning, and so is whatever it left.',
+    weight: 7,
   },
   mana: {
     name: 'Two Points of Mana',
@@ -232,6 +239,7 @@ export const POWERUP: Record<
 
 const POWERUP_ORDER: Powerup[] = [
   'purse',
+  'wellspring',
   'mana',
   'hoard',
   'lesson',
@@ -254,6 +262,10 @@ export function powerupEffect(state: RunState, up: Powerup): string {
       return state.mana >= MANA_CAP
         ? `Your meter is full, so this one is symbolic. He presses ${SYMBOLIC_GOLD.mana} gold on you instead, which is still better than nothing.`
         : `+2 mana for this walk. You would sit down with ${Math.min(MANA_CAP, state.mana + 2)} of ${MANA_CAP}.`;
+    case 'wellspring':
+      return state.manaFloor >= MANA_CAP
+        ? `You already sit down full. Symbolic now, and worth ${SYMBOLIC_GOLD.mana} gold.`
+        : `+1 mana you keep. Every walk from now begins with ${state.manaFloor + 1} instead of ${state.manaFloor} — and this one goes up by a point as well.`;
     case 'whetstone':
       return state.mana >= MANA_CAP
         ? `Nothing left to sharpen. Symbolic now, and worth ${SYMBOLIC_GOLD.whetstone} gold, which is still better than nothing.`
@@ -286,11 +298,17 @@ function unlearned(state: RunState): Enchantment[] {
  *  Two from the same family is not a choice, it is the same reward at two sizes, and with only
  *  two on the table that wastes the whole decision: a Whetstone next to a Point of Mana is just
  *  the Whetstone, and a Hoard next to a Purse is just the Hoard. One from each family, always. */
-const FAMILY: Record<Powerup, string> = {
+/** Which gifts count as the same kind. Exported because the economy test needs it: it used to
+ *  keep a hand-written copy, which had drifted four entries out of date and silently passed by
+ *  never drawing the pairs it could not classify. */
+export const FAMILY: Record<Powerup, string> = {
   purse: 'gold',
   hoard: 'gold',
   mana: 'mana',
   whetstone: 'mana',
+  // The well is mana too, so a table never offers the permanent one beside a temporary one:
+  // that is not a choice, it is an arithmetic question with an obvious answer.
+  wellspring: 'mana',
   lesson: 'lesson',
   dragonblood: 'dragon',
   holyorders: 'dragon',
@@ -319,6 +337,8 @@ function worthOffering(state: RunState, up: Powerup): boolean {
   // rare thing is still worth hoping for.
   if (up === 'doomcall') return state.keeper && !state.doomCall;
   if (up === 'fortify') return state.fortifiedRooks < 2;
+  // A well that cannot be deepened is not a gift.
+  if (up === 'wellspring') return state.manaFloor < MANA_CAP;
   if (up === 'venom') return state.venom.length < 4;
   return true;
 }
@@ -372,6 +392,16 @@ export function takePowerup(
       return state.mana >= MANA_CAP
         ? save({ ...state, gold: state.gold + SYMBOLIC_GOLD.mana })
         : save({ ...state, mana: Math.min(MANA_CAP, state.mana + 2) });
+    case 'wellspring':
+      // The floor rises, and this walk feels it too — a gift that only paid out after the next
+      // defeat would be a gift you have to lose a run to unwrap.
+      return state.manaFloor >= MANA_CAP
+        ? save({ ...state, gold: state.gold + SYMBOLIC_GOLD.mana })
+        : save({
+            ...state,
+            manaFloor: Math.min(MANA_CAP, state.manaFloor + 1),
+            mana: Math.min(MANA_CAP, state.mana + 1),
+          });
     case 'whetstone':
       return state.mana >= MANA_CAP
         ? save({ ...state, gold: state.gold + SYMBOLIC_GOLD.whetstone })
@@ -455,6 +485,10 @@ export interface RunState {
   /** Permanent enchantment points earned from powerups, on top of the duelling four. Called
    *  mana in front of the player. */
   mana: number;
+  /** What a walk *starts* with. Everything else a run builds is left on the road when it ends
+   *  — that is what makes this a roguelike rather than a ladder — but the floor is the one
+   *  number a traveller can raise for good, a point at a time, out of the spoils. */
+  manaFloor: number;
   /** Knights turned into Dragons by Dragonblood, permanently. Capped at two — there are only
    *  two knights to turn. */
   dragons: number;
@@ -573,6 +607,7 @@ const atWittex = (): Partial<RunState> => ({
 
 const FRESH: RunState = {
   progress: [],
+  manaFloor: MANA_START,
   mode: 'classic',
   active: false,
   gold: 0,
@@ -640,6 +675,10 @@ function sanitize(raw: unknown): RunState {
     // `|| MANA_START` rather than `|| 0`: a save written before mana existed should sit down
     // with a traveller's purse, not an empty one.
     mana: Math.min(MANA_CAP, Math.max(0, Math.floor(Number(value.mana) || MANA_START))),
+    manaFloor: Math.min(
+      MANA_CAP,
+      Math.max(MANA_START, Math.floor(Number(value.manaFloor) || MANA_START)),
+    ),
     dragons: Math.min(2, Math.max(0, Math.floor(Number(value.dragons) || 0))),
     archbishops: Math.min(2, Math.max(0, Math.floor(Number(value.archbishops) || 0))),
     mode: value.mode === '960' ? '960' : 'classic',
@@ -864,7 +903,7 @@ export function loseRun(state: RunState): RunState {
     // Everything the walk itself built is left on the road. This is the line that makes the
     // game a roguelike rather than a ladder: strength is something you assemble inside a run
     // and lose with it, and what crosses over is gold and what gold has already taught you.
-    mana: MANA_START,
+    mana: state.manaFloor,
     dragons: 0,
     archbishops: 0,
     venom: [],

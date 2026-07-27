@@ -4100,3 +4100,47 @@ button.primary:hover:not(:disabled) {
   font-weight: 700;
   line-height: 1;
 }
+
+/* The King's words, kept together.
+ *
+ * Three of them do not fit beside a portrait, a name, a clock and a tray on a phone, and with
+ * nothing holding them together the row broke wherever it happened to run out: one word stranded
+ * beside the name, two orphaned underneath. Reported from play as "the layout of the three calls
+ * is not good in mobile format", and it looked exactly as accidental as it was.
+ *
+ * They are one thing now, so they wrap as one thing: on their own line below the identity when
+ * the bar is narrow, sharing the width evenly, still a single row on a desktop. */
+.player-words {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 0 1 auto;
+  justify-content: flex-end;
+}
+
+@media (max-width: 700px) {
+  .player {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 56px;
+    row-gap: 6px;
+  }
+  /* A full-width row of its own, and each word takes an equal share of it rather than being
+     sized by the length of its name — three buttons of one width read as one control. */
+  .player-words {
+    flex: 1 0 100%;
+    justify-content: stretch;
+    order: 3;
+  }
+  .player-words .power-btn {
+    flex: 1 1 0;
+    text-align: center;
+    justify-content: center;
+    padding: 5px 4px;
+  }
+  /* The tray and the reserve give way first: they are reference, the words are controls. */
+  .player > .tray {
+    order: 2;
+  }
+}
