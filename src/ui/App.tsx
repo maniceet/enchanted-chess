@@ -2613,6 +2613,22 @@ export default function App() {
         </Shell>
       );
     }
+    /* Which side of this board belongs to the person holding the phone. White on every table
+     * but one: The Second Chair seats the traveller as Black and gives White to the keeper's
+     * man. Online, the server says. */
+    const mine: Color = setup.player ?? (setup.opponent === 'online' && net.you ? net.you : 'w');
+    /* A heading names the stranger, not the colour. At the table both armies are the player's,
+     * so neither gets a name and the colours stand alone. */
+    const facing: string | null = isHouse(setup.opponent)
+      ? HOUSE[setup.opponent].label
+      : setup.opponent === 'online'
+        ? (net.opponent ?? 'a traveller')
+        : null;
+    const headingFor = (color: Color): string => {
+      const side = color === 'w' ? 'White' : 'Black';
+      if (!facing) return side;
+      return color === mine ? `${side}, you` : `${side}, ${facing}`;
+    };
     return (
       <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
         <div className="reveal">
@@ -2635,8 +2651,18 @@ export default function App() {
                * of mana — so the reveal printed "0/10 spent · 10 reserve" for a man the ladder
                * gives one. On a board whose law is that everything shown is true, a wrong number
                * here is not cosmetic. */
+              /* Whose army this is, asked of the setup rather than assumed from the colour.
+               *
+               * Both this budget and the heading below took "White" to mean the player and
+               * "Black" to mean whoever sits opposite. The Second Chair turns the board round:
+               * the traveller is Black there and the seat builds White. So on that one table the
+               * reveal put the seat's name on the player's own army, left the seat's army
+               * labelled with a bare "White", and — worse — checked each side against the other
+               * one's purse, printing the seat's mana as the player's spend. The comment above
+               * is about exactly this class of fault, on a screen whose whole promise is that
+               * what it shows is true. */
               const budgetFor =
-                color === 'w'
+                color === mine
                   ? (setup.budget ?? BUDGET)
                   : isHouse(setup.opponent)
                     ? HOUSE[setup.opponent].mana
@@ -2644,15 +2670,7 @@ export default function App() {
               const check = validateLoadout(base, color, loadout, budgetFor);
               return (
                 <div className="panel reveal-side" key={color}>
-                  <h3>
-                    {color === 'w'
-                      ? 'White'
-                      : isHouse(setup.opponent)
-                        ? `Black, ${HOUSE[setup.opponent].label}`
-                        : setup.opponent === 'online' && net.you === 'w'
-                          ? `Black, ${net.opponent ?? 'a traveller'}`
-                          : 'Black'}
-                  </h3>
+                  <h3>{headingFor(color)}</h3>
                   <ul className="reveal-list">
                     {loadoutSummary(base, loadout).map((row) => (
                       <li key={row.square}>
