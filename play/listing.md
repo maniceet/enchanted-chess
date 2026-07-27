@@ -13,66 +13,62 @@ submission time. Character limits are the Console's and are checked in the count
 Enchanted Chess
 ```
 
-**Short description** (80 max) — 74 chars
+**Short description** (80 max) — 78 chars
 
 ```
-Chess with enchantments. Nothing is hidden. The skill is all in the response.
+Poison your pawns, shield your rooks, ride a dragon. Then win the game anyway.
 ```
 
-**Full description** (4000 max) — about 2100 chars
+**Full description** (4000 max) — about 2527 chars
 
 ```
-Standard chess, with one change made before the first move: each captain spends a small
-budget of enchantment points on their own pieces, and chooses one power for their King.
+Your pawn is poisoned. Whatever takes it dies with it — and your opponent knows, because in
+this game nothing is hidden. He has a dragon where his knight should be. You knew that too.
 
-Then everything is shown. Both loadouts, in full, before White moves.
+Enchanted Chess is chess with one decision made before the first move. You spend a budget of
+enchantment points across your own army, teach your King up to three words of power, and then
+both loadouts are laid open on the table. No fog. No face-down cards. No surprise you could
+not have seen coming — only a position you have to actually solve.
 
-THE OPEN BOARD
+WHAT YOU CAN GIVE YOUR PIECES
 
-There is no hidden information in this game. No fog, no face-down cards, no surprise you
-could not have seen coming. You know exactly what the piece across the board can do, and it
-knows exactly what yours can do, and the whole difficulty is in what you do about it. A
-mechanic that only works as an ambush does not belong here.
+Poison, so that killing your pawn kills the killer.
+Immolation, so that the pawn takes the three squares in front of it with it when it burns.
+Taunt, a shield that has to be smashed before the piece under it can be touched — and smashing
+it costs a whole turn.
+Martyr, freezing whatever captures it where it stands.
+Outpost, which no enemy pawn may touch.
+Swift, a pawn that strides two squares whenever it likes.
+Herald, a pawn that crowns a rank early.
+Squire, whose whole move is to change places with a Herald anywhere on the board — the two of
+them together are a queen nobody had to march up the board.
 
-SEVEN ENCHANTMENTS
+WORDS YOUR KING CAN SPEAK
 
-Taunt — while defended and standing in your own half, this piece has a shield. An attacker
-who strikes it breaks the shield instead of capturing, and spends its turn doing so. Cross
-into enemy ground and the shield sleeps until the piece comes home.
-
-Martyr — whatever captures this piece may not move on its next turn.
-
-Outpost — cannot be taken by an enemy pawn.
-
-Swift — a pawn that may step two squares on any move, not only its first.
-
-Herald — a pawn that crowns on the seventh rank instead of the eighth.
-
-Squire — a pawn whose move is to change places with a friendly Herald, anywhere on the
-board. If the Herald lands on its crowning rank it crowns at once. Neither is worth much
-alone; together they are a queen nobody had to walk up the board.
-
-Poison — whatever captures this pawn dies with it.
-
-A King can carry none of them, and suffers none of them. The King bows to no enchantment.
-
-FIVE KING POWERS
-
-Once per game, instead of moving: teleport a piece to any empty unattacked square; swap your
-King with a friendly piece in your own half; forbid one enemy piece from moving next turn;
-bring a fallen piece back from your graveyard, paid for with points you chose not to spend; or
-bend the clock, if there is one running.
+Three of them, once each, spent instead of a move. Throw a piece across the board. Trade places
+with it. Freeze an enemy where it stands. Call a dead piece back out of your graveyard. Mark a
+piece for a death that arrives in three turns and cannot be lifted. Choosing which three, and
+saving them for the right moment, is the game inside the game.
 
 THE ROAD
 
-The campaign is a single unbroken walk from the taps of an inn to the Dragonlord's table.
-Seven opponents, each playing differently and each carrying something you have not faced yet.
-Lose anywhere and the walk begins again at the taps — but the gold you won is yours, and what
-you learn between attempts is permanent.
+Walk it in one sitting, from the taps of an inn to the Dragonlord's table. A drunk knight who
+was somebody once. An innkeeper who takes whatever you leave lying about. A princess who rides
+you down on a dragon and lends you one afterwards. A prince who calls back everything you kill.
 
-NO ACCOUNT, NO ADS, NO TRACKING
+Lose anywhere and it all begins again at the taps — but the gold is yours, what you spent it
+learning is permanent, and you come back carrying more than you did. Nobody clears this road on
+their first walk. Some of what is at the end of it is not what the valley thinks it is.
 
-Free. Plays entirely offline, including on a plane. Collects nothing whatsoever.
+ALSO HERE
+
+Pass-and-play duels with every enchantment unlocked. Chess960. Optional clocks and a King's
+word that bends them. A tutorial that hands you each enchantment on a board of its own, and an
+innkeeper who explains the parts that are not chess at the moment they first bite you.
+
+FREE, OFFLINE, AND YOURS
+
+No ads. No account. No tracking, and no server to do the tracking with. It works on a plane.
 ```
 
 **Release notes** for the first release (500 max per language) — 233 chars

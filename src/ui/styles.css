@@ -124,6 +124,31 @@ button.primary:hover:not(:disabled) {
   padding: 16px 18px 48px;
 }
 
+/* A tablet is not a big phone, and it was being treated as one.
+ *
+ * The board is capped at 600px, which is right on a laptop where the panels sit beside it and
+ * a bigger board would only mean more mouse travel. On a 10-inch tablet held upright — 1600 by
+ * 2560 — that cap left the entire game in the top quarter of the screen with two thirds of the
+ * display empty black beneath it. It was found by photographing the Play Store screenshots at
+ * the sizes the Console asks for, which is the first time anyone had looked at the game on a
+ * tablet at all.
+ *
+ * So on a display that is both wide and tall, the board takes the room it has: bounded by the
+ * shorter side as always, by a share of the height so the panels beside it still fit, and by a
+ * ceiling that keeps a square from becoming a wall. The shell widens with it. */
+@media (min-width: 900px) and (min-height: 1100px) {
+  .app {
+    max-width: 1500px;
+  }
+  :root {
+    /* Bounded by the width left over once the panels beside it have theirs, as well as by the
+     * shorter side and a share of the height. Without that fourth term a 7-inch tablet held
+     * upright grew the board to 984px inside a 1200px screen and pushed the whole layout 106px
+     * off the right edge — a worse fault than the empty space this rule was written to fix. */
+    --board: min(82vmin, 62vh, calc(100vw - 360px), 1100px);
+  }
+}
+
 /* ---------- top bar ---------- */
 
 /* Deliberately slim. A mark, the name, and the sound toggle: nothing here competes with the

@@ -48,7 +48,13 @@ WATCHDOG.unref?.();
  *  its own short-lived process. The night Chrome updated to 151, long-lived multi-width runs
  *  stalled mid-screen at a random width — never the same one, never reproducibly — while every
  *  short-lived process stayed healthy. Short lives contain whatever that is. */
-const ALL_WIDTHS = [320, 360, 393, 412, 480, 600, 820];
+/* Phones, and the tablets nobody was checking.
+ *
+ * This list stopped at 820px, so an entire class of layout fault was invisible to it: the game
+ * pushed 106px off the right edge of a 7-inch tablet held upright and the gate had nothing to
+ * say, because it had never been asked about a screen that size. The Play Console lists phone,
+ * 7-inch and 10-inch separately; so does this now. */
+const ALL_WIDTHS = [320, 360, 393, 412, 480, 600, 820, 1200, 1600];
 const WIDTHS = process.env.ONLY_WIDTH ? [Number(process.env.ONLY_WIDTH)] : ALL_WIDTHS;
 
 /** Each screen, and the buttons to press to reach it from a cold load. Text is matched loosely

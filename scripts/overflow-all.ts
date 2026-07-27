@@ -8,7 +8,7 @@
  */
 import { execFile } from 'node:child_process';
 
-const WIDTHS = [320, 360, 393, 412, 480, 600, 820];
+const WIDTHS = [320, 360, 393, 412, 480, 600, 820, 1200, 1600];
 const DEADLINE_MS = 180_000;
 
 function runWidth(width: number): Promise<{ ok: boolean; out: string }> {

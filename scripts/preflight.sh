@@ -65,7 +65,16 @@ check npx tsx scripts/tutorial-check.ts
 
 step "Signature"
 APK=android/app/build/outputs/apk/release/app-release.apk
-check "${ANDROID_HOME:?set ANDROID_HOME}/build-tools/36.0.0/apksigner" verify "$APK"
+# The newest build-tools that is actually installed, rather than a version pinned here. This
+# was hard-coded to 36.0.0 and failed the moment Android Studio updated the SDK — the build
+# was fine, the signature was fine, and preflight said "Not ready" because a path had moved.
+APKSIGNER=$(ls -d "${ANDROID_HOME:?set ANDROID_HOME}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+if [ -z "$APKSIGNER" ]; then
+  printf '   \033[31mFAILED\033[0m no apksigner in %s/build-tools\n' "$ANDROID_HOME"
+  FAILED=1
+else
+  check "$APKSIGNER" verify "$APK"
+fi
 
 step "Version code"
 CODE=$(grep -oE 'versionCode [0-9]+' android/app/build.gradle | grep -oE '[0-9]+')
