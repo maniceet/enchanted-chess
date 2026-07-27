@@ -4078,3 +4078,25 @@ button.primary:hover:not(:disabled) {
     animation: none;
   }
 }
+
+/* How much longer a chained piece is held. The chains say "cannot move"; this says for how
+   long, which is the difference between a Decree (one turn) and an Archbishop's binding (two).
+   Sits opposite the doom skull so a piece under both sentences shows them side by side. */
+.hold-mark {
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  min-width: 13px;
+  height: 13px;
+  display: grid;
+  place-items: center;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 50%;
+  background: #12202e;
+  border: 1px solid #7fd4ff;
+  color: #cdefff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}

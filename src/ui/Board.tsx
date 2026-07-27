@@ -223,6 +223,19 @@ export function Board({
           const isBreak = breakTargets.has(s);
           const isBind = bindTargets.has(s);
           const frozen = piece ? isFrozen(state, piece) : false;
+          /* Spec §4 asks a held piece to show chains *and* how long it is held, and the number
+           * is not decoration: a Decree or a Martyr's grip lasts one turn, an Archbishop's
+           * binding lasts two, and the chains look identical. Counted in the victim's own
+           * turns, the way the doom skull counts, because that is how a player counts. */
+          const heldFor = frozen
+            ? Math.max(
+                1,
+                Math.ceil(
+                  ((state.frozen.find((f) => f.pieceId === piece!.id)?.untilPly ?? state.ply) -
+                    state.ply) / 2,
+                ),
+              )
+            : 0;
           // Turns the piece has left before Destined Death collects it. Counted in the victim's
           // own moves, which is how the rule is stated and how a player counts.
           const doomIn = piece
@@ -293,6 +306,11 @@ export function Board({
                   />
                   {piece.ench && shield !== 'broken' && (
                     <EnchRune ench={piece.ench} shield={shield} />
+                  )}
+                  {frozen && (
+                    <span className="hold-mark" aria-hidden="true">
+                      {heldFor}
+                    </span>
                   )}
                   {doomIn && (
                     /* The Open Board runs to the death sentence too: a marked piece and the
