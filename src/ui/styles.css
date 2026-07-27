@@ -3918,21 +3918,16 @@ button.primary:hover:not(:disabled) {
   z-index: 2;
 }
 
-/* A change of screen is a change of place; arriving should take a beat. Applies
-   to every phase root without each screen opting in — the topbar stays put. */
-.app > *:not(.topbar) {
-  animation: stage-in 200ms ease-out;
-}
-@keyframes stage-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
+/* No blanket entrance animation here, deliberately.
+ *
+ * There was one — `.app > *:not(.topbar)` — and a descendant rule that broad is a trap on this
+ * layout, because every screen renders its panels, its modals *and* its drag layer as direct
+ * children of `.app`. A CSS animation outranks an inline style, so the fade's `translateY(4px)`
+ * seized the drag ghost's transform for 200ms at the start of every drag and the carried piece
+ * jumped away from the finger. The same selector (0,2,0) also outranks any single-class rule,
+ * so it silently stood to replace the gold-pop and any other element-owned animation it landed
+ * on. A screen fade is not worth a rule that can do that; entrances belong to the elements that
+ * ask for them. */
 
 /* The shield takes the blow: a hard flash and a burst ring, percussive steps()
    like the rest of the game's effects. On the *target* square — the attacker,
@@ -3968,9 +3963,6 @@ button.primary:hover:not(:disabled) {
 @media (prefers-reduced-motion: reduce) {
   .piece-slot {
     transition: none;
-  }
-  .app > *:not(.topbar) {
-    animation: none;
   }
   .sq-shatter::after {
     animation-duration: 0.01ms;

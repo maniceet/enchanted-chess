@@ -86,20 +86,6 @@ export function Board({
   }
   const squares = flipped ? [...order].reverse() : order;
 
-  /* Pieces glide instead of teleporting: classic FLIP, keyed by the engine's stable piece id.
-   *
-   * After every render, each `.piece-slot` is measured; one that now stands somewhere else is
-   * snapped back to where it was (transform, no transition) and released on the next frame, so
-   * the browser animates it to rest. This is layout-blind on purpose — it needs no knowledge
-   * of moves, so castling slides both King and rook, an engine reply slides the enemy piece,
-   * and flipping the board glides all thirty-two at once.
-   *
-   * Drag-and-drop stays snappy for free: the lifted square renders empty, so the dragged
-   * piece's slot is absent from the previous measurement and there is nothing to slide it
-   * from. A piece the player carried by hand lands where they put it, dead.
-   *
-   * `prefers-reduced-motion` is honoured in the stylesheet: the transition is 0ms there, so
-   * this effect degrades to exactly the old teleport. */
   /* The two changes the slide cannot show, shown here.
    *
    * A capture removes its piece from the state, so by the time React renders there is nothing
@@ -145,30 +131,87 @@ export function Board({
     return () => timers.forEach(clearTimeout);
   }, [state.board]);
 
+  /* Pieces glide instead of teleporting, computed from the squares they stand on.
+   *
+   * The first version of this measured every `.piece-slot` with getBoundingClientRect on every
+   * render, and each of those three words was a bug:
+   *
+   *   every render — no dependency array, so a drag (which re-renders per frame) forced 32
+   *     synchronous reflows a frame, and the board juddered under the finger;
+   *   getBoundingClientRect — viewport-relative, so *scrolling the page* changed every rect and
+   *     the next render slid all thirty-two pieces to chase a scroll that was not a move;
+   *   ...and it reports transformed positions, so a render landing inside the 150ms slide
+   *     measured a piece mid-flight and animated again from there, compounding the jitter.
+   *
+   * A chessboard is a uniform grid and the engine already says which square each piece stands
+   * on, so the delta is arithmetic: one clientWidth read for the cell size — a layout value,
+   * immune to both scrolling and transforms — and no per-piece measurement at all. It runs only
+   * when the board actually changes.
+   *
+   * `prefers-reduced-motion` is honoured in the stylesheet: the transition is 0ms there, so
+   * this degrades to exactly the old teleport. */
   const boardRef = useRef<HTMLDivElement>(null);
-  const slotRects = useRef(new Map<number, { left: number; top: number }>());
+  const placesRef = useRef<{ flipped: boolean; at: Map<number, number> } | null>(null);
+  /* A piece the player carried there by hand is already where they put it; sliding it back to
+   * its origin to re-play the move is the one animation a drag must never have. */
+  const draggedRef = useRef(false);
+  useEffect(() => {
+    draggedRef.current = draggingFrom !== null;
+  }, [draggingFrom]);
+
   useLayoutEffect(() => {
     const root = boardRef.current;
     if (!root) return;
-    const seen = new Map<number, { left: number; top: number }>();
-    for (const el of root.querySelectorAll<HTMLElement>('.piece-slot')) {
-      const id = Number(el.dataset.pieceId);
-      const rect = el.getBoundingClientRect();
-      seen.set(id, { left: rect.left, top: rect.top });
-      const prev = slotRects.current.get(id);
-      if (!prev) continue;
-      const dx = prev.left - rect.left;
-      const dy = prev.top - rect.top;
-      if (dx === 0 && dy === 0) continue;
+    const at = new Map<number, number>();
+    for (let square = 0; square < 64; square++) {
+      const piece = state.board[square];
+      if (piece) at.set(piece.id, square);
+    }
+    const prev = placesRef.current;
+    placesRef.current = { flipped, at };
+    // Layout effects run before passive ones in the same commit, so on the drop this still
+    // reads the flag the lift set — and clears it, so an aborted drag cannot silence the
+    // move that follows it.
+    const dropped = draggedRef.current;
+    draggedRef.current = false;
+    // First paint, a board that turned round, or a piece just dropped by hand: in each case
+    // everything is already where it belongs.
+    if (!prev || prev.flipped !== flipped || dropped) return;
+
+    const cell = root.clientWidth / 8;
+    if (!cell) return;
+    const dir = flipped ? -1 : 1;
+    const moved: HTMLElement[] = [];
+    for (const [id, to] of at) {
+      const from = prev.at.get(id);
+      if (from === undefined || from === to) continue;
+      const el = root.querySelector<HTMLElement>(`.piece-slot[data-piece-id="${id}"]`);
+      if (!el) continue;
+      // Rank rises up the screen, so a rank gained is a downward offset to slide out of.
+      const dx = ((from % 8) - (to % 8)) * cell * dir;
+      const dy = ((to >> 3) - (from >> 3)) * cell * dir;
       el.style.transition = 'none';
       el.style.transform = `translate(${dx}px, ${dy}px)`;
-      requestAnimationFrame(() => {
+      moved.push(el);
+    }
+    // A move shifts one piece, or two when a King castles. Anything more is the review slider
+    // jumping or a scenario being loaded, and thirty-two pieces crossing the board at once is
+    // not information, it is noise.
+    if (moved.length === 0 || moved.length > 2) {
+      for (const el of moved) {
         el.style.transition = '';
         el.style.transform = '';
-      });
+      }
+      return;
     }
-    slotRects.current = seen;
-  });
+    const frame = requestAnimationFrame(() => {
+      for (const el of moved) {
+        el.style.transition = '';
+        el.style.transform = '';
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [state.board, flipped]);
 
   return (
     <div className="board-wrap">

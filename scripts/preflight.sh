@@ -14,6 +14,9 @@
 #                  fourth found by it within a minute of being written
 #   devgate      — the dev-only "start at Wittex" shortcut shipped inside the production bundle
 #                  once already, unreachable but present
+#   motion       — the piece-slide measured with getBoundingClientRect on every render, so
+#                  scrolling the page sent all thirty-two pieces chasing the scroll. Reported
+#                  as "jitter, almost unplayable"; every unit test passed throughout
 #   tutorial     — the lesson bubble was wired to a ref that was never assigned, so every lesson
 #                  was recorded as taught and none of them was ever shown. Types were happy and
 #                  every unit test passed; only driving the real thing could see it
@@ -53,6 +56,9 @@ check npx tsx scripts/devgate.ts
 step "Release bundle and APK"
 check npm run android:bundle --silent
 check bash -c 'cd android && ./gradlew assembleRelease -q'
+
+step "The board is still when nothing moved"
+check npx tsx scripts/board-motion.ts
 
 step "The Innkeeper actually says his lessons"
 check npx tsx scripts/tutorial-check.ts

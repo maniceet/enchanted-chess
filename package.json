@@ -22,7 +22,8 @@
     "check:overflow": "tsx scripts/overflow-all.ts",
     "check:devgate": "npm run build && tsx scripts/devgate.ts",
     "preflight": "bash scripts/preflight.sh",
-    "check:tutorial": "tsx scripts/tutorial-check.ts"
+    "check:tutorial": "tsx scripts/tutorial-check.ts",
+    "check:motion": "tsx scripts/board-motion.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",
