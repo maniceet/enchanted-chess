@@ -15,6 +15,8 @@ export interface BoardProps {
   breakTargets: Set<number>;
   /** Squares holding an enemy piece the selected Archbishop may bind instead of taking. */
   bindTargets: Set<number>;
+  /** Squares holding the Herald a selected Squire may change places with. */
+  tradeTargets?: Set<number>;
   /** Squares a pending King power may act on. */
   powerTargets: Set<number>;
   /** Squares a King power *just* acted on, lit briefly so the turn does not pass in silence. */
@@ -68,6 +70,7 @@ export function Board({
   targets,
   breakTargets,
   bindTargets,
+  tradeTargets,
   powerTargets,
   powerFlash,
   lastMove,
@@ -232,6 +235,7 @@ export function Board({
           const isTarget = targets.has(s);
           const isBreak = breakTargets.has(s);
           const isBind = bindTargets.has(s);
+          const isTrade = tradeTargets?.has(s) ?? false;
           const frozen = piece ? isFrozen(state, piece) : false;
           /* Spec §4 asks a held piece to show chains *and* how long it is held, and the number
            * is not decoration: a Decree or a Martyr's grip lasts one turn, an Archbishop's
@@ -259,6 +263,7 @@ export function Board({
             isTarget ? (piece ? 'sq-capture' : 'sq-move') : '',
             isBreak ? 'sq-break' : '',
             isBind ? 'sq-bind' : '',
+            isTrade ? 'sq-trade' : '',
             powerTargets.has(s) ? 'sq-power' : '',
             powerFlash.has(s) ? 'sq-power-fx' : '',
             lastMove && (lastMove.from === s || lastMove.to === s) ? 'sq-last' : '',
@@ -284,6 +289,13 @@ export function Board({
               title={describe(state, s)}
               aria-label={describe(state, s).split('\n')[0]}
             >
+              {isTrade && (
+                /* Two pawns changing places, not a capture and not a step: the arrows say the
+                   piece you are pointing at is coming back the other way. */
+                <svg className="trade-mark" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 9h12l-3-3 1.4-1.4L20 10l-5.6 5.4L13 14l3-3H4zM20 15H8l3 3-1.4 1.4L4 14l5.6-5.4L11 10l-3 3h12z" />
+                </svg>
+              )}
               {isBind && (
                 /* A knot, not a hammer: a binding takes nothing and the mark should not read
                    like a strike. Same dark disc so the two affordances feel related. */

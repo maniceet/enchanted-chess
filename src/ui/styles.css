@@ -4261,3 +4261,18 @@ button.primary:hover:not(:disabled) {
     animation-duration: 0.01ms;
   }
 }
+
+/* A Squire's trade: the Herald it can change places with. Not a capture ring and not a move
+   dot — the two of them are swapping, so the mark is a pair of arrows going both ways. */
+.sq-trade {
+  box-shadow: inset 0 0 0 3px rgb(196 167 255 / 70%);
+}
+.trade-mark {
+  position: absolute;
+  width: 46%;
+  height: 46%;
+  fill: rgb(226 210 255 / 92%);
+  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 70%));
+  z-index: 3;
+  pointer-events: none;
+}

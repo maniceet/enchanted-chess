@@ -31,7 +31,7 @@ import {
   searchOptionsFor,
   type House,
 } from '../engine/ai';
-import { bindActions, inCheck, legalMoves, shieldBreakActions } from '../engine/movegen';
+import { bindActions, inCheck, legalMoves, shieldBreakActions, swapActions } from '../engine/movegen';
 import { toSan } from '../engine/notation';
 import { REVIVE_COST, powerActions, powerReason, powerUnavailableReason } from '../engine/powers';
 import {
@@ -40,6 +40,7 @@ import {
   type Color,
   type GameState,
   type MoveAction,
+  type SwapAction,
   type PieceType,
   type PowerName,
   type TimeControlId,
@@ -587,7 +588,7 @@ export default function App() {
    *  closing over it and going stale the moment a trial is toggled. */
   const houseColorRef = useRef<Color>('b');
   const [muted, setMutedState] = useState(isMuted());
-  const [promo, setPromo] = useState<{ from: number; to: number } | null>(null);
+  const [promo, setPromo] = useState<{ from: number; to: number; swap?: boolean } | null>(null);
   /** A square an Archbishop can both take and bind. Taking and binding are different turns with
    *  different prices, so the choice is the player's — same reasoning as the promotion picker,
    *  and the same shape. Without it the capture simply won and the binding was unreachable. */
@@ -783,6 +784,11 @@ export default function App() {
   const moves = useMemo(() => (state ? legalMoves(state) : []), [state]);
   const breaks = useMemo(() => (state ? shieldBreakActions(state) : []), [state]);
   const binds = useMemo(() => (state ? bindActions(state) : []), [state]);
+  /* The Squire's trade. It is a turn like any other and the board had no idea it existed:
+   * `swap` appeared nowhere in this file, so an enchantment a player can buy from the Sorcerer
+   * for twelve gold — with a drill of its own teaching how it works — could not be played once
+   * in a real game. */
+  const swaps = useMemo(() => (state ? swapActions(state, state.turn) : []), [state]);
   const powers = useMemo(
     () => (state && powerMode ? powerActions(state) : []),
     [state, powerMode],
@@ -802,6 +808,17 @@ export default function App() {
     if (selected === null) return new Set<number>();
     return new Set(breaks.filter((b) => b.from === selected).map((b) => b.target));
   }, [breaks, selected]);
+
+  /** Where the selected Squire may send its Herald — and back. */
+  const swapTargets = useMemo(() => {
+    const map = new Map<number, SwapAction[]>();
+    if (selected === null) return map;
+    for (const s of swaps) {
+      if (s.from !== selected) continue;
+      map.set(s.to, [...(map.get(s.to) ?? []), s]);
+    }
+    return map;
+  }, [swaps, selected]);
 
   const bindTargets = useMemo(() => {
     if (selected === null) return new Set<number>();
@@ -1310,6 +1327,23 @@ export default function App() {
     }
     if (breakTargets.has(square) && selected !== null) {
       commit({ type: 'shieldBreak', from: selected, target: square });
+      return;
+    }
+    const trade = swapTargets.get(square);
+    if (trade?.length && selected !== null) {
+      /* A Herald landing on its crowning rank crowns on arrival, and the engine will not guess
+       * which piece — it refuses the swap and says so. Rather than work out here which trades
+       * crown, which is the sort of duplicated rule that rots the first time crowning changes,
+       * offer the action and let the engine answer: a legal swap is refused for exactly one
+       * reason, and that reason is the missing promotion.
+       *
+       * The first version of this checked `s.promo` on the offered action, which is never set —
+       * so it committed an illegal swap, the board buzzed, and the Squire looked broken. */
+      if (isError(applyAction(state, trade[0]))) {
+        setPromo({ from: selected, to: square, swap: true });
+      } else {
+        commit(trade[0]);
+      }
       return;
     }
     if (bindTargets.has(square) && selected !== null) {
@@ -2786,6 +2820,7 @@ export default function App() {
             targets={targets}
             breakTargets={breakTargets}
             bindTargets={bindTargets}
+            tradeTargets={new Set(swapTargets.keys())}
             powerTargets={powerTargets}
             powerFlash={powerFlashSquares}
             shatterSquare={reviewing ? null : breakFx}
@@ -3192,7 +3227,13 @@ export default function App() {
                   key={t}
                   type="button"
                   className="promo-pick"
-                  onClick={() => commit({ type: 'move', from: promo.from, to: promo.to, promo: t })}
+                  onClick={() =>
+                    commit(
+                      promo.swap
+                        ? { type: 'swap', from: promo.from, to: promo.to, promo: t }
+                        : { type: 'move', from: promo.from, to: promo.to, promo: t },
+                    )
+                  }
                 >
                   <PieceGlyph type={t} color={state.turn} />
                   <span>{PIECE_NAME[t]}</span>
