@@ -51,12 +51,19 @@ export function DrillsPage({ onBack }: { onBack: () => void }) {
       if (a.type === 'move' && a.from === selected) {
         map.set(a.to, [...(map.get(a.to) ?? []), a]);
       }
-      // A swap renders as an ordinary destination: the drill text carries the difference.
-      if (a.type === 'swap' && a.from === selected) {
-        map.set(a.to, [...(map.get(a.to) ?? []), a as unknown as MoveAction]);
-      }
+
     }
     return map;
+  }, [legal, selected]);
+
+  /* The Squire's trade gets the same mark here as it does in a game — arrows, not a move dot.
+   * A tutorial that draws a move differently from the board it is teaching is teaching the
+   * wrong board, and this one was drawing a swap as an ordinary destination. */
+  const tradeTargets = useMemo(() => {
+    const set = new Set<number>();
+    if (selected === null) return set;
+    for (const a of legal) if (a.type === 'swap' && a.from === selected) set.add(a.to);
+    return set;
   }, [legal, selected]);
 
   const breakTargets = useMemo(() => {
@@ -124,6 +131,13 @@ export function DrillsPage({ onBack }: { onBack: () => void }) {
         attempt({ type: 'shieldBreak', from: selected, target: square });
         return;
       }
+      if (tradeTargets.has(square)) {
+        const trade = legal.find(
+          (a) => a.type === 'swap' && a.from === selected && a.to === square,
+        );
+        if (trade) attempt(trade);
+        return;
+      }
     }
     const piece = state.board[square];
     if (piece && piece.color === state.turn) {
@@ -174,6 +188,7 @@ export function DrillsPage({ onBack }: { onBack: () => void }) {
             targets={targets}
             breakTargets={breakTargets}
             bindTargets={new Set()}
+            tradeTargets={tradeTargets}
             powerTargets={new Set()}
             powerFlash={new Set()}
             lastMove={lastMove}
