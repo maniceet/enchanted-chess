@@ -1219,10 +1219,13 @@ export default function App() {
 
     if (powerMode) {
       if (!powerTargets.has(square)) {
-        refuse(square);
-        return;
-      }
-      switch (powerMode.kind) {
+        // Not a target: stand the King down and fall through, so the same tap is handled as an
+        // ordinary board tap — tapping your own piece goes straight to selecting it. The old
+        // code buzzed and stayed armed, which on a phone (no Escape key) had no exit.
+        setPowerMode(null);
+        play('select');
+      } else {
+        switch (powerMode.kind) {
         case 'teleport':
           if (powerMode.from === null) {
             play('select');
@@ -1244,15 +1247,16 @@ export default function App() {
         case 'doom':
           commit({ type: 'power', power: 'doom', args: { kind: 'doom', target: square } });
           return;
-        case 'revive':
-          if (powerMode.piece) {
-            commit({
-              type: 'power',
-              power: 'revive',
-              args: { kind: 'revive', piece: powerMode.piece, to: square },
-            });
-          }
-          return;
+          case 'revive':
+            if (powerMode.piece) {
+              commit({
+                type: 'power',
+                power: 'revive',
+                args: { kind: 'revive', piece: powerMode.piece, to: square },
+              });
+            }
+            return;
+        }
       }
     }
 
@@ -1298,6 +1302,14 @@ export default function App() {
 
   const startPower = (power: PowerName) => {
     if (!state) return;
+    // Arming is not committing: the word is only spoken when a target is chosen, so the button
+    // is a toggle and a second press stands the King down. Without this, pressing ⚡ meant the
+    // power *had* to be used — a misclick became a spent Divine Call.
+    if (powerMode?.kind === power) {
+      play('select');
+      setPowerMode(null);
+      return;
+    }
     // Per word, not per King: two of the three may be unusable while the third is fine, and a
     // single yes/no for the whole set would refuse a legal call.
     if (powerReason(state, state.turn, power)) {
