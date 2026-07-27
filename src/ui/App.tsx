@@ -31,7 +31,7 @@ import {
   searchOptionsFor,
   type House,
 } from '../engine/ai';
-import { bindActions, inCheck, legalMoves, shieldBreakActions, swapActions } from '../engine/movegen';
+import { bindActions, canActFrom, inCheck, legalMoves, shieldBreakActions, swapActions } from '../engine/movegen';
 import { toSan } from '../engine/notation';
 import { REVIVE_COST, powerActions, powerReason, powerUnavailableReason } from '../engine/powers';
 import {
@@ -1241,14 +1241,27 @@ export default function App() {
     refuse(to);
   };
 
+  /* Whether the piece on this square can do anything at all from where it stands.
+   *
+   * This was written out twice, once for a click and once for a drag, and both copies were
+   * missing kinds of turn. Neither listed a Squire's trade, so a Squire whose pawn step was
+   * blocked — by its own knight, or by anything else, which is most of a long game — could not
+   * be picked up. It did not refuse: it did nothing. No highlight, no trade squares, not even
+   * the buzz an illegal press gets. The player clicks the Squire, clicks the Herald, and the
+   * Herald simply gets selected instead, which is precisely how it was reported. The drag copy
+   * had also never learned about the Archbishop's bind.
+   *
+   * A piece that can only trade, or only bind, is exactly the piece a player needs to reach.
+   * One predicate now, so the next kind of turn is added in one place rather than in two and a
+   * half. */
+  const hasActionFrom = (square: number): boolean => Boolean(state) && canActFrom(state, square);
+
   const beginDrag = (square: number, event: ReactPointerEvent) => {
     if (reviewing) return;
     if (!state || state.status.kind !== 'ongoing' || powerMode || event.button !== 0) return;
     const piece = state.board[square];
     if (!piece || piece.color !== state.turn) return;
-    const hasAction =
-      moves.some((m) => m.from === square) || breaks.some((b) => b.from === square);
-    if (!hasAction) return;
+    if (!hasActionFrom(square)) return;
     if (selected !== square) play('select');
     keepSelectionRef.current = true;
     setSelected(square);
@@ -1347,11 +1360,7 @@ export default function App() {
 
     const piece = state.board[square];
     if (piece && piece.color === state.turn) {
-      const hasAction =
-        moves.some((m) => m.from === square) ||
-        breaks.some((b) => b.from === square) ||
-        binds.some((b) => b.from === square);
-      if (!hasAction) {
+      if (!hasActionFrom(square)) {
         refuse(square);
         setSelected(null);
         return;

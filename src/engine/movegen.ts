@@ -739,3 +739,25 @@ export function legalMoves(state: GameState, color: Color = state.turn): MoveAct
 
   return legal;
 }
+
+/** Whether the piece standing on `square` has any turn at all available to it.
+ *
+ *  The board asks this before it will pick a piece up. It exists as one function because the
+ *  screen had written it out twice — once for a click, once for a drag — and both copies had
+ *  fallen behind the rules: neither counted a Squire's trade and the drag copy had never heard
+ *  of an Archbishop's bind. The effect was a piece that could not be selected and gave no sign
+ *  why. A Squire whose pawn step is blocked has exactly one legal turn, the trade, and that is
+ *  the moment the player most needs to reach it.
+ *
+ *  Every kind of turn a piece can take from where it stands belongs in this list. */
+export function canActFrom(state: GameState, square: number): boolean {
+  const piece = state.board[square];
+  if (!piece || piece.color !== state.turn) return false;
+  const color = piece.color;
+  return (
+    legalMoves(state, color).some((m) => m.from === square) ||
+    shieldBreakActions(state, color).some((b) => b.from === square) ||
+    bindActions(state, color).some((b) => b.from === square) ||
+    swapActions(state, color).some((s) => s.from === square)
+  );
+}
