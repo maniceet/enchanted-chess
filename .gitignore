@@ -22,3 +22,4 @@ dist-playtest/
 # Playthrough diagnostics: frames to look at, never assets to keep.
 play/beats/
 play/zoom*.png
+play/beats2/

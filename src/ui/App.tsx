@@ -534,6 +534,7 @@ export default function App() {
     window.scrollTo(0, 0);
   }, [phase]);
 
+
   // The server drives an online game: when it sends a position, that is the position.
   useEffect(() => {
     if (!net.state) return;
@@ -663,6 +664,28 @@ export default function App() {
   } | null>(null);
 
   const state = history[history.length - 1] ?? null;
+
+  /* When the game ends, show the player the end of the game.
+   *
+   * Measured on a phone at the moment of mate: the page grows from 1136px to 1269px because the
+   * outcome panel appears — and every part of it lands below an 852px fold. "Rematch, same
+   * loadouts" sits at y=1134. The window does not move. So the entire visible change at
+   * checkmate is a red square and a line of text in a panel most of which is also below the
+   * fold, and the three things the game wants the player to do next are invisible with nothing
+   * to suggest they exist. The end of a game is exactly when a player decides whether to play
+   * another one.
+   *
+   * Keyed on the *kind* of ending rather than on the state object, so it fires once when the
+   * game settles and never again while the player looks around the finished board. */
+  const outcomeRef = useRef<HTMLDivElement | null>(null);
+  const settledAs = state?.status.kind ?? 'ongoing';
+  useEffect(() => {
+    if (settledAs === 'ongoing') return;
+    const node = outcomeRef.current;
+    if (!node) return;
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    node.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+  }, [settledAs]);
 
   /* The Innkeeper teaching the parts that are not chess.
    *
@@ -3027,7 +3050,7 @@ export default function App() {
           </div>
 
           {state.status.kind !== 'ongoing' && (
-            <div className="panel status-over">
+            <div className="panel status-over" ref={outcomeRef}>
               <h3>
                 {isHouse(setup.opponent)
                   ? run.active
