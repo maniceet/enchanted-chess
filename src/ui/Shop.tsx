@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { ENCH_TEXT } from '../engine/loadout';
 import type { Enchantment } from '../engine/types';
 import { EnchRune } from './Pieces';
@@ -28,16 +29,43 @@ const FLAVOUR: Record<Enchantment, string> = {
   immolation: 'It takes the ground with it.',
 };
 
+/* The purse, and the fact that it just changed.
+ *
+ * Buying a spell moved the counter from 60 to 52 between frames and nothing else happened. The
+ * tile turns green and says "learned", which reports the *purchase* — but nothing reported the
+ * *price*, and the number at the top of the screen is the one thing a player is deciding
+ * against. A counter that changes silently is a counter people stop reading.
+ *
+ * The beat is tied to a change rather than to a render: the key remounts the pill only when the
+ * number actually differs, so it strikes when coin moves and stays still when the screen simply
+ * redraws. It deliberately does not fire on arrival — a purse that flashes every time you walk
+ * into the shop is telling you nothing, and this is a room the player comes back to often.
+ *
+ * It reacts to gold arriving as well as leaving, which is right: the seat's purse landing is
+ * worth as much of a look as a spell being paid for. */
+function Purse({ gold }: { gold: number }) {
+  const previous = useRef(gold);
+  const [strikes, setStrikes] = useState(0);
+  useEffect(() => {
+    if (previous.current === gold) return;
+    previous.current = gold;
+    setStrikes((n) => n + 1);
+  }, [gold]);
+  return (
+    <span className={`coin-pill ${strikes > 0 ? 'is-struck' : ''}`} key={strikes}>
+      <span className="coin-mark">◈</span>
+      {gold}
+    </span>
+  );
+}
+
 export function Shop({ run, onBuy, onBack }: ShopProps) {
   const spent = run.taught.length;
 
   return (
     <div className="shop">
       <div className="shop-topbar">
-        <span className="coin-pill">
-          <span className="coin-mark">◈</span>
-          {run.gold}
-        </span>
+        <Purse gold={run.gold} />
       </div>
 
       <div className="shop-panel">

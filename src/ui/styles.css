@@ -4501,3 +4501,28 @@ button.primary:hover:not(:disabled) {
     animation: none;
   }
 }
+
+/* The purse reacting when coin moves. See Shop.tsx for why it is keyed on the change rather
+   than applied on every render. */
+.coin-pill.is-struck {
+  animation: purse-struck 420ms cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes purse-struck {
+  0% {
+    transform: scale(1);
+  }
+  38% {
+    transform: scale(1.13);
+    background: var(--gold);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coin-pill.is-struck {
+    animation: none;
+  }
+}
