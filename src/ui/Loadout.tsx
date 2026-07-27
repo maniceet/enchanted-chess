@@ -15,6 +15,7 @@ import {
 } from '../engine/loadout';
 import type { Color, Enchantment, GameState, PowerName } from '../engine/types';
 import { ENCH_NAME, EnchRune, ManaMeter, PieceGlyph, PIECE_NAME } from './Pieces';
+import { t as T } from './i18n';
 import { play } from './sound';
 
 const ALL_POWERS: PowerName[] = ['teleport', 'relocate', 'decree', 'revive', 'chrono'];
@@ -105,7 +106,7 @@ export function LoadoutBuilder({
       <header className="screen-head">
         <div>
           <h2 className="screen-title">
-            {heading ?? `${color === 'w' ? 'White' : 'Black'}: choose your enchantments`}
+            {heading ?? T(color === 'w' ? 'build.title.w' : 'build.title.b')}
           </h2>
           <p className="screen-sub">
             {subtitle ??
@@ -126,7 +127,7 @@ export function LoadoutBuilder({
             reserved={chosen.includes('revive') ? check.reserve : 0}
           />
           <span className="budget-label">
-            used · {check.reserve} reserved
+            {T('build.used')} · {check.reserve} {T('build.reserved')}
             {/* Any of the three words may be Revive; this read only the first. */}
             {chosen.includes('revive') ? ' for Revive' : ''}
           </span>
@@ -183,9 +184,9 @@ export function LoadoutBuilder({
         <div className="loadout-panel">
           {!selected && (
             <div className="panel">
-              <h3>Pick a piece</h3>
+              <h3>{T('build.pickPiece')}</h3>
               <p className="muted">
-                Click any piece above to enchant it.
+                {T('build.pickPiece.sub')}
               </p>
               {offeredPowers.length === 0 ? (
                 <p className="muted">
@@ -208,7 +209,7 @@ export function LoadoutBuilder({
           {/* The power picker only opens when the King is actually selected. */}
           {selectedPiece?.type === 'k' && (
             <div className="panel">
-              <h3>King’s words, choose up to three</h3>
+              <h3>{T('build.words')}</h3>
               <p className="muted">
                 Each is spoken once, and spending one leaves the others. Which of the three a
                 position wants is the decision — carrying all of them would not be one.
@@ -345,7 +346,7 @@ export function LoadoutBuilder({
             </>
           ) : (
             <>
-              King’s words: <strong>{chosen.map((w) => POWER_NAME[w]).join(' · ')}</strong>
+              {T('build.wordsHeld')} <strong>{chosen.map((w) => POWER_NAME[w]).join(' · ')}</strong>
             </>
           )}
         </span>

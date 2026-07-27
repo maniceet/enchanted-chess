@@ -2592,7 +2592,7 @@ export default function App() {
     return (
       <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
         <div className="reveal">
-          <h2 className="screen-title">The Open Board</h2>
+          <h2 className="screen-title">{T('reveal.title')}</h2>
           <p className="screen-sub">
             Both loadouts in full, before White moves. {setup.back ? 'Chess960 start.' : 'Classic start.'}
           </p>
@@ -2643,7 +2643,7 @@ export default function App() {
                       </li>
                     ))}
                     {!Object.keys(loadout.enchantments).length && (
-                      <li className="muted">No enchantments. A plain army.</li>
+                      <li className="muted">{T('reveal.plain')}</li>
                     )}
                   </ul>
                   {color === 'b' && isHouse(setup.opponent) && HOUSE[setup.opponent].dragons && (
@@ -2691,7 +2691,7 @@ export default function App() {
                     {silentFor(color) ? (
                       color === houseColor ? (
                         <>
-                          <strong>No power</strong>
+                          <strong>{T('reveal.noPower')}</strong>
                           <span className="muted">
                             {' '}
                             This King brings no Divine Call at all. The first tables of the road
@@ -2700,7 +2700,7 @@ export default function App() {
                         </>
                       ) : (
                         <>
-                          <strong>No power</strong>
+                          <strong>{T('reveal.noPower')}</strong>
                           <span className="muted">
                             {' '}
                             Your King has no Divine Call yet. Beat Princess Rolain and he learns
@@ -2739,7 +2739,7 @@ export default function App() {
                           : 0
                       }
                     />
-                    {check.spent}/{budgetFor} spent · {check.reserve} reserve
+                    {check.spent}/{budgetFor} {T('reveal.spent')} · {check.reserve} {T('reveal.reserve')}
                   </div>
                 </div>
               );
