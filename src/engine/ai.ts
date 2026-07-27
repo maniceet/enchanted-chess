@@ -201,11 +201,17 @@ export const HOUSE: Record<House, HouseProfile> = {
     // understands the magic it is wearing, so tuning his sample down later cannot quietly make
     // him blind to his own armour again. `seats.test.ts` enforces it.
     magic: true,
-    budgetMs: 600,
-    maxNodes: 12_000,
-    // Four, like the Wit — but every point of it goes into Taunt, so the same purse buys a
-    // harder afternoon. The armour is the difficulty here, not the arithmetic.
-    mana: 2,
+    /* The Wit's numbers exactly — 400ms, 18k nodes, three mana — because the difference between
+     * these two seats is meant to be the plate and nothing else.
+     *
+     * They were not the Wit's numbers before, and not in the direction anyone assumed: he
+     * searched 12k to the Wit's 18k and sat down with two mana to the Wit's three. He was the
+     * *smaller* seat and still much the harder afternoon, which is worth knowing, because it
+     * says plainly that his difficulty was never arithmetic. Measured against a grown
+     * Taunt-queen build, n=8: the Wit lost 7 of 8, the Armoured Knight lost 2 and drew 6. */
+    budgetMs: 400,
+    maxNodes: 18_000,
+    mana: 3,
     power: 'relocate',
     pauseMs: 260,
     banter: 0.5,
