@@ -4232,3 +4232,32 @@ button.primary:hover:not(:disabled) {
     animation: none;
   }
 }
+
+/* Where the fire went. The Book of Immolation takes three pieces at once and without this it
+   reads as an ordinary capture that happened to have company: the ghosts say that they died,
+   this says what killed them. Ember, not flame — the square glows through and cools. */
+.sq-burned::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  animation: ember 600ms ease-out forwards;
+}
+@keyframes ember {
+  0% {
+    background: radial-gradient(circle at 50% 55%, rgb(255 214 138 / 95%), rgb(214 92 26 / 80%) 55%, transparent 72%);
+  }
+  55% {
+    background: radial-gradient(circle at 50% 55%, rgb(226 116 40 / 70%), rgb(140 44 12 / 45%) 60%, transparent 78%);
+  }
+  100% {
+    background: radial-gradient(circle at 50% 55%, rgb(90 30 10 / 0%), transparent 70%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sq-burned::before {
+    animation-duration: 0.01ms;
+  }
+}

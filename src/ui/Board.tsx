@@ -104,6 +104,11 @@ export function Board({
   }
   const [ghosts, setGhosts] = useState<readonly Ghost[]>([]);
   const [crowned, setCrowned] = useState<ReadonlySet<number>>(new Set());
+  /* The Book of Immolation kills three pieces at once and looks, on the board, like an
+   * ordinary capture that took some bystanders with it. The ghosts show *that* they died;
+   * nothing showed *why*. These are the squares the fire took — everything that departed
+   * except the burning pawn itself — and they scorch for a beat. */
+  const [burned, setBurned] = useState<ReadonlySet<number>>(new Set());
   const prevBoardRef = useRef<GameState['board'] | null>(null);
   useEffect(() => {
     const prev = prevBoardRef.current;
@@ -123,6 +128,11 @@ export function Board({
     if (departed.length > 0 && departed.length <= 3) {
       setGhosts(departed);
       timers.push(window.setTimeout(() => setGhosts([]), 340));
+    }
+    const pyre = departed.find((d) => d.piece.ench === 'immolation');
+    if (pyre && departed.length > 1) {
+      setBurned(new Set(departed.filter((d) => d.id !== pyre.id).map((d) => d.square)));
+      timers.push(window.setTimeout(() => setBurned(new Set()), 620));
     }
     if (risen.size > 0) {
       setCrowned(risen);
@@ -256,6 +266,7 @@ export function Board({
             checkedKing === s && state.status.kind === 'checkmate' ? 'sq-fallen' : '',
             denySquare === s ? 'sq-deny' : '',
             shatterSquare === s ? 'sq-shatter' : '',
+            burned.has(s) ? 'sq-burned' : '',
             hoverSquare === s ? 'sq-hover' : '',
             draggingFrom === s ? 'sq-lifted' : '',
           ]
