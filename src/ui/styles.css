@@ -4526,3 +4526,10 @@ button.primary:hover:not(:disabled) {
     animation: none;
   }
 }
+
+/* An armed Resign. Red enough to stop a thumb, not so red it looks broken. */
+.tool-row .is-arming {
+  color: #ffd9d2;
+  border-color: #b4483c;
+  background: #46201b;
+}

@@ -580,6 +580,8 @@ export default function App() {
    *  tool and stays one; this is the thing every traveller wants mid-game — to see the board
    *  three moves ago without asking anyone's permission. */
   const [reviewAt, setReviewAt] = useState<number | null>(null);
+  /** Resign asks twice. Cleared on a timer so an armed button never waits around. */
+  const [resignArmed, setResignArmed] = useState(false);
   /** `commit` is a stable callback, so it reads the house's colour through a ref rather than
    *  closing over it and going stale the moment a trial is toggled. */
   const houseColorRef = useRef<Color>('b');
@@ -986,6 +988,12 @@ export default function App() {
     // Only tally the transition into a finished status.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.status.kind]);
+
+  useEffect(() => {
+    if (!resignArmed) return;
+    const timer = setTimeout(() => setResignArmed(false), 4000);
+    return () => clearTimeout(timer);
+  }, [resignArmed]);
 
   useEffect(() => {
     if (deny === null) return;
@@ -3073,8 +3081,23 @@ export default function App() {
             )}
             {state.status.kind === 'ongoing' && (
               <div className="tool-row tool-row-quiet">
-                <button type="button" onClick={() => commit({ type: 'resign' })}>
-                  {T('act.resign')}
+                {/* Asked twice, because it cannot be asked again afterwards.
+                    Resigning ends the game on one tap, and on the road it ends the whole walk —
+                    the attempt is banked as a defeat and the progress goes. The button sits in
+                    the panel under the board between "Offer draw" and "Back to the inn", which
+                    on a phone is a thumb's width from two harmless things. Nothing else in the
+                    game destroys that much on a single press, and the chronicle's rewind cannot
+                    take it back: it reviews a finished game, it does not reopen one.
+
+                    Armed rather than modal, so the second press is in the same place as the
+                    first, and it disarms itself after a few seconds so a stray tap does not lie
+                    in wait. */}
+                <button
+                  type="button"
+                  className={resignArmed ? 'is-arming' : ''}
+                  onClick={() => (resignArmed ? commit({ type: 'resign' }) : setResignArmed(true))}
+                >
+                  {resignArmed ? 'Really resign?' : T('act.resign')}
                 </button>
                 {state.drawOfferedBy && state.drawOfferedBy !== state.turn ? (
                   <button type="button" onClick={() => commit({ type: 'drawAccept' })}>
