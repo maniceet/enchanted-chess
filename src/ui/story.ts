@@ -11,6 +11,14 @@ export interface StoryCard {
   lesson?: string;
   /** Overrides the default "Onward" when the card is pushing you somewhere specific. */
   cta?: string;
+  /** Who is speaking, for the portrait and the name above the card.
+   *
+   *  The board used to work this out by looking the card's *title* up in a table, which meant
+   *  every new title had to be registered in a second file or the card silently became the
+   *  traveller talking to themselves. It did: every repeat-victory card written for the seats
+   *  showed the player's own face and "the one who kept walking" over dialogue that plainly
+   *  belonged to a drunk knight. A card knows who is speaking; it should say so. */
+  face?: House | 'you';
 }
 
 export const PROLOGUE: StoryCard = {
@@ -113,9 +121,11 @@ const KYRAX_BOUND: string[] = [
 
 /** The card shown when the Dragonlord falls, given how many times he has fallen before. */
 export function kyraxCard(timesBeatenBefore: number, mood: RoadMood = {}): StoryCard {
+  const face = 'kyrax' as const;
   if (mood.freed && timesBeatenBefore > 0) {
     return {
       ...EPILOGUE,
+      face,
       title: 'Still Holding It Closed',
       lines: [
         ...EPILOGUE.lines,
@@ -132,6 +142,7 @@ export function kyraxCard(timesBeatenBefore: number, mood: RoadMood = {}): Story
   const tell = bound ? KYRAX_BOUND : KYRAX_TELLS[timesBeatenBefore];
   return {
     ...EPILOGUE,
+    face,
     title: naming ? 'The Name' : bound ? 'Not A Costume' : EPILOGUE.title,
     lines: [...EPILOGUE.lines, ...tell],
     lesson: naming
@@ -753,7 +764,7 @@ export function seatFallCard(
 ): StoryCard {
   if (seat === 'kyrax') return kyraxCard(timesBeatenBefore, mood);
   if (seat === 'rolain') return rolainCard(timesBeatenBefore, mood);
-  const base = STORY[seat].after;
+  const base = { ...STORY[seat].after, face: seat };
   const again = AGAIN[seat];
   if (timesBeatenBefore === 0 || !again) return base;
   // Wittex is his own exception: reaching him at all means the name is known, and beating him
@@ -764,15 +775,16 @@ export function seatFallCard(
     : mood.knowsTruth
       ? (again.knowing ?? null)
       : null;
-  if (phase) return { title: phase.title, lines: phase.lines, cta: base.cta };
+  if (phase) return { title: phase.title, lines: phase.lines, cta: base.cta, face: seat };
   const tell = again.tellings[Math.min(timesBeatenBefore - 1, again.tellings.length - 1)];
-  return { title: again.title, lines: tell, cta: base.cta };
+  return { title: again.title, lines: tell, cta: base.cta, face: seat };
 }
 
 export function rolainCard(timesBeatenBefore: number, mood: RoadMood = {}): StoryCard {
-  const base = STORY.rolain.after;
+  const base = { ...STORY.rolain.after, face: 'rolain' as const };
   if (timesBeatenBefore > 0 && mood.freed) {
     return {
+      face: 'rolain',
       title: 'Still On Him',
       lines: [
         'She does not race you to the milestone. She is waiting at it, and the horse is already turned for home.',
@@ -784,6 +796,7 @@ export function rolainCard(timesBeatenBefore: number, mood: RoadMood = {}): Stor
   }
   if (timesBeatenBefore > 0 && mood.knowsTruth) {
     return {
+      face: 'rolain',
       title: 'She Has Heard The Name',
       lines: [
         'She is off the horse before you have finished, which she has done exactly once before.',
@@ -815,6 +828,7 @@ export function rolainCard(timesBeatenBefore: number, mood: RoadMood = {}): Stor
   ];
   const tell = again[Math.min(timesBeatenBefore - 1, again.length - 1)];
   return {
+    face: 'rolain',
     title: 'She Is Already Turning The Horse',
     lines: tell,
     // No lesson: the teaching happened the first time, and repeating it is the fault this fixes.

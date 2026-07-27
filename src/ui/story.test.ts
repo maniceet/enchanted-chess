@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WITTEX_CLEARS_REQUIRED } from '../engine/ai';
+import { CAMPAIGN } from '../engine/ai';
 import { kyraxCard, rolainCard, runOverCard, seatFallCard, STORY } from './story';
 
 /* The Dragonlord tells the story in instalments, and the instalment count is load-bearing:
@@ -47,7 +48,7 @@ describe('the Dragonlord tells it in instalments', () => {
 describe('a seat that falls again says something new', () => {
   it('gives the full story beat on first blood and a shorter return after', () => {
     const first = seatFallCard('wit', 0);
-    expect(first).toEqual(STORY.wit.after);
+    expect(first).toEqual({ ...STORY.wit.after, face: 'wit' });
     const second = seatFallCard('wit', 1);
     expect(second.title).not.toBe(first.title);
     expect(second.lines).not.toEqual(first.lines);
@@ -92,7 +93,10 @@ describe('the road reacts to what the traveller knows', () => {
   it('says nothing new before the traveller has earned it', () => {
     // First blood is the full story beat whatever else is true — the phases are returns.
     for (const seat of seats) {
-      expect(seatFallCard(seat, 0, { knowsTruth: true, freed: true })).toEqual(STORY[seat].after);
+      expect(seatFallCard(seat, 0, { knowsTruth: true, freed: true })).toEqual({
+        ...STORY[seat].after,
+        face: seat,
+      });
     }
   });
 
@@ -112,6 +116,23 @@ describe('the road reacts to what the traveller knows', () => {
     const kyraxAfter = kyraxCard(3, { freed: true }).lines.join(' ');
     expect(kyraxAfter, 'the curse outlived the man who was blamed for it').toContain('did not let go');
     expect(kyraxAfter).not.toBe(kyraxCard(3).lines.join(' '));
+  });
+
+  it('never puts a seat’s words over the traveller’s face', () => {
+    /* The card's speaker used to be looked up from its *title* in a table in another file, so
+     * every repeat card written for a seat silently became the player talking to themselves —
+     * a drunk knight's dialogue under the traveller's portrait, captioned "the one who kept
+     * walking". Cards name their own speaker now, and this is the test that would have caught
+     * it: every card any seat can hand back must be attributed to that seat. */
+    const every = [...CAMPAIGN, 'wittex'] as const;
+    for (const seat of every) {
+      for (const times of [0, 1, 2, 9]) {
+        for (const mood of [{}, { knowsTruth: true }, { knowsTruth: true, freed: true }]) {
+          const card = seatFallCard(seat, times, mood);
+          expect(card.face, `${seat} at ${times} ${JSON.stringify(mood)}`).toBe(seat);
+        }
+      }
+    }
   });
 
   it('never repeats a line between one seat and another', () => {

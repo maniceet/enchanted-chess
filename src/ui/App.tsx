@@ -226,7 +226,11 @@ const STORY_FACE_BY_TITLE: Record<string, House | 'you'> = {
 };
 
 function storyFace(card: StoryCard): House | 'you' {
-  return STORY_FACE_BY_TITLE[card.title] ?? 'you';
+  // A card that names its own speaker is believed. The title table below it is the older
+  // mechanism, kept for the fixed cards that predate `face` — but it can only ever guess, and
+  // a title it has never seen becomes the traveller talking to themselves, which is how a
+  // drunk knight's dialogue ended up over the player's own portrait.
+  return card.face ?? STORY_FACE_BY_TITLE[card.title] ?? 'you';
 }
 
 const isHouse = (o: Setup['opponent']): o is House => o !== 'table' && o !== 'online';
