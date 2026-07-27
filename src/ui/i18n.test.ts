@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { LOCALES, locale, setLocale, t, LOCALE_NAME } from './i18n';
+import { LOCALES, locale, pickLocale, setLocale, t, LOCALE_NAME, LOCALE_FULL } from './i18n';
 
 /* Language, and the one rule that keeps a half-translated app usable.
  *
@@ -38,9 +38,18 @@ describe('the three languages', () => {
     expect(locale()).toBe('de');
   });
 
-  it('names each language in its own tongue', () => {
-    expect(LOCALE_NAME.de).toBe('Deutsch');
-    expect(LOCALE_NAME.es).toBe('Español');
+  it('labels the picker with codes, and keeps the full names for elsewhere', () => {
+    // Four language names in four scripts do not fit a header that also holds a title and a
+    // mute button on a 320px phone; two characters always do.
+    for (const l of LOCALES) expect(LOCALE_NAME[l]).toBe(l);
+    expect(LOCALE_FULL.de).toBe('Deutsch');
+    expect(LOCALE_FULL.hi).toBe('हिन्दी');
+  });
+
+  it('speaks Hindi', () => {
+    setLocale('hi');
+    expect(t('act.resign')).toBe('हार मानो');
+    expect(t('game.status')).toBe('स्थिति');
   });
 
   it('never leaves a translated string identical to the English by accident', () => {
@@ -54,5 +63,25 @@ describe('the three languages', () => {
       if (t('game.stalemate') === en) suspicious.push(`${l}: game.stalemate`);
     }
     expect(suspicious).toEqual([]);
+  });
+
+  /* What a phone actually hands the app. Inside the Android build this is a WebView, and it
+   * reports the device's languages exactly as a browser does — but neither `--lang` nor the
+   * DevTools locale override moves `navigator.language` in headless Chrome, so the end-to-end
+   * check cannot be run and this is what stands in for it. */
+  it('follows the device, and takes the first language it knows', () => {
+    expect(pickLocale(['de-DE', 'en-GB'])).toBe('de');
+    expect(pickLocale(['es-MX'])).toBe('es');
+    expect(pickLocale(['hi-IN', 'en-IN'])).toBe('hi');
+    // An Indian phone set to English, then Hindi, is an English speaker.
+    expect(pickLocale(['en-IN', 'hi-IN'])).toBe('en');
+    // Nothing we speak: English rather than nothing.
+    expect(pickLocale(['fr-FR', 'it-IT'])).toBe('en');
+    expect(pickLocale([])).toBe('en');
+  });
+
+  it('lets a saved choice beat the device', () => {
+    expect(pickLocale(['de-DE'], 'es')).toBe('es');
+    expect(pickLocale(['de-DE'], 'klingon')).toBe('de');
   });
 });

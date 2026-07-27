@@ -13,12 +13,24 @@
  * plenty of games ship in and is honest about what it is.
  */
 
-export type Locale = 'en' | 'de' | 'es';
-export const LOCALES: Locale[] = ['en', 'de', 'es'];
+export type Locale = 'en' | 'de' | 'es' | 'hi';
+export const LOCALES: Locale[] = ['en', 'de', 'es', 'hi'];
+/* The picker shows codes rather than names. "English / Deutsch / Español / हिन्दी" is four
+ * different widths in four different scripts sitting in a header that also has to hold a title
+ * and a mute button on a 320px phone; the codes are two characters each, always. */
 export const LOCALE_NAME: Record<Locale, string> = {
+  en: 'en',
+  de: 'de',
+  es: 'es',
+  hi: 'hi',
+};
+
+/** The long name, for anywhere with room to say it properly. */
+export const LOCALE_FULL: Record<Locale, string> = {
   en: 'English',
   de: 'Deutsch',
   es: 'Español',
+  hi: 'हिन्दी',
 };
 
 const KEY = 'enchanted-chess:lang';
@@ -80,6 +92,9 @@ const EN = {
   'act.rematch.same': 'Rematch, same loadouts',
   'act.rematch.edit': 'Rematch, re-edit',
   'act.mainMenu': '← Main menu',
+  'act.backToInn': '← Back to the inn',
+  'act.toInn': 'Back to the inn →',
+  'act.loadPosition': 'Load position',
 
   'build.title.w': 'White: choose your enchantments',
   'build.title.b': 'Black: choose your enchantments',
@@ -155,6 +170,9 @@ const DE: Partial<Record<StringKey, string>> = {
   'act.rematch.same': 'Revanche, gleiche Aufstellung',
   'act.rematch.edit': 'Revanche, neu aufstellen',
   'act.mainMenu': '← Hauptmenü',
+  'act.backToInn': '← Zurück zum Gasthaus',
+  'act.toInn': 'Zurück zum Gasthaus →',
+  'act.loadPosition': 'Stellung laden',
 
   'build.title.w': 'Weiß: wähle deine Verzauberungen',
   'build.title.b': 'Schwarz: wähle deine Verzauberungen',
@@ -228,6 +246,9 @@ const ES: Partial<Record<StringKey, string>> = {
   'act.rematch.same': 'Revancha, misma preparación',
   'act.rematch.edit': 'Revancha, volver a elegir',
   'act.mainMenu': '← Menú principal',
+  'act.backToInn': '← Volver a la posada',
+  'act.toInn': 'Volver a la posada →',
+  'act.loadPosition': 'Cargar posición',
 
   'build.title.w': 'Blancas: elige tus encantamientos',
   'build.title.b': 'Negras: elige tus encantamientos',
@@ -246,21 +267,106 @@ const ES: Partial<Record<StringKey, string>> = {
   'reveal.noPower': 'Sin palabra',
 };
 
-const TABLE: Record<Locale, Partial<Record<StringKey, string>>> = { en: EN, de: DE, es: ES };
+
+const HI: Partial<Record<StringKey, string>> = {
+  'app.sound.on': 'ध्वनि चालू',
+  'app.sound.off': 'ध्वनि बंद',
+  'app.language': 'भाषा',
+
+  'home.road': 'राह पर निकलो',
+  'home.road.continue': 'यात्रा जारी रखो',
+  'home.road.first': 'एक सफ़र, सराय से शुरू',
+  'home.road.again': 'फिर से सराय से',
+  'home.chest': 'छँटाई की पेटी',
+  'home.duel': 'किसी और सरदार से द्वंद्व',
+  'home.duel.sub': 'हर जादू, न सोना, न सीढ़ी',
+  'home.rules': 'नियम',
+  'home.table': 'सरायवाले की मेज़',
+  'home.table.sub': 'हर जादू छोटे बोर्ड पर सीखो',
+  'home.ledger': 'बही-खाता',
+  'home.ledger.sub': 'क्या जीत रहा है, और कितनी बार',
+  'home.tagline': 'यहाँ जादू के नियम हैं, क़ीमत है, और कोई राज़ नहीं।',
+  'home.away': 'राह से दूर',
+  'home.chest.empty': 'अभी छाँटने को कुछ नहीं',
+
+  'game.status': 'स्थिति',
+  'game.chronicle': 'वृत्तांत',
+  'game.table': 'मेज़',
+  'game.tools': 'परीक्षण उपकरण',
+  'game.move': 'चाल',
+  'game.toMove.w': 'सफ़ेद की चाल',
+  'game.toMove.b': 'काले की चाल',
+  'game.inCheck': ', शह में',
+  'game.checkmate.w': 'शहमात। सफ़ेद जीता',
+  'game.checkmate.b': 'शहमात। काला जीता',
+  'game.stalemate': 'गतिरोध। बाज़ी बराबर रही',
+  'game.resigned.w': 'काले के हार मानने पर सफ़ेद जीता',
+  'game.resigned.b': 'सफ़ेद के हार मानने पर काला जीता',
+  'game.flagged.w': 'समय समाप्त — सफ़ेद जीता',
+  'game.flagged.b': 'समय समाप्त — काला जीता',
+  'game.draw.agreement': 'सहमति से बराबरी',
+  'game.draw.fifty': 'बराबरी। पचास चालों में न कोई प्यादा चला, न कुछ मारा गया',
+  'game.draw.threefold': 'बराबरी। वही स्थिति तीसरी बार',
+  'game.draw.material': 'बराबरी। किसी के पास मात देने भर की सेना नहीं',
+  'game.noMoves': 'अभी कोई चाल नहीं।',
+
+  'act.resign': 'हार मानो',
+  'act.offerDraw': 'बराबरी का प्रस्ताव',
+  'act.drawOffered': 'बराबरी प्रस्तावित',
+  'act.acceptDraw': 'बराबरी स्वीकारो',
+  'act.undo': 'वापस लो',
+  'act.flip': 'बोर्ड घुमाओ',
+  'act.export': 'निर्यात',
+  'act.back': 'वापस',
+  'act.onward': 'आगे →',
+  'act.begin': 'बाज़ी शुरू करो →',
+  'act.rematch.same': 'फिर से, वही सेना',
+  'act.rematch.edit': 'फिर से, सेना बदलकर',
+  'act.mainMenu': '← मुख्य पृष्ठ',
+  'act.backToInn': '← सराय लौटो',
+  'act.toInn': 'सराय लौटो →',
+  'act.loadPosition': 'स्थिति लोड करो',
+
+  'build.title.w': 'सफ़ेद: अपने जादू चुनो',
+  'build.title.b': 'काला: अपने जादू चुनो',
+  'build.used': 'ख़र्च',
+  'build.reserved': 'बचाए',
+  'build.forRevive': ' पुनर्जीवन के लिए',
+  'build.pickPiece': 'एक मोहरा चुनो',
+  'build.pickPiece.sub': 'ऊपर किसी भी मोहरे पर क्लिक करके उसे जादू दो।',
+  'build.words': 'राजा के वचन, तीन तक चुनो',
+  'build.wordsHeld': 'राजा के वचन:',
+
+  'reveal.title': 'खुला बोर्ड',
+  'reveal.spent': 'ख़र्च',
+  'reveal.reserve': 'बचत',
+  'reveal.plain': 'कोई जादू नहीं। सादी सेना।',
+  'reveal.noPower': 'कोई वचन नहीं',
+};
+
+const TABLE: Record<Locale, Partial<Record<StringKey, string>>> = { en: EN, de: DE, es: ES, hi: HI };
+
+/** Exported so the choice of language can be tested without a browser that will change its
+ *  own locale — Chrome ignores both `--lang` and the DevTools locale override for
+ *  `navigator.language`, which made the obvious end-to-end check impossible to run. */
+export function pickLocale(tags: readonly string[], saved?: string | null): Locale {
+  if (saved && (LOCALES as string[]).includes(saved)) return saved as Locale;
+  for (const tag of tags) {
+    const base = String(tag).slice(0, 2).toLowerCase();
+    if ((LOCALES as string[]).includes(base)) return base as Locale;
+  }
+  return 'en';
+}
 
 function detect(): Locale {
   try {
     const saved = localStorage.getItem(KEY);
     if (saved && (LOCALES as string[]).includes(saved)) return saved as Locale;
   } catch {
-    /* private browsing: fall through to the browser's own preference */
+    /* private browsing: fall through to the device's own preference */
   }
   const tags = typeof navigator === 'undefined' ? [] : (navigator.languages ?? [navigator.language]);
-  for (const tag of tags) {
-    const base = String(tag).slice(0, 2).toLowerCase();
-    if ((LOCALES as string[]).includes(base)) return base as Locale;
-  }
-  return 'en';
+  return pickLocale(tags);
 }
 
 let current: Locale = detect();

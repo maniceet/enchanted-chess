@@ -4294,3 +4294,11 @@ button.primary:hover:not(:disabled) {
   color: var(--parch);
   border-color: var(--brass);
 }
+
+/* The right-hand end of the top bar: language and sound, together. */
+.topbar-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}

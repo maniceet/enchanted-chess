@@ -1935,7 +1935,7 @@ export default function App() {
                 go();
               }}
             >
-              {card.card.cta ?? 'Onward →'}
+              {card.card.cta ?? T('act.onward')}
             </button>
             {onSeeBoard && (
               <button type="button" className="quiet" onClick={onSeeBoard}>
@@ -2746,7 +2746,7 @@ export default function App() {
             })}
           </div>
           <button type="button" className="primary" onClick={() => { play('power'); setPhase('game'); }}>
-            Begin the game →
+            {T('act.begin')}
           </button>
         </div>
       </Shell>
@@ -2955,7 +2955,7 @@ export default function App() {
               server rejects both, but offering them at all is wrong. Rewind stays: looking
               back at a position is not changing it. */}
           <div className="panel tools">
-            <h3>{PLAYTEST_ENABLED ? 'Playtest tools' : 'The table'}</h3>
+            <h3>{PLAYTEST_ENABLED ? T('game.tools') : T('game.table')}</h3>
             {PLAYTEST_ENABLED && (
             <div className="tool-row">
               {!online_ && (
@@ -2981,7 +2981,7 @@ export default function App() {
               </button>
               {!online_ && (
                 <button type="button" onClick={() => setLoader('')}>
-                  Load position
+                  {T('act.loadPosition')}
                 </button>
               )}
             </div>
@@ -3000,7 +3000,7 @@ export default function App() {
                   onClick={() => setPhase('home')}
                   title="The board keeps. Pick it up again from here."
                 >
-                  {isHouse(setup.opponent) ? '\u2190 Back to the inn' : '\u2190 Main menu'}
+                  {isHouse(setup.opponent) ? T('act.backToInn') : T('act.mainMenu')}
                 </button>
               </div>
             )}
@@ -3059,17 +3059,17 @@ export default function App() {
                         setPhase('home');
                       }}
                     >
-                      Back to the inn →
+                      {T('act.toInn')}
                     </button>
                   )}
                 </div>
               ) : (
                 <div className="tool-row">
                   <button type="button" className="primary" onClick={() => rematch(false)}>
-                    Rematch, same loadouts
+                    {T('act.rematch.same')}
                   </button>
                   <button type="button" onClick={() => rematch(true)}>
-                    Rematch, re-edit
+                    {T('act.rematch.edit')}
                   </button>
                 </div>
               )}
@@ -3323,8 +3323,11 @@ function Shell({
           </span>
           {!bare && <h1>Enchanted Chess</h1>}
         </div>
-        {/* Language sits beside sound because they are the same kind of thing: a preference
-            belonging to the person rather than to the game, reachable from every screen. */}
+        {/* Language and sound are the same kind of thing — a preference belonging to the
+            person rather than to the game — so they sit together at the right-hand end. Loose
+            in the bar they were three children under `space-between`, which planted the
+            language box in the exact middle of the header looking like a title. */}
+        <div className="topbar-tools">
         <select
           className="lang"
           value={locale()}
@@ -3347,6 +3350,7 @@ function Shell({
         >
           <SoundIcon muted={muted} />
         </button>
+        </div>
       </header>
       {children}
     </div>
