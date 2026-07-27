@@ -2595,9 +2595,9 @@ export default function App() {
                           everything shown is true, that is the worst kind of wrong: it is a
                           promise the position cannot keep. */}
                       {HOUSE[setup.opponent].armored === 'few'
-                        ? 'His centre is armoured: the two pawns in front of his gate carry Taunt, and it costs him nothing from his mana. The flanks are bare. '
+                        ? 'His centre is armoured: the two pawns in front of his gate carry Taunt on top of anything listed above, and that pair costs him nothing from his mana. '
                         : HOUSE[setup.opponent].armored === 'half'
-                          ? 'His middle four pawns are armoured: each carries Taunt on top of whatever is listed above, and it costs him nothing from his mana. The flanks are bare. '
+                          ? 'His middle four pawns are armoured: each carries Taunt on top of anything listed above, and they cost him nothing from his mana. '
                           : HOUSE[setup.opponent].armored === 'pawns'
                             ? 'Every pawn he owns is armoured: each carries Taunt on top of whatever is listed above, and it costs him nothing from his mana. '
                             : 'Every piece he owns is armoured: each one carries Taunt on top of whatever is listed above, and it costs him nothing from his mana. '}

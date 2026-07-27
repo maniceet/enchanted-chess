@@ -28,7 +28,18 @@ describe('the Armored Knight plates his centre', () => {
 
   it('is the scope the seat actually fields, so the reveal can describe it', () => {
     expect(HOUSE.armored.armored).toBe('few');
-    expect(HOUSE.armored.blurb).toContain('centre is armoured');
+    expect(HOUSE.armored.blurb).toContain('centre is where the shields are');
+  });
+
+  it('adds to what he bought rather than replacing it, which is why the reveal cannot claim his flanks are bare', () => {
+    // He spends his own mana on shields too, and a bought one can land on any file. Seen in
+    // play as three armoured pawns where the text promised two: c7 was his, d7 and e7 the
+    // armour. The board was right and the sentence was not.
+    const base = initialState({});
+    const board = [...base.board];
+    board[50] = { ...board[50]!, ench: 'taunt' }; // c7, as his own loadout might buy
+    const armoured = armorArmy({ ...base, board }, 'b', 'few');
+    expect(plated(armoured, 'b')).toEqual(['c7', 'd7', 'e7']);
   });
 
   it('never plates a pawn that already carries something', () => {

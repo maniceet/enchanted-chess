@@ -194,7 +194,7 @@ export const HOUSE: Record<House, HouseProfile> = {
   armored: {
     label: 'The Armored Knight',
     blurb:
-      'Guards the castle gate in full plate, and puts the same on the two pawns in front of it. His centre is armoured; his flanks are not. Plate is for standing in: it holds on his four ranks and nowhere else.',
+      'Guards the castle gate in full plate, and puts the same on the two pawns standing in front of it. His centre is where the shields are. Plate is for standing in: it holds on his four ranks and nowhere else.',
     depth: 6,
     sample: 40,
     // Redundant with `sample: 40` today, and kept anyway: it pins the guarantee that this seat
