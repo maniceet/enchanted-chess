@@ -816,8 +816,36 @@ h1 {
   filter: brightness(1.06);
 }
 
+/* Where the last move went, and — for one beat — the fact that it just happened.
+ *
+ * The wash on its own is a fine record and a poor announcement. It is the same 34% whether the
+ * move landed a second ago or ten moves back, so when the seat opposite moves while the player
+ * is reading the chronicle or the panels below, the only thing that changed on a tall phone
+ * screen is a faint tint on two squares. Nothing draws the eye to them.
+ *
+ * The glow rides the arrival because the class lands on two squares that did not have it before,
+ * and a CSS animation runs when it is newly applied to an element. So it plays exactly once per
+ * move, on the two squares that moved, and then the board is still again. */
 .sq-last {
   background-image: linear-gradient(rgb(246 202 82 / 34%), rgb(246 202 82 / 34%));
+  animation: last-arrive 620ms ease-out;
+}
+
+@keyframes last-arrive {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 0 rgb(246 202 82 / 0%);
+  }
+  35% {
+    box-shadow: inset 0 0 0 4px rgb(250 214 110 / 80%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The record stays; only the announcement goes. */
+  .sq-last {
+    animation: none;
+  }
 }
 
 .sq-selected {
