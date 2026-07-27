@@ -574,6 +574,32 @@ h1 {
   font-size: 11.5px;
 }
 
+/* The exact wording, once a word is chosen. It opens rather than appears: the card growing
+   under the finger that tapped it says the choice landed, and it is the same motion whichever
+   of the six was pressed. */
+.power-exact {
+  color: var(--parch-dim);
+  font-size: 11.5px;
+  line-height: 1.45;
+  padding-top: 5px;
+  margin-top: 4px;
+  border-top: 1px solid rgb(201 154 63 / 28%);
+  animation: exact-open 220ms ease-out;
+}
+
+@keyframes exact-open {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .power-exact {
+    animation: none;
+  }
+}
+
 .power-reserve.is-bad {
   color: var(--blood);
 }

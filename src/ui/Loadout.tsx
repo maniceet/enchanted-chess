@@ -7,6 +7,7 @@ import {
   ENCH_TEXT,
   ENCHANTMENTS,
   POWER_NAMES,
+  POWER_BRIEF,
   POWER_TEXT,
   carrierError,
   costOf,
@@ -230,7 +231,10 @@ export function LoadoutBuilder({
                       onClick={() => toggleWord(power)}
                     >
                       <span className="power-name">{powerName(power)}</span>
-                      <span className="power-text">{POWER_TEXT[power]}</span>
+                      {/* The short line to choose by; the exact rule once it is chosen. Six
+                          paragraphs at once is not a comparison, it is a scroll. */}
+                      <span className="power-text">{POWER_BRIEF[power]}</span>
+                      {active && <span className="power-exact">{POWER_TEXT[power]}</span>}
                       {needsReserve && (
                         <span className={`power-reserve ${check.reserve < 1 ? 'is-bad' : ''}`}>
                           reserve now: {check.reserve} point{check.reserve === 1 ? '' : 's'}

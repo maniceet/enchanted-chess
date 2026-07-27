@@ -112,6 +112,25 @@ export const POWER_TEXT: Record<PowerName, string> = {
     'Instead of moving: bend time. In a game with an increment you gain +1 second on every remaining move. In 10 | 0 you gain a flat +30 seconds. Needs a clock.',
 };
 
+/* One line per word, for choosing between them.
+ *
+ * `POWER_TEXT` above is the exact rule and stays exactly as it is — it is the Open Board
+ * contract and the reveal screen prints it in full before either player moves. But it is a
+ * paragraph, and the builder asks the player to pick three of six, which is a comparison. Six
+ * paragraphs do not fit on a phone: measured, the picker ran past 1400px with one and a half
+ * cards visible, so choosing meant scrolling up and down a list you could never see at once.
+ *
+ * These are what a player compares by. The precise wording appears on a card once it is chosen,
+ * which is when it stops being a comparison and starts being something to remember. */
+export const POWER_BRIEF: Record<PowerName, string> = {
+  teleport: 'Send a piece to any safe empty square.',
+  relocate: 'Trade places with a friendly piece at home.',
+  decree: 'Still an enemy piece for one turn.',
+  revive: 'Call a fallen piece back, for reserved points.',
+  doom: 'Mark an enemy to die in three turns. Repeatable.',
+  chrono: 'Bend the clock in your favour. Needs one.',
+};
+
 export interface Loadout {
   /** Starting square (e.g. "d1") → enchantment. One per piece, maximum. */
   readonly enchantments: Readonly<Record<string, Enchantment>>;
