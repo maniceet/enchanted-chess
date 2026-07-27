@@ -33,6 +33,7 @@ import {
 } from '../engine/ai';
 import { bindActions, canActFrom, inCheck, legalMoves, shieldBreakActions, swapActions } from '../engine/movegen';
 import { ScrollHint } from './ScrollHint';
+import { useArmed } from './useArmed';
 import { toSan } from '../engine/notation';
 import { REVIVE_COST, powerActions, powerReason, powerUnavailableReason } from '../engine/powers';
 import {
@@ -580,8 +581,9 @@ export default function App() {
    *  tool and stays one; this is the thing every traveller wants mid-game — to see the board
    *  three moves ago without asking anyone's permission. */
   const [reviewAt, setReviewAt] = useState<number | null>(null);
-  /** Resign asks twice. Cleared on a timer so an armed button never waits around. */
-  const [resignArmed, setResignArmed] = useState(false);
+  /** The two presses that cannot be taken back. See useArmed for why they are armed, not modal. */
+  const resign = useArmed();
+  const newAdventure = useArmed();
   /** `commit` is a stable callback, so it reads the house's colour through a ref rather than
    *  closing over it and going stale the moment a trial is toggled. */
   const houseColorRef = useRef<Color>('b');
@@ -988,12 +990,6 @@ export default function App() {
     // Only tally the transition into a finished status.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.status.kind]);
-
-  useEffect(() => {
-    if (!resignArmed) return;
-    const timer = setTimeout(() => setResignArmed(false), 4000);
-    return () => clearTimeout(timer);
-  }, [resignArmed]);
 
   useEffect(() => {
     if (deny === null) return;
@@ -1906,9 +1902,18 @@ export default function App() {
             {(run.attempts > 0 || run.gold > 0) && (
               <button
                 type="button"
-                className="quiet"
+                className={`quiet ${newAdventure.armed ? 'is-arming' : ''}`}
                 onClick={() => {
                   play('select');
+                  /* Asked twice. This is the most destructive press in the game: it forgets the
+                     gold and the spellbook, and the Sorcerer's own room calls the book the only
+                     thing that carries between runs — every other loss is a walk, this one is
+                     everything the player has ever bought. The sub-line said so already, but a
+                     warning that fires on the same tap that obeys it is a label, not a guard. */
+                  if (!newAdventure.armed) {
+                    newAdventure.arm();
+                    return;
+                  }
                   // Wipes the book as well as the road: a genuinely new traveller, and one who
                   // gets the same opening as any other — prologue, then the board question.
                   // It used to call `beginRun` here and jump straight to the ladder, which
@@ -1919,8 +1924,10 @@ export default function App() {
                   setPhase('story');
                 }}
               >
-                Begin a new adventure
-                <span className="soon">forget the gold and the book too</span>
+                {newAdventure.armed ? 'Forget everything and start again?' : 'Begin a new adventure'}
+                <span className="soon">
+                  {newAdventure.armed ? 'the gold and the book go too' : 'forget the gold and the book too'}
+                </span>
               </button>
             )}
           </div>
@@ -3094,10 +3101,10 @@ export default function App() {
                     in wait. */}
                 <button
                   type="button"
-                  className={resignArmed ? 'is-arming' : ''}
-                  onClick={() => (resignArmed ? commit({ type: 'resign' }) : setResignArmed(true))}
+                  className={resign.armed ? 'is-arming' : ''}
+                  onClick={() => (resign.armed ? commit({ type: 'resign' }) : resign.arm())}
                 >
-                  {resignArmed ? 'Really resign?' : T('act.resign')}
+                  {resign.armed ? 'Really resign?' : T('act.resign')}
                 </button>
                 {state.drawOfferedBy && state.drawOfferedBy !== state.turn ? (
                   <button type="button" onClick={() => commit({ type: 'drawAccept' })}>
