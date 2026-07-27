@@ -1,5 +1,5 @@
 import { CAMPAIGN, FULL_ROAD, HOUSE, WITTEX_CLEARS_REQUIRED, type House } from '../engine/ai';
-import type { Enchantment, PowerName } from '../engine/types';
+import type { Color, Enchantment, GameStatus, PowerName } from '../engine/types';
 
 /** The road is a run. You take the seats in order, in one sitting, and the first defeat ends
  *  the attempt and puts you back at the inn.
@@ -1041,4 +1041,22 @@ export function resetRun(): RunState {
     /* nothing to forget */
   }
   return DEV && START_AT_WITTEX ? save({ ...FRESH, ...atWittex() }) : { ...FRESH };
+}
+
+/* Whether the seat opposite has fallen — that is, whether *the traveller* won.
+ *
+ * Not the same question as whether White won, and the difference is a whole trial. The Second
+ * Chair seats the traveller as Black and gives White to the keeper's man, and the screen that
+ * decides a run's fate asked for White. Measured on that table, before this existed: the
+ * traveller mated White and the run recorded progress `[]`, `active: false`, no purse and no
+ * credit for the seat — beating the hardest chair on the road wiped the walk. Losing to it took
+ * the other branch and paid out.
+ *
+ * It lives here, out of the component, because it is a rule rather than a rendering decision and
+ * because the version inside a `useEffect` could not be tested. */
+export function seatHasFallen(status: GameStatus, traveller: Color): boolean {
+  if (status.kind === 'checkmate' || status.kind === 'resigned' || status.kind === 'flagged') {
+    return status.winner === traveller;
+  }
+  return false;
 }

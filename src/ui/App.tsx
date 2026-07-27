@@ -126,7 +126,7 @@ import {
   type RunState,
   hasUnreadableSave,
   recoverSave,
-} from './run';
+  seatHasFallen,} from './run';
 import { Shop } from './Shop';
 import { Stats } from './StatsPage';
 import {
@@ -888,13 +888,18 @@ export default function App() {
     const reason =
       state.status.kind === 'draw' ? state.status.reason : state.status.kind;
     if (isHouse(setup.opponent)) {
-      const decisive =
-        state.status.kind === 'checkmate' ||
-        state.status.kind === 'resigned' ||
-        state.status.kind === 'flagged';
       const seat = setup.opponent;
+      /* Whether *the traveller* won, which is not the same question as whether White did.
+       *
+       * This asked for White, and White is the player at every table but one. The Second Chair
+       * seats the traveller as Black and gives White to the keeper's man, so on that table the
+       * whole result was inverted: beat the seat and the attempt ended as a defeat, with the
+       * walk banked and the road reset; lose to it and the seat "fell", paying its purse,
+       * opening its gate and putting spoils on the table as a reward for being mated. The trial
+       * that is meant to be the hardest chair on the road was the only one you had to lose. */
+      const traveller: Color = setup.player ?? 'w';
 
-      if (decisive && state.status.winner === 'w') {
+      if (seatHasFallen(state.status, traveller)) {
         // The seat falls: it pays its purse, and whatever gate it guards opens for good.
         // The drop is rolled once, here, and only against a book that does not already hold it.
         const found = rollDrop(run, seat);
