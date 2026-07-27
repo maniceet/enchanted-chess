@@ -4370,3 +4370,73 @@ button.primary:hover:not(:disabled) {
   gap: 8px;
   flex: none;
 }
+
+/* The "there is more below" chevron. See ScrollHint.tsx for why it exists.
+ *
+ * Fixed to the foot of the window rather than the end of the page, because the point is to be
+ * visible from where the reader currently is. The strip is a scrim: the page fading out under
+ * the chevron is what actually says "this continues", and it gives the disc somewhere to stand
+ * instead of floating on a sentence. It ignores the pointer entirely — only the disc is a
+ * button — so it can never swallow a tap meant for the page beneath it. */
+.scroll-hint {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 30;
+  display: grid;
+  place-items: end center;
+  height: 92px;
+  padding-bottom: 12px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgb(14 10 10 / 0%) 0%, rgb(14 10 10 / 72%) 62%, rgb(14 10 10 / 88%) 100%);
+  animation: hint-fade 320ms ease-out;
+}
+
+.scroll-hint-btn {
+  pointer-events: auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgb(214 178 106 / 55%);
+  border-radius: 50%;
+  background: rgb(24 16 12 / 92%);
+  box-shadow: 0 3px 14px rgb(0 0 0 / 55%);
+  color: var(--gold);
+  animation: hint-bob 2.4s ease-in-out infinite;
+}
+
+.scroll-hint-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.scroll-hint-btn:hover {
+  border-color: var(--gold);
+  background: rgb(38 26 16 / 96%);
+}
+
+@keyframes hint-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Small: a chevron that travels far reads as a thing being flung at you. */
+@keyframes hint-bob {
+  50% {
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint,
+  .scroll-hint-btn {
+    animation: none;
+  }
+}

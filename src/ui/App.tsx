@@ -32,6 +32,7 @@ import {
   type House,
 } from '../engine/ai';
 import { bindActions, canActFrom, inCheck, legalMoves, shieldBreakActions, swapActions } from '../engine/movegen';
+import { ScrollHint } from './ScrollHint';
 import { toSan } from '../engine/notation';
 import { REVIVE_COST, powerActions, powerReason, powerUnavailableReason } from '../engine/powers';
 import {
@@ -3378,6 +3379,7 @@ function Shell({
         </div>
       </header>
       {children}
+      <ScrollHint />
     </div>
   );
 }
