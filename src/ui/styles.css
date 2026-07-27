@@ -866,6 +866,13 @@ h1 {
 .hammer {
   position: absolute;
   inset: auto 3% 3% auto;
+  /* The piece is `z-index: 1`, and this had none — so every previous attempt to make the hammer
+     legible was decorating something the piece was painting over. Magnified against a real
+     board, a shielded knight covered most of the disc with its base and what survived read as a
+     smudge of shadow rather than a mark. Two passes had already made the disc bigger and the
+     glyph brighter, which is exactly the fix that cannot work when the problem is paint order.
+     It goes above the piece: this is an action being offered, not decoration on the piece. */
+  z-index: 2;
   /* The disc always read as "something different is on offer here"; the hammer inside it did
      not read as a hammer. Judged magnified against a real board: the glyph was carrying 11%
      padding *and* a dark stroke inside a 28px disc, which left a few grey pixels of a fairly
@@ -884,6 +891,26 @@ h1 {
 
 .sq-break {
   box-shadow: inset 0 0 0 3px var(--steel);
+}
+
+/* A shield-break is the one action on the board that is not a move and not a capture, and a
+   player meeting it for the first time has no habit that predicts it. The disc breathes — very
+   slowly, a few percent — which is enough to catch an eye scanning for somewhere to go without
+   becoming something that has to be waited out. */
+@keyframes hammer-breathe {
+  50% {
+    transform: scale(1.09);
+  }
+}
+
+.hammer {
+  animation: hammer-breathe 2.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hammer {
+    animation: none;
+  }
 }
 
 .sq-break:hover .hammer {
@@ -1388,6 +1415,16 @@ h1 {
 .power-reason {
   color: var(--muted);
   font-size: 11px;
+}
+
+/* Why a word is unavailable, under the row of words rather than on them. It takes the whole
+   width because that is the point: a full sentence fits here and nothing fits on a button. */
+.words-why {
+  flex-basis: 100%;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
 }
 
 .reserve {

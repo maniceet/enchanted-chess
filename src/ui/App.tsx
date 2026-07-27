@@ -3491,6 +3491,17 @@ function PlayerBar({
   // behind his own colour.
   const name = house ? HOUSE[house].label : color === 'w' ? 'White' : 'Black';
   const choosingRevive = powerMode?.kind === 'revive' && !powerMode.piece && active;
+  /* The words that cannot be spoken *now*, for a reason the player can act on. Only on your own
+     turn: on the opponent's, every word is unavailable for the same uninteresting reason. */
+  const blocked =
+    active && !silent
+      ? ps.powers
+          .map((word) => ({ word, why: powerReason(state, color, word) }))
+          .filter(
+            (w): w is { word: PowerName; why: string } =>
+              w.why !== null && w.why !== 'used' && w.why !== 'not your turn' && w.why !== 'not known',
+          )
+      : [];
 
   return (
     <div className={`player ${active ? 'player-active' : ''}`}>
@@ -3569,6 +3580,22 @@ function PlayerBar({
       {/* One button per word the King knows. He may hold three, each spent once, and which one
           this position wants is the decision the whole feature exists for — so they are all on
           the bar at once rather than behind a menu. */}
+      {/* Why a word is unavailable, said once beneath the row rather than on the buttons.
+       *
+       * It used to ride on the button itself, and on a phone that meant it was destroyed rather
+       * than shortened. Three words share a 360px row, so each button is 99px wide including
+       * padding — measured, not guessed — and the bar read
+       *
+       *     ⚡ Teleport · …    ⚡ Relocate · …    ⚡ Decree · no…
+       *
+       * which is three manglings of one sentence, where "no…" could equally have been "no
+       * clock", "no legal target" or "no affordable piece". Shortening the text cannot fix that:
+       * there is no room for any reason at all beside a word's name at phone width. Nor can the
+       * tooltip carry it, because a phone has no hover — the player would have no way to ask.
+       *
+       * So it moves under the row, where a whole sentence fits. Only live reasons appear: "not
+       * your turn" is what the dimmed row and the status panel already say, and a spent word
+       * keeps its own strikethrough, so neither needs a line of prose. */}
       {silent || !ps.powers.length ? (
         <button type="button" className="power-btn" disabled>
           ⚡ No power
@@ -3600,10 +3627,16 @@ function PlayerBar({
               }\n\nReserve: ${ps.reserve} point${ps.reserve === 1 ? '' : 's'}\n\nThe King bows to no enchantment.`}
             >
               ⚡ {powerName(word)}
-              {why ? <span className="power-reason"> · {why}</span> : null}
             </button>
           );
         })}
+        </span>
+      )}
+      {blocked.length > 0 && (
+        /* Said once, under the row, in full. There is no room for it on the buttons and no
+           hover to fall back on. */
+        <span className="words-why">
+          {blocked.map(({ word, why }) => `${powerName(word)}: ${why}`).join(' · ')}
         </span>
       )}
 
