@@ -134,7 +134,17 @@ function endTurn(
     ply,
     fullmove: mover === 'b' ? state.fullmove + 1 : state.fullmove,
     halfmove: opts.resetHalfmove ? 0 : state.halfmove + 1,
-    drawOfferedBy: null,
+    /* An offer outlives the move that carries it, and dies on the reply.
+     *
+     * This cleared every offer unconditionally, which quietly made draws by agreement
+     * impossible: offering does not consume a turn, so the only way to hand the board over is
+     * to move — and moving erased the very offer the opponent was meant to answer.
+     * `drawAccept` could not be reached from any sequence of legal actions, the Accept button
+     * was unreachable, and ½-½ could not appear in a chronicle.
+     *
+     * Standard practice instead: you offer and then play, the offer stands over your opponent's
+     * turn, and if they move rather than accept, they have declined it. */
+    drawOfferedBy: state.drawOfferedBy === mover ? mover : null,
     clock,
     frozen: state.frozen.filter((f) => f.untilPly > ply),
   };
