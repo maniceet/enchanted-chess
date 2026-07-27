@@ -111,6 +111,20 @@ const EN = {
   'reveal.reserve': 'reserve',
   'reveal.plain': 'No enchantments. A plain army.',
   'reveal.noPower': 'No power',
+  'ench.squire': 'Squire',
+  'ench.taunt': 'Taunt',
+  'ench.martyr': 'Martyr',
+  'ench.outpost': 'Outpost',
+  'ench.swift': 'Swift',
+  'ench.herald': 'Herald',
+  'ench.poison': 'Poison',
+  'ench.immolation': 'Immolation',
+  'power.teleport': 'Teleport',
+  'power.relocate': 'Relocate',
+  'power.decree': 'Decree',
+  'power.revive': 'Revive',
+  'power.doom': 'Destined Death',
+  'power.chrono': 'Time Manipulation',
 } as const;
 
 export type StringKey = keyof typeof EN;
@@ -189,6 +203,20 @@ const DE: Partial<Record<StringKey, string>> = {
   'reveal.reserve': 'übrig',
   'reveal.plain': 'Keine Verzauberungen. Ein schlichtes Heer.',
   'reveal.noPower': 'Kein Wort',
+  'ench.squire': 'Knappe',
+  'ench.taunt': 'Spott',
+  'ench.martyr': 'Märtyrer',
+  'ench.outpost': 'Vorposten',
+  'ench.swift': 'Flink',
+  'ench.herald': 'Herold',
+  'ench.poison': 'Gift',
+  'ench.immolation': 'Flammenopfer',
+  'power.teleport': 'Teleport',
+  'power.relocate': 'Platzwechsel',
+  'power.decree': 'Erlass',
+  'power.revive': 'Wiederbelebung',
+  'power.doom': 'Bestimmter Tod',
+  'power.chrono': 'Zeitmanipulation',
 };
 
 const ES: Partial<Record<StringKey, string>> = {
@@ -265,6 +293,20 @@ const ES: Partial<Record<StringKey, string>> = {
   'reveal.reserve': 'reserva',
   'reveal.plain': 'Sin encantamientos. Un ejército sencillo.',
   'reveal.noPower': 'Sin palabra',
+  'ench.squire': 'Escudero',
+  'ench.taunt': 'Provocación',
+  'ench.martyr': 'Mártir',
+  'ench.outpost': 'Bastión',
+  'ench.swift': 'Veloz',
+  'ench.herald': 'Heraldo',
+  'ench.poison': 'Veneno',
+  'ench.immolation': 'Inmolación',
+  'power.teleport': 'Teletransporte',
+  'power.relocate': 'Intercambio',
+  'power.decree': 'Decreto',
+  'power.revive': 'Resurrección',
+  'power.doom': 'Muerte Anunciada',
+  'power.chrono': 'Manipulación del Tiempo',
 };
 
 
@@ -342,6 +384,20 @@ const HI: Partial<Record<StringKey, string>> = {
   'reveal.reserve': 'बचत',
   'reveal.plain': 'कोई जादू नहीं। सादी सेना।',
   'reveal.noPower': 'कोई वचन नहीं',
+  'ench.squire': 'सहायक',
+  'ench.taunt': 'ललकार',
+  'ench.martyr': 'बलिदान',
+  'ench.outpost': 'चौकी',
+  'ench.swift': 'तेज़',
+  'ench.herald': 'दूत',
+  'ench.poison': 'विष',
+  'ench.immolation': 'अग्निबलि',
+  'power.teleport': 'क्षणभंग',
+  'power.relocate': 'स्थान-बदल',
+  'power.decree': 'आदेश',
+  'power.revive': 'पुनर्जीवन',
+  'power.doom': 'नियत मृत्यु',
+  'power.chrono': 'समय-नियंत्रण',
 };
 
 const TABLE: Record<Locale, Partial<Record<StringKey, string>>> = { en: EN, de: DE, es: ES, hi: HI };
@@ -395,6 +451,13 @@ export function setLocale(next: Locale): void {
   }
   for (const listener of [...listeners]) listener();
 }
+
+/* The engine keeps the canonical English name of every enchantment and word, and keeps it in a
+ * package with no UI in it at all — which is the right place for it and the wrong place to put
+ * a language table. So the lookup lives here, keyed by the same identifiers the engine uses,
+ * and the engine never learns that translation exists. */
+export const enchName = (ench: string): string => t(`ench.${ench}` as StringKey);
+export const powerName = (power: string): string => t(`power.${power}` as StringKey);
 
 /** The string for the active locale, or the English one when nobody has translated it yet. */
 export function t(key: StringKey): string {

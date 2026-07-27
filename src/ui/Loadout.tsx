@@ -14,8 +14,8 @@ import {
   type Loadout,
 } from '../engine/loadout';
 import type { Color, Enchantment, GameState, PowerName } from '../engine/types';
-import { ENCH_NAME, EnchRune, ManaMeter, PieceGlyph, PIECE_NAME } from './Pieces';
-import { t as T } from './i18n';
+import { EnchRune, ManaMeter, PieceGlyph, PIECE_NAME } from './Pieces';
+import { t as T, enchName, powerName } from './i18n';
 import { play } from './sound';
 
 const ALL_POWERS: PowerName[] = ['teleport', 'relocate', 'decree', 'revive', 'chrono'];
@@ -23,15 +23,6 @@ const ALL_POWERS: PowerName[] = ['teleport', 'relocate', 'decree', 'revive', 'ch
  *  offered by default: Destined Death belongs to Wittex, and a traveller only holds it because
  *  the road handed them the Dark Word. Grantable, never in the standard set. */
 const EVERY_POWER: PowerName[] = POWER_NAMES;
-const POWER_NAME: Record<PowerName, string> = {
-  teleport: 'Teleport',
-  relocate: 'Relocate',
-  decree: 'Decree',
-  revive: 'Revive',
-  doom: 'Destined Death',
-  chrono: 'Time Manipulation',
-};
-
 export interface LoadoutProps {
   state: GameState;
   color: Color;
@@ -197,7 +188,7 @@ export function LoadoutBuilder({
                 <p className="muted">
                   Your King carries{' '}
                   <strong className="hint-strong">
-                    {chosen.map((w) => POWER_NAME[w]).join(', ')}
+                    {chosen.map((w) => powerName(w)).join(', ')}
                   </strong>
                   . Click the King to change {chosen.length === 1 ? 'it' : 'them'}.
                 </p>
@@ -238,7 +229,7 @@ export function LoadoutBuilder({
                       title={full ? `Three already chosen. Drop one first.` : undefined}
                       onClick={() => toggleWord(power)}
                     >
-                      <span className="power-name">{POWER_NAME[power]}</span>
+                      <span className="power-name">{powerName(power)}</span>
                       <span className="power-text">{POWER_TEXT[power]}</span>
                       {needsReserve && (
                         <span className={`power-reserve ${check.reserve < 1 ? 'is-bad' : ''}`}>
@@ -270,7 +261,7 @@ export function LoadoutBuilder({
                   shield={selectedPiece.ench === 'taunt' ? 'dormant' : undefined}
                 />{' '}
                 This {PIECE_NAME[selectedPiece.type].toLowerCase()} already carries{' '}
-                <strong className="hint-strong">{ENCH_NAME[selectedPiece.ench]}</strong>.
+                <strong className="hint-strong">{enchName(selectedPiece.ench)}</strong>.
               </p>
               <p className="ench-why">
                 One enchantment per piece — what the road gives cannot be traded away or written
@@ -306,7 +297,7 @@ export function LoadoutBuilder({
                         <EnchRune ench={ench} shield={ench === 'taunt' ? 'dormant' : undefined} />
                         <span className="ench-main">
                           <span className="ench-title">
-                            {ENCH_NAME[ench]}
+                            {enchName(ench)}
                             <span className="ench-cost">
                               {ENCH_COST[ench]} × {CARRIER_MULTIPLIER[selectedPiece.type]} ={' '}
                               <strong>{cost}</strong>
@@ -346,7 +337,7 @@ export function LoadoutBuilder({
             </>
           ) : (
             <>
-              {T('build.wordsHeld')} <strong>{chosen.map((w) => POWER_NAME[w]).join(' · ')}</strong>
+              {T('build.wordsHeld')} <strong>{chosen.map((w) => powerName(w)).join(' · ')}</strong>
             </>
           )}
         </span>

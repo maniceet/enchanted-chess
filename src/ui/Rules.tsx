@@ -6,17 +6,10 @@ import {
   POWER_NAMES,
   POWER_TEXT,
 } from '../engine/loadout';
-import type { Enchantment, PowerName } from '../engine/types';
-import { ENCH_NAME, EnchRune } from './Pieces';
+import type { Enchantment } from '../engine/types';
+import { EnchRune } from './Pieces';
+import { enchName, powerName } from './i18n';
 
-const POWER_NAME: Record<PowerName, string> = {
-  teleport: 'Teleport',
-  relocate: 'Relocate',
-  decree: 'Decree',
-  revive: 'Revive',
-  doom: 'Destined Death',
-  chrono: 'Time Manipulation',
-};
 const CARRIERS: Record<Enchantment, string> = {
   squire: 'pawn · needs a Herald',
   taunt: 'any piece but the King',
@@ -82,7 +75,7 @@ export function Rules({ onBack }: { onBack: () => void }) {
                   <EnchRune ench={ench} shield={ench === 'taunt' ? 'active' : undefined} />
                 </td>
                 <td>
-                  <strong>{ENCH_NAME[ench]}</strong>
+                  <strong>{enchName(ench)}</strong>
                 </td>
                 <td data-label="Base">{ENCH_COST[ench]}</td>
                 <td data-label="Borne by">{CARRIERS[ench]}</td>
@@ -172,7 +165,7 @@ export function Rules({ onBack }: { onBack: () => void }) {
             {POWER_NAMES.map((power) => (
               <tr key={power}>
                 <td>
-                  <strong>{POWER_NAME[power]}</strong>
+                  <strong>{powerName(power)}</strong>
                 </td>
                 <td data-label="">{POWER_TEXT[power]}</td>
               </tr>

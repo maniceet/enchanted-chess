@@ -47,7 +47,7 @@ import {
 } from '../engine/types';
 import { Board } from './Board';
 import { LoadoutBuilder } from './Loadout';
-import { ENCH_NAME, EnchRune, ManaMeter, PieceGlyph, PIECE_NAME } from './Pieces';
+import { EnchRune, ManaMeter, PieceGlyph, PIECE_NAME } from './Pieces';
 import { Rules } from './Rules';
 import { DrillsPage } from './DrillsPage';
 import {
@@ -82,7 +82,7 @@ import {
   WITTEX_PALETTE,
 } from './portraits';
 import { isMuted, play, setMuted } from './sound';
-import { LOCALE_NAME, LOCALES, locale, setLocale, subscribeLocale, t as T, type Locale } from './i18n';
+import { LOCALE_NAME, LOCALES, locale, setLocale, subscribeLocale, t as T, type Locale, enchName, powerName } from './i18n';
 import {
   availableEnchantments,
   beginRun,
@@ -251,15 +251,6 @@ const DRAW_REASON: Record<DrawReason, string> = {
   material: 'Drawn. Neither side has the material to mate',
   agreement: 'Draw by agreement',
   stalemate: 'Stalemate. The game is drawn',
-};
-
-const POWER_NAME: Record<PowerName, string> = {
-  teleport: 'Teleport',
-  relocate: 'Relocate',
-  decree: 'Decree',
-  revive: 'Revive',
-  doom: 'Destined Death',
-  chrono: 'Time Manipulation',
 };
 
 type Phase =
@@ -2171,7 +2162,7 @@ export default function App() {
               ? run.keeper
                 ? 'You carry no enchantments yet, and the Sorcerer is open. Spend what the road paid you before you walk it again.'
                 : 'You carry no enchantments yet. The road can be walked without any — beat the keeper, and the room behind the bar opens the next time a walk ends.'
-              : `Your book: ${availableEnchantments(run).map((e) => ENCH_NAME[e]).join(', ')}.` +
+              : `Your book: ${availableEnchantments(run).map((e) => enchName(e)).join(', ')}.` +
                 (run.divineCall ? ' Your King may call.' : ' Your King has no power until Rolain falls.')}
           </p>
           <div className="menu-actions">
@@ -2637,7 +2628,7 @@ export default function App() {
                           <PieceGlyph type={row.piece} color={color} ench={row.ench} />
                         </span>
                         <span>
-                          <strong>{ENCH_NAME[row.ench]}</strong> on {PIECE_NAME[row.piece]} ({row.square})
+                          <strong>{enchName(row.ench)}</strong> on {PIECE_NAME[row.piece]} ({row.square})
                         </span>
                         <span className="reveal-cost">{row.cost}</span>
                       </li>
@@ -2719,7 +2710,7 @@ export default function App() {
                         {(loadout.powers?.length ? loadout.powers : [loadout.power]).map(
                           (word) => (
                             <li key={word}>
-                              <strong>{POWER_NAME[word]}</strong>
+                              <strong>{powerName(word)}</strong>
                               <span className="muted"> {POWER_TEXT[word]}</span>
                             </li>
                           ),
@@ -2834,7 +2825,7 @@ export default function App() {
           {powerFx && !reviewing ? (
             <div className="power-called" role="status">
               <span className="power-called-bolt">⚡</span>
-              {POWER_NAME[powerFx.power]}
+              {powerName(powerFx.power)}
             </div>
           ) : null}
           <PlayerBar
@@ -3600,13 +3591,13 @@ function PlayerBar({
               } ${why === 'used' ? 'is-spent' : ''}`}
               onClick={() => onPower(word)}
               disabled={!active || Boolean(why)}
-              title={`${POWER_NAME[word]}: ${POWER_TEXT[word]}${
+              title={`${powerName(word)}: ${POWER_TEXT[word]}${
                 word === 'chrono' ? `\n\nWorth here: ${timePowerEffect(state.clock)}` : ''
               }${
                 why ? `\n\nUnavailable: ${why}` : ''
               }\n\nReserve: ${ps.reserve} point${ps.reserve === 1 ? '' : 's'}\n\nThe King bows to no enchantment.`}
             >
-              ⚡ {POWER_NAME[word]}
+              ⚡ {powerName(word)}
               {why ? <span className="power-reason"> · {why}</span> : null}
             </button>
           );

@@ -1,4 +1,3 @@
-import { ENCH_NAME } from './Pieces';
 import {
   clearRecords,
   colorSplit,
@@ -11,6 +10,7 @@ import {
 } from './stats';
 import type { Enchantment } from '../engine/types';
 import { forgetLessons } from './tutorial';
+import { enchName } from './i18n';
 
 function TallyTable({ title, rows, label }: { title: string; rows: Tally[]; label: string }) {
   return (
@@ -32,7 +32,7 @@ function TallyTable({ title, rows, label }: { title: string; rows: Tally[]; labe
           <tbody>
             {rows.map((row) => (
               <tr key={row.key}>
-                <td>{ENCH_NAME[row.key as Enchantment] ?? row.key}</td>
+                <td>{enchName(row.key as Enchantment) ?? row.key}</td>
                 <td className="num-col">{row.picks}</td>
                 <td className="num-col">{row.wins}</td>
                 <td className="num-col">{row.draws}</td>

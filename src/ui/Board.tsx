@@ -5,7 +5,8 @@ import { isFrozen } from '../engine/apply';
 import { isShielded } from '../engine/movegen';
 import { ENCH_TEXT } from '../engine/loadout';
 import type { GameState, MoveAction, Piece } from '../engine/types';
-import { ENCH_NAME, EnchRune, PieceGlyph, PIECE_NAME, type ShieldState } from './Pieces';
+import { EnchRune, PieceGlyph, PIECE_NAME, type ShieldState } from './Pieces';
+import { enchName } from './i18n';
 
 export interface BoardProps {
   state: GameState;
@@ -61,7 +62,7 @@ function describe(state: GameState, square: number): string {
             ? '\nShield: down (undefended right now)'
             : '\nShield: asleep (past the middle, in enemy ground)'
       : '';
-  return `${name}${bound}\n\n${ENCH_NAME[piece.ench]}: ${ENCH_TEXT[piece.ench]}${shieldNote}`;
+  return `${name}${bound}\n\n${enchName(piece.ench)}: ${ENCH_TEXT[piece.ench]}${shieldNote}`;
 }
 
 export function Board({

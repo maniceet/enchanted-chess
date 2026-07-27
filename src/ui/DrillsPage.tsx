@@ -13,8 +13,9 @@ import { isError } from '../engine/types';
 import type { Action, GameState, MoveAction } from '../engine/types';
 import { Board } from './Board';
 import { DRILLS, loadDrilled, rememberDrilled, type Drill } from './drills';
-import { ENCH_NAME, EnchRune } from './Pieces';
+import { EnchRune } from './Pieces';
 import { play } from './sound';
+import { enchName } from './i18n';
 
 export function DrillsPage({ onBack }: { onBack: () => void }) {
   const [done, setDone] = useState(loadDrilled);
@@ -170,7 +171,7 @@ export function DrillsPage({ onBack }: { onBack: () => void }) {
                   {d.title}
                   {done.includes(d.id) && <span className="drill-done"> ✓</span>}
                 </span>
-                <span className="drill-ench">{ENCH_NAME[d.id]}</span>
+                <span className="drill-ench">{enchName(d.id)}</span>
               </span>
             </button>
           ))}

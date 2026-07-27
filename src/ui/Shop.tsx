@@ -1,8 +1,9 @@
 import { ENCH_TEXT } from '../engine/loadout';
 import type { Enchantment } from '../engine/types';
-import { ENCH_NAME, EnchRune } from './Pieces';
+import { EnchRune } from './Pieces';
 import { play } from './sound';
 import { PRICE, SPELLBOOK, canAfford, type RunState } from './run';
+import { enchName } from './i18n';
 
 /** The Sorcerer's back room. He opens it the first time the Innkeeper falls, and after that he
  *  is always in, because he is paid in the coin of other people's defeats.
@@ -64,7 +65,7 @@ export function Shop({ run, onBuy, onBack }: ShopProps) {
                 <span className="shop-tile">
                   <EnchRune ench={ench} shield={ench === 'taunt' ? 'active' : undefined} />
                 </span>
-                <span className="shop-name">{ENCH_NAME[ench]}</span>
+                <span className="shop-name">{enchName(ench)}</span>
                 <span className="shop-flavour">{FLAVOUR[ench]}</span>
                 <span className={`shop-price ${owned ? 'shop-price-owned' : ''}`}>
                   {owned ? 'learned' : `${PRICE[ench]} ◈`}
