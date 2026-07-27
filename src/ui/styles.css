@@ -2537,8 +2537,15 @@ h1 {
   font-weight: 700;
   letter-spacing: 0.05em;
   white-space: nowrap;
-  color: #0f2340;
-  background: #7fa6d8;
+  /* Gold, because the price is in gold.
+   *
+   * This chip was #7fa6d8, which is the same blue as `.mana-pip.is-spent` at #7ec4ff — and mana
+   * is the one thing in this game that is emphatically *not* what the Sorcerer takes. He takes
+   * coin, the counter above his head is a gold ◆ on cream, and the price under each tile said
+   * "mana" in the game's own colour language. The other two states were already speaking it
+   * correctly: green for a spell already learned, red for one out of reach. */
+  color: #2a1a06;
+  background: #e8bb55;
   border: 4px solid #150c06;
   border-radius: 4px;
   box-shadow: 0 3px 0 #150c06;
