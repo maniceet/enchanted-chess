@@ -166,9 +166,20 @@ export interface ResignAction {
   readonly type: 'resign';
 }
 
-export interface DrawAction {
-  readonly type: 'drawOffer' | 'drawAccept';
+/* Two members, not one interface holding both literals.
+ *
+ * As a single interface with `type: 'drawOffer' | 'drawAccept'` this could never be narrowed
+ * out of the Action union: ruling out both literals one guard at a time still leaves the
+ * member standing, so any code that switched exhaustively over Action was forced to cast at
+ * the end — and a cast is what let a `flag` action render as the move "a1a1" for as long as
+ * timed games have existed. */
+export interface DrawOfferAction {
+  readonly type: 'drawOffer';
 }
+export interface DrawAcceptAction {
+  readonly type: 'drawAccept';
+}
+export type DrawAction = DrawOfferAction | DrawAcceptAction;
 
 export type Action =
   | MoveAction

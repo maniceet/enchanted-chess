@@ -20,8 +20,18 @@ const LETTER: Record<PieceType, string> = {
  *  ⛨ (binding) and ⇄ (the Squire's trade). */
 export function toSan(state: GameState, action: Action): string {
   if (action.type === 'resign') return 'resign';
-  if (action.type === 'drawOffer') return '(=)';
-  if (action.type === 'drawAccept') return '½-½';
+  // A clock running out is a turn the game took on the player's behalf, and it belongs in the
+  // chronicle like any other. It was the one action type this function did not name, and the
+  // cast below sent it into the move renderer, where `from` and `to` are undefined and both
+  // resolve to square zero — so every game that ended on time closed with the move "a1a1", in
+  // the log and in the export alike.
+  if (action.type === 'flag') return '⏱';
+  // Narrowed together, not one at a time: `DrawAction` carries both literals in a single
+  // interface, and TypeScript only removes the member from the union once every literal it can
+  // hold has been ruled out in one step. Two separate guards read fine and leave it in.
+  if (action.type === 'drawOffer' || action.type === 'drawAccept') {
+    return action.type === 'drawOffer' ? '(=)' : '½-½';
+  }
   if (action.type === 'shieldBreak') {
     return `⊘${squareName(action.target)}`;
   }
@@ -53,7 +63,10 @@ export function toSan(state: GameState, action: Action): string {
     return `⚡${a.kind}(${where})`;
   }
 
-  const move = action as MoveAction;
+  // Not a cast. `action` is a MoveAction here only because every other member of the union has
+  // been returned above, and if a new one is added this line stops compiling — which is the
+  // check that was missing when `flag` was added and quietly rendered as a move.
+  const move: MoveAction = action;
   const piece = state.board[move.from];
   if (!piece) return `${squareName(move.from)}${squareName(move.to)}`;
   const flags = move.flags ?? [];
