@@ -11,7 +11,17 @@ export interface GameRecord {
   mode: 'classic' | '960';
   outcome: 'w' | 'b' | 'draw';
   reason: string;
-  sides: Record<'w' | 'b', { enchantments: Enchantment[]; power: PowerName; reserve: number }>;
+  sides: Record<
+    'w' | 'b',
+    {
+      enchantments: Enchantment[];
+      /** The first word, kept so records written before Kings carried three still read. */
+      power: PowerName;
+      /** Every word this King carried. Absent on older records. */
+      powers?: PowerName[];
+      reserve: number;
+    }
+  >;
 }
 
 export function loadRecords(): GameRecord[] {
@@ -33,7 +43,10 @@ export function clearRecords(): void {
 
 export const sideOf = (loadout: Loadout, reserve: number) => ({
   enchantments: Object.values(loadout.enchantments),
+  // `power` alone tallied the first of three, so the bar's pick rates described a game nobody
+  // was playing: two of every King's words went uncounted.
   power: loadout.power,
+  powers: loadout.powers ? [...loadout.powers] : [loadout.power],
   reserve,
 });
 
@@ -70,7 +83,8 @@ export const enchantmentTallies = (records: GameRecord[]): Tally[] =>
   tally(records, (side) => side.enchantments);
 
 export const powerTallies = (records: GameRecord[]): Tally[] =>
-  tally(records, (side) => [side.power]);
+  // Every word a King carried counts as a pick. Older records only know their first.
+  tally(records, (side) => side.powers ?? [side.power]);
 
 /** Flagged specifically in the spec: the whole budget sunk into a single Taunt (the Taunt
  *  queen build costs exactly 4). Counted as sides, not games. */

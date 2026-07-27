@@ -4144,3 +4144,17 @@ button.primary:hover:not(:disabled) {
     order: 2;
   }
 }
+
+/* The King's words on the reveal: one per line, so three of them read as three things rather
+   than as a paragraph that happens to contain three names. */
+.reveal-words {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reveal-words li {
+  margin: 0;
+}

@@ -135,6 +135,7 @@ import {
   seatFallCard,
   relicCard,
   runOverCard,
+  type DrawReason,
   type StoryCard,
 } from './story';
 import { online, type OnlineSnapshot } from './online';
@@ -235,6 +236,20 @@ function storyFace(card: StoryCard): House | 'you' {
 
 const isHouse = (o: Setup['opponent']): o is House => o !== 'table' && o !== 'online';
 
+/* How a drawn game is announced.
+ *
+ * This interpolated the reason straight out of the status object, so the line that closes a
+ * game read "Draw by fifty-move", "Draw by threefold" and "Draw by material" — enum keys with
+ * a preposition in front of them. Every other ending on this screen is a sentence: "Checkmate.
+ * White wins", "Stalemate. The game is drawn", "Black wins on time". These are now too. */
+const DRAW_REASON: Record<DrawReason, string> = {
+  'fifty-move': 'Drawn. Fifty moves with nothing taken and no pawn moved',
+  threefold: 'Drawn. The same position for the third time',
+  material: 'Drawn. Neither side has the material to mate',
+  agreement: 'Draw by agreement',
+  stalemate: 'Stalemate. The game is drawn',
+};
+
 const POWER_NAME: Record<PowerName, string> = {
   teleport: 'Teleport',
   relocate: 'Relocate',
@@ -290,7 +305,9 @@ function mirrorLoadout(loadout: Loadout): Loadout {
   for (const [square, ench] of Object.entries(loadout.enchantments)) {
     enchantments[`${square[0]}${9 - Number(square[1])}`] = ench;
   }
-  return { enchantments, power: loadout.power };
+  // The words come across too. Mirroring dropped them, so a standing loadout reused from the
+  // other side of the board silently fell back to a single-word King.
+  return { enchantments, power: loadout.power, powers: loadout.powers };
 }
 
 function loadBench(): Loadout {
@@ -2636,10 +2653,22 @@ export default function App() {
                         </>
                       )
                     ) : (
-                      <>
-                        <strong>{POWER_NAME[loadout.power]}</strong>
-                        <span className="muted"> {POWER_TEXT[loadout.power]}</span>
-                      </>
+                      /* Every word, not the first one.
+                       *
+                       * This read `loadout.power` — the single field kept only so old saves
+                       * still deserialize — so a King who had been taught three was announced
+                       * as carrying one. The reveal is the Open Board's whole promise: what is
+                       * on this screen is what you will be playing against, in full. */
+                      <ul className="reveal-words">
+                        {(loadout.powers?.length ? loadout.powers : [loadout.power]).map(
+                          (word) => (
+                            <li key={word}>
+                              <strong>{POWER_NAME[word]}</strong>
+                              <span className="muted"> {POWER_TEXT[word]}</span>
+                            </li>
+                          ),
+                        )}
+                      </ul>
                     )}
                   </div>
                   <div className="reveal-budget">
@@ -3276,7 +3305,7 @@ function StatusPanel({ state, powerMode }: { state: GameState; powerMode: PowerM
       : s.kind === 'stalemate'
         ? 'Stalemate. The game is drawn'
         : s.kind === 'draw'
-          ? `Draw by ${s.reason}`
+          ? DRAW_REASON[s.reason]
           : s.kind === 'resigned'
             ? `${s.winner === 'w' ? 'White' : 'Black'} wins by resignation`
             : s.kind === 'flagged'
