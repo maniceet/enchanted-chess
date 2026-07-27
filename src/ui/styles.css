@@ -4158,3 +4158,49 @@ button.primary:hover:not(:disabled) {
 .reveal-words li {
   margin: 0;
 }
+
+/* The mana meter: one pip a point, filled for spent, ringed for points held back for Revive,
+   hollow for what is still yours to spend. Sized so ten of them fit a 320px phone beside the
+   numbers they illustrate. */
+.mana-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1;
+  vertical-align: middle;
+}
+.mana-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid rgb(126 196 255 / 45%);
+  background: transparent;
+  flex: none;
+}
+.mana-pip.is-spent {
+  background: #7ec4ff;
+  border-color: #7ec4ff;
+  box-shadow: 0 0 5px rgb(126 196 255 / 55%);
+}
+.mana-pip.is-held {
+  background: rgb(126 196 255 / 28%);
+  border-color: rgb(126 196 255 / 80%);
+}
+
+/* The spoils footer reads "Mana 6 of 10 · gold 20"; the meter sits above it rather than in the
+   middle of the sentence. */
+.run-locked .mana-meter,
+.reveal-budget .mana-meter {
+  display: flex;
+  margin-bottom: 5px;
+}
+.budget .mana-meter {
+  /* Its own line. Inline it ran straight into the word "used" — "●●●●○○○used · 3 reserved". */
+  display: flex;
+  justify-content: flex-end;
+  margin: 5px 0 3px;
+}
+
+.run-locked .mana-meter {
+  justify-content: center;
+}

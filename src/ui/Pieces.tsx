@@ -237,6 +237,45 @@ export function EnchRune({ ench, shield }: { ench: Enchantment; shield?: ShieldS
   );
 }
 
+/* Mana, as a thing you can see the size of.
+ *
+ * It was a fraction in text — "3/6 used · 3 reserved" — in the one place a player is actually
+ * deciding how to spend it, and a fraction is something you read rather than something you
+ * feel. The meter is the same information at a glance: how much is gone, how much is left, and
+ * how big the pool is at all, which is the number that grows over a campaign and is the reason
+ * the road feels different at the eighth table than the first.
+ *
+ * Deliberately unlabelled. It sits beside the numbers it illustrates rather than replacing
+ * them, and at ten pips wide it still fits a 320px phone. */
+export function ManaMeter({
+  spent,
+  total,
+  reserved = 0,
+}: {
+  spent: number;
+  total: number;
+  /** Points held back on purpose — Revive's price. Shown apart from what is simply unspent. */
+  reserved?: number;
+}) {
+  const pips = Math.max(0, Math.min(20, Math.round(total)));
+  const used = Math.max(0, Math.min(pips, Math.round(spent)));
+  const held = Math.max(0, Math.min(pips - used, Math.round(reserved)));
+  return (
+    <span
+      className="mana-meter"
+      role="img"
+      aria-label={`${used} of ${pips} mana spent${held ? `, ${held} held back` : ''}`}
+    >
+      {Array.from({ length: pips }, (_, i) => (
+        <i
+          key={i}
+          className={`mana-pip ${i < used ? 'is-spent' : i < used + held ? 'is-held' : ''}`}
+        />
+      ))}
+    </span>
+  );
+}
+
 export const PIECE_NAME: Record<PieceType, string> = {
   d: 'Dragon',
   a: 'Archbishop',

@@ -46,7 +46,7 @@ import {
 } from '../engine/types';
 import { Board } from './Board';
 import { LoadoutBuilder } from './Loadout';
-import { ENCH_NAME, EnchRune, PieceGlyph, PIECE_NAME } from './Pieces';
+import { ENCH_NAME, EnchRune, ManaMeter, PieceGlyph, PIECE_NAME } from './Pieces';
 import { Rules } from './Rules';
 import { DrillsPage } from './DrillsPage';
 import {
@@ -2221,6 +2221,7 @@ export default function App() {
             ))}
           </div>
           <p className="run-locked">
+            <ManaMeter spent={campaignBudget(run)} total={MANA_CAP} />
             Mana {campaignBudget(run)} of {MANA_CAP} · gold {run.gold}
           </p>
         </div>
@@ -2692,6 +2693,17 @@ export default function App() {
                     )}
                   </div>
                   <div className="reveal-budget">
+                    <ManaMeter
+                      spent={check.spent}
+                      total={budgetFor}
+                      reserved={
+                        (loadout.powers?.length ? loadout.powers : [loadout.power]).includes(
+                          'revive',
+                        )
+                          ? check.reserve
+                          : 0
+                      }
+                    />
                     {check.spent}/{budgetFor} spent · {check.reserve} reserve
                   </div>
                 </div>

@@ -14,7 +14,7 @@ import {
   type Loadout,
 } from '../engine/loadout';
 import type { Color, Enchantment, GameState, PowerName } from '../engine/types';
-import { ENCH_NAME, EnchRune, PieceGlyph, PIECE_NAME } from './Pieces';
+import { ENCH_NAME, EnchRune, ManaMeter, PieceGlyph, PIECE_NAME } from './Pieces';
 import { play } from './sound';
 
 const ALL_POWERS: PowerName[] = ['teleport', 'relocate', 'decree', 'revive', 'chrono'];
@@ -116,6 +116,15 @@ export function LoadoutBuilder({
           <span className="budget-num">
             {check.spent}/{budget}
           </span>
+          {/* Points only read as *held* when something is actually holding them: Revive is
+              paid for out of what you did not spend, and without a Revive in the King's words
+              every unspent point is simply free. Passing the reserve unconditionally made the
+              whole meter look reserved before a single choice had been made. */}
+          <ManaMeter
+            spent={check.spent}
+            total={budget}
+            reserved={chosen.includes('revive') ? check.reserve : 0}
+          />
           <span className="budget-label">
             used · {check.reserve} reserved
             {/* Any of the three words may be Revive; this read only the first. */}
