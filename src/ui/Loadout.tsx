@@ -118,7 +118,8 @@ export function LoadoutBuilder({
           </span>
           <span className="budget-label">
             used · {check.reserve} reserved
-            {loadout.power === 'revive' ? ' for Revive' : ''}
+            {/* Any of the three words may be Revive; this read only the first. */}
+            {chosen.includes('revive') ? ' for Revive' : ''}
           </span>
         </div>
       </header>

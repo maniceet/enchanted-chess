@@ -178,6 +178,53 @@ export interface LoadoutCheck {
   readonly errors: readonly string[];
 }
 
+/* Trim a remembered loadout down to what this board and this purse will actually allow.
+ *
+ * A standing loadout is kept between games so a traveller does not rebuild the same army every
+ * evening, and the conditions it was built under move: mana falls back to the floor when a run
+ * ends, the Sorcerer's book grows, the road drops a Venom on a pawn that had something else on
+ * it, and a King who has learned the Dark Word may offer a word the old one never had. Handing
+ * that army back unchanged produces a builder that opens already illegal and refuses to
+ * continue until the player clears it by hand, which is worse than not remembering at all.
+ *
+ * So: keep every entry that is still legal and still affordable, in board order, and quietly
+ * drop the rest. Deliberately not clever about *which* to drop — a player who is over budget
+ * wants their cheap pieces kept and their expensive one gone, and the alternative is a solver
+ * that surprises them.
+ */
+export function fitLoadout(
+  state: GameState,
+  color: Color,
+  loadout: Loadout,
+  opts: { book?: readonly Enchantment[]; budget?: number; powers?: readonly PowerName[] } = {},
+): Loadout {
+  const budget = opts.budget ?? BUDGET;
+  const enchantments: Record<string, Enchantment> = {};
+  let spent = 0;
+  for (const square of Object.keys(loadout.enchantments).sort()) {
+    const ench = loadout.enchantments[square];
+    if (opts.book && !opts.book.includes(ench)) continue;
+    const piece = state.board[parseSquare(square)];
+    // The square must still hold a piece of this player's that can carry it — and one the road
+    // has not already enchanted, since a gift is not a slot.
+    if (!piece || piece.color !== color || piece.ench) continue;
+    if (carrierError(ench, piece.type)) continue;
+    const cost = costOf(ench, piece.type);
+    if (spent + cost > budget) continue;
+    enchantments[square] = ench;
+    spent += cost;
+  }
+
+  const offered = opts.powers;
+  const wanted = loadout.powers?.length ? loadout.powers : [loadout.power];
+  const powers = (offered ? wanted.filter((w) => offered.includes(w)) : wanted).slice(0, 3);
+  // A King is never left speechless by trimming: if nothing survived, take the first on offer.
+  const kept = powers.length ? powers : offered?.length ? [offered[0]] : [];
+  return kept.length
+    ? { enchantments, power: kept[0], powers: kept }
+    : { enchantments, power: loadout.power };
+}
+
 export function validateLoadout(
   state: GameState,
   color: Color,

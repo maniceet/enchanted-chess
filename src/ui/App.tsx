@@ -13,6 +13,7 @@ import {
   POWER_TEXT,
   applyLoadout,
   emptyLoadout,
+  fitLoadout,
   loadoutSummary,
   validateLoadout,
   type Loadout,
@@ -1451,10 +1452,19 @@ export default function App() {
           budget: HOUSE[merged.opponent as House].mana,
         })
       : mirrorLoadout(bench);
+    /* The standing army, cut down to what tonight allows: mana falls to the floor when a run
+     * ends, the book grows, and the road puts its own gifts on pieces the bench had plans for.
+     * Without this a remembered loadout could open the builder already illegal. */
+    const playerBudget = isHouse(merged.opponent) ? run.mana : (merged.budget ?? BUDGET);
+    const fitted = fitLoadout(withRoadGifts(base, playerColor, isHouse(merged.opponent) ? run : null), playerColor, bench, {
+      book: isHouse(merged.opponent) ? availableEnchantments(run) : undefined,
+      budget: playerBudget,
+      powers: isHouse(merged.opponent) && !run.divineCall ? [] : undefined,
+    });
     const next: Setup = {
       back,
-      white: asBlack ? seatLoadout : bench,
-      black: asBlack ? mirrorLoadout(bench) : seatLoadout,
+      white: asBlack ? seatLoadout : fitted,
+      black: asBlack ? fitted : seatLoadout,
       player: playerColor,
       // The Glass puts five minutes on every board, all the way to the wings.
       control:
@@ -2486,6 +2496,16 @@ export default function App() {
           }
           onDone={() => {
             play('power');
+            /* Remember it. The builder edits `setup`, which is rebuilt from the bench every
+             * time a game starts, so an army assembled here was thrown away the moment the
+             * game ended and the next evening opened on an empty board. Reported from play:
+             * "once I've set my loadout, it should persist unless I make a change".
+             *
+             * Only the traveller's own side is remembered — in a hotseat duel the second
+             * builder belongs to the other person at the table, and their army is not the
+             * standing one. */
+            const mine: Color = isHouse(setup.opponent) ? (setup.player ?? 'w') : 'w';
+            if (color === mine) saveBench(color === 'w' ? setup.white : setup.black);
             if (setup.opponent === 'online') {
               online.submitLoadout(color === 'w' ? setup.white : setup.black);
               setPhase('reveal');

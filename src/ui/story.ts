@@ -822,9 +822,10 @@ export function rolainCard(timesBeatenBefore: number, mood: RoadMood = {}): Stor
       '"Go on. The road does not get shorter for being walked twice."',
     ],
     [
-      'This time she is waiting for you before the board is even set, and she says the thing she has not said.',
-      '"Beat him and something in this valley wakes up. Beat him and lose to whatever is behind him, and it goes back to sleep for another eleven years, and I do not think it survives that."',
-      '"So do not just beat him. Keep going."',
+      'She is at the milestone before you reach it, with the horse already turned, and she says the thing she has been not-saying for three of these now.',
+      '"They tell it as though my father woke up one morning and decided. I have believed that for eleven years, because the other way round is that somebody did it to him — and that I have been riding past the answer twice a week since I was fifteen."',
+      '"So beat him. And then keep going, and find out which of those it is. I would rather be the daughter of a man who was beaten than of a man who was used."',
+      'She swings up into the saddle. "And I would rather know."',
     ],
   ];
   const tell = again[Math.min(timesBeatenBefore - 1, again.length - 1)];
