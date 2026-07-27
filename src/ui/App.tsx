@@ -1564,7 +1564,12 @@ export default function App() {
       setPhase('reveal');
       return;
     }
-    setPhase('build-w');
+    /* The traveller's own colour, not White's. In The Second Chair they are Black, and opening
+     * on 'build-w' pointed the whole loadout phase at the seat's army: the player spent their
+     * own mana, out of their own spellbook, decorating the Wit's pieces and handing him their
+     * Divine Call — while the army they actually played was whatever `fitLoadout` had put
+     * together, never once shown to them. */
+    setPhase(playerColor === 'w' ? 'build-w' : 'build-b');
   };
 
   /** A board that has been dealt but not played on is worth less than the loadout you just
@@ -1589,7 +1594,7 @@ export default function App() {
     setPowerMode(null);
     if (reEdit) {
       setHistory([]);
-      setPhase('build-w');
+      setPhase((setup.player ?? 'w') === 'w' ? 'build-w' : 'build-b');
     } else {
       setHistory([startingState(setup)]);
       setPhase('game');
@@ -2506,6 +2511,15 @@ export default function App() {
 
   if (phase === 'build-w' || phase === 'build-b') {
     const color: Color = phase === 'build-w' ? 'w' : 'b';
+    /* Whose builder this is. On the road it is always the traveller's, whichever colour they
+     * drew; in a hotseat duel White builds first and Black second, and both are "yours".
+     *
+     * Every question below used to be spelled `color === 'w'`, which is the same assumption
+     * that inverted The Second Chair's result and mislabelled its reveal: White is the player.
+     * On that one table it meant the spellbook, the purse and the Divine Call were all applied
+     * to the seat's army. */
+    const mine: Color = setup.player ?? 'w';
+    const isTraveller = isHouse(setup.opponent) && color === mine;
     /* The board the builder draws has to be the board the game will deal, or it lies about what
      * the player owns. It used to be a bare starting position, so a traveller who had taken
      * Venom saw eight identical pawns and no way to find out which one the road had poisoned —
@@ -2528,11 +2542,11 @@ export default function App() {
           }
           // On the road you may only spend what the Sorcerer has taught, and your King is
           // silent until Rolain falls. At this table and online, everything is open.
-          book={color === 'w' && isHouse(setup.opponent) ? availableEnchantments(run) : undefined}
-          // The traveller spends mana on the road; Black and every duel spend the flat four.
-          budget={color === 'w' ? (setup.budget ?? BUDGET) : BUDGET}
+          book={isTraveller ? availableEnchantments(run) : undefined}
+          // The traveller spends mana on the road; the seat and every duel spend the flat four.
+          budget={color === mine ? (setup.budget ?? BUDGET) : BUDGET}
           powers={
-            color === 'w' && isHouse(setup.opponent)
+            isTraveller
               ? run.divineCall
                 ? // The standard four, plus the Dark Word if the road has handed it over.
                   (['teleport', 'relocate', 'decree', 'revive', 'chrono'] as PowerName[]).concat(
@@ -2555,8 +2569,12 @@ export default function App() {
           doneLabel={
             setup.opponent === 'online'
               ? 'Seal your army →'
-              : color === 'w' && isHouse(setup.opponent)
-                ? `See what ${HOUSE[setup.opponent as House].label} brought →`
+              : isTraveller
+                ? // The last of the `color === 'w'` assumptions on this screen: as Black in The
+                  // Second Chair the road's one builder fell through to the hotseat wording and
+                  // offered to "reveal both loadouts", as though a second person were waiting to
+                  // build one.
+                  `See what ${HOUSE[setup.opponent as House].label} brought →`
                 : undefined
           }
           onDone={() => {
@@ -2576,7 +2594,9 @@ export default function App() {
               setPhase('reveal');
               return;
             }
-            if (color === 'w' && isHouse(setup.opponent)) {
+            if (isHouse(setup.opponent)) {
+              // The road has one builder, the traveller's. There is no second one to hand over
+              // to: the seat's army was dealt by the house before the screen opened.
               setHistory([startingState(setup)]);
               setPhase('reveal');
             } else if (color === 'w') setPhase('build-b');
