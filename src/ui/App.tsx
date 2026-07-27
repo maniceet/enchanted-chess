@@ -82,7 +82,7 @@ import {
   WITTEX_PALETTE,
 } from './portraits';
 import { isMuted, play, setMuted } from './sound';
-import { LOCALE_NAME, LOCALES, locale, setLocale, subscribeLocale, t as T, type Locale, enchName, powerName } from './i18n';
+import { LANGUAGES_ENABLED, LOCALE_NAME, LOCALES, locale, setLocale, subscribeLocale, t as T, type Locale, enchName, powerName } from './i18n';
 import {
   availableEnchantments,
   beginRun,
@@ -3319,6 +3319,7 @@ function Shell({
             in the bar they were three children under `space-between`, which planted the
             language box in the exact middle of the header looking like a title. */}
         <div className="topbar-tools">
+        {LANGUAGES_ENABLED && (
         <select
           className="lang"
           value={locale()}
@@ -3331,6 +3332,7 @@ function Shell({
             </option>
           ))}
         </select>
+        )}
         <button
           type="button"
           className={`mute ${muted ? 'is-muted' : ''}`}

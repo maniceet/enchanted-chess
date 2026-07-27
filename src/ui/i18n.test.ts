@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { LOCALES, locale, pickLocale, setLocale, t, LOCALE_NAME, LOCALE_FULL } from './i18n';
+import { LANGUAGES_ENABLED, LOCALES, locale, pickLocale, setLocale, t, LOCALE_NAME, LOCALE_FULL } from './i18n';
 
 /* Language, and the one rule that keeps a half-translated app usable.
  *
@@ -83,5 +83,14 @@ describe('the three languages', () => {
   it('lets a saved choice beat the device', () => {
     expect(pickLocale(['de-DE'], 'es')).toBe('es');
     expect(pickLocale(['de-DE'], 'klingon')).toBe('de');
+  });
+
+  /* v1 ships English. The tables and the fallback all still work — these tests exercise them
+   * directly — but nothing reaches a player until the flag is turned back on, and the flag has
+   * to cover the device's own preference as well as the picker, or a German phone would get
+   * German menus over an English story: exactly the half-and-half the decision was made to
+   * avoid. */
+  it('is off for v1, and off means the device cannot turn it on either', () => {
+    expect(LANGUAGES_ENABLED).toBe(false);
   });
 });

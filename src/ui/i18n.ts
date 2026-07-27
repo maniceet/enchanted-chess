@@ -35,6 +35,21 @@ export const LOCALE_FULL: Record<Locale, string> = {
 
 const KEY = 'enchanted-chess:lang';
 
+/* Off for v1, and deliberately not deleted.
+ *
+ * The chrome translates cleanly — menus, the board, the builder, the reveal, every
+ * enchantment's name in four languages — but the story is seven thousand words of voiced
+ * English and it is the best thing in the game. Shipping German menus over an English story is
+ * a worse experience than shipping English, and translating the story properly is a decision
+ * about the game rather than a task to be finished quietly overnight. So v1 is English.
+ *
+ * This flag hides the picker *and* stops the device's own language being honoured, which is
+ * the half of it that matters: without the second part a phone set to German would still get
+ * German menus and an English road, which is the exact state this is avoiding. Everything
+ * underneath — the tables, the fallback, the tests — stays where it is and works; turning it
+ * back on is this one line. */
+export const LANGUAGES_ENABLED = false;
+
 /** The canonical table. Keys are `screen.thing`; English is what everything falls back to. */
 const EN = {
   'app.title': 'Enchanted Chess',
@@ -415,6 +430,7 @@ export function pickLocale(tags: readonly string[], saved?: string | null): Loca
 }
 
 function detect(): Locale {
+  if (!LANGUAGES_ENABLED) return 'en';
   try {
     const saved = localStorage.getItem(KEY);
     if (saved && (LOCALES as string[]).includes(saved)) return saved as Locale;
