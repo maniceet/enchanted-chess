@@ -65,6 +65,40 @@ function describe(state: GameState, square: number): string {
   return `${name}${bound}\n\n${enchName(piece.ench)}: ${ENCH_TEXT[piece.ench]}${shieldNote}`;
 }
 
+/* The same square in one line, for the name a screen reader actually reads out.
+ *
+ * `describe` is written for a tooltip: several lines, a blank line, then the full rules text of
+ * whatever the piece is carrying. The accessible name was taking `.split('\n')[0]` of it, which
+ * is the bare "White Pawn on a2" — so a Poison pawn, a Taunt piece with its shield up and a
+ * piece bound by Martyr all announced themselves as ordinary pawns, and the entire layer this
+ * game is built on was inaudible. There is no hover on a phone either, so for a touch screen
+ * reader the information did not exist anywhere.
+ *
+ * This is deliberately terse. A label is heard on every square a finger passes over, so it names
+ * the things that change what the piece *is* — its enchantment, whether the shield is currently
+ * up, whether it may move at all — and leaves the rules text to the tooltip that has room. */
+export function label(state: GameState, square: number): string {
+  const piece = state.board[square];
+  if (!piece) return squareName(square);
+  const parts = [`${piece.color === 'w' ? 'White' : 'Black'} ${PIECE_NAME[piece.type]} on ${squareName(square)}`];
+  if (piece.ench) {
+    const shield = piece.ench === 'taunt' ? shieldStateOf(state, square) : null;
+    parts.push(
+      shield === null
+        ? enchName(piece.ench)
+        : shield === 'active'
+          ? `${enchName(piece.ench)}, shield up`
+          : shield === 'broken'
+            ? `${enchName(piece.ench)}, shield spent`
+            : inOwnHalf(piece.color, square)
+              ? `${enchName(piece.ench)}, shield down`
+              : `${enchName(piece.ench)}, shield asleep`,
+    );
+  }
+  if (isFrozen(state, piece)) parts.push('bound this turn');
+  return parts.join(', ');
+}
+
 export function Board({
   state,
   selected,
@@ -288,7 +322,7 @@ export function Board({
               onPointerDown={(e) => onLift(s, e)}
               onClick={() => onSquare(s)}
               title={describe(state, s)}
-              aria-label={describe(state, s).split('\n')[0]}
+              aria-label={label(state, s)}
             >
               {isTrade && (
                 /* Two pawns changing places, not a capture and not a step: the arrows say the

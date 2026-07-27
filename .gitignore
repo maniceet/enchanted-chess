@@ -24,3 +24,10 @@ play/beats/
 play/zoom*.png
 play/beats2/
 play/beats3/
+
+# Scratch frames from the diagnostic harnesses.
+play/check-*.png
+play/ledger-*.png
+play/mate-*.png
+play/squire-*.png
+play/words-*.png
