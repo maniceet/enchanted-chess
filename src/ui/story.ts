@@ -112,7 +112,21 @@ const KYRAX_BOUND: string[] = [
 ];
 
 /** The card shown when the Dragonlord falls, given how many times he has fallen before. */
-export function kyraxCard(timesBeatenBefore: number): StoryCard {
+export function kyraxCard(timesBeatenBefore: number, mood: RoadMood = {}): StoryCard {
+  if (mood.freed && timesBeatenBefore > 0) {
+    return {
+      ...EPILOGUE,
+      title: 'Still Holding It Closed',
+      lines: [
+        ...EPILOGUE.lines,
+        '"You went south," he says. "I felt the moment you won it. Eleven years of feeling every moment there is has made me very good at telling the difference between a thing ending and a thing letting go."',
+        'He turns his hands over. Whatever is on them has never been visible and has never once been in question.',
+        '"It did not let go. Which means it was never his to hold — he was set at the end of a road and told to sit down, the same as I was set at the top of a valley and told to sit down." He looks at you levelly, and there is no self-pity in it anywhere. "Somebody is still giving those orders. Come back when you are ready to go and find out who, and bring the dragon. She will insist anyway."',
+      ],
+      lesson: undefined,
+      cta: undefined,
+    };
+  }
   const naming = timesBeatenBefore === KYRAX_TELLS.length - 1;
   const bound = timesBeatenBefore >= KYRAX_TELLS.length;
   const tell = bound ? KYRAX_BOUND : KYRAX_TELLS[timesBeatenBefore];
@@ -513,7 +527,28 @@ export const FREED: StoryCard = {
  * win would be the game performing novelty it does not have.
  *
  * No lesson lines on any of these. The teaching happened the first time. */
-const AGAIN: Partial<Record<House, { title: string; tellings: string[][] }>> = {
+/** What a seat says when it falls again.
+ *
+ *  Three phases rather than a rotating list, because the interesting variable is not how many
+ *  times you have won — it is how much of the story you are carrying when you sit down. The
+ *  same character has three different relationships with you across a campaign: before the
+ *  Dragonlord gives you the name, after it, and after you have taken that name south and found
+ *  out it did not help. A seat that says the same thing in all three is not a character, it is
+ *  a sign. */
+interface Repeats {
+  title: string;
+  /** Before the name is known. Cycles, then holds: by the fifth beating the relationship is
+   *  the text, and inventing a new sentence for the fortieth win is the game performing a
+   *  novelty it does not have. */
+  tellings: string[][];
+  /** The traveller knows what waits past the Dragonlord, and has not been there yet. */
+  knowing?: { title: string; lines: string[] };
+  /** Wittex has fallen — and the valley did not wake. Everyone on the road felt that, and
+   *  every one of them has drawn their own conclusion from it. */
+  after?: { title: string; lines: string[] };
+}
+
+const AGAIN: Partial<Record<House, Repeats>> = {
   drunkard: {
     title: 'The Same Chair, Falling The Same Way',
     tellings: [
@@ -525,7 +560,28 @@ const AGAIN: Partial<Record<House, { title: string; tellings: string[][] }>> = {
         'He has your drink poured before the board is even cleared, and he does not bother counting his pieces back into the box.',
         '"One day I will be sober and you will be careless. I can wait. It is the one thing I am still good at."',
       ],
+      [
+        'He does not watch the board this time. He watches your hands, the way a man watches weather he used to be able to read.',
+        '"You have got quick," he says, and does not manage to make it sound like praise. "Quick is what they have further up the road. Quick is most of how I ended up down here."',
+      ],
     ],
+    knowing: {
+      title: 'A Man Who Was Never In The Room',
+      lines: [
+        'He is most of the way to sober tonight, and on him that looks like grief.',
+        '"They are telling me you are going past the Dragonlord," he says. "Past him. To something with a name on it."',
+        'He turns the cup around without drinking out of it. "I was at the castle. I have said that to you a hundred times and not once got to the end of the sentence. There was a man there who was never in the room and always in the room, and afterwards not one of us could say what he looked like. We could not even say we had tried."',
+        '"So do not go and beat a name. Names are cheap down there. Go and beat whatever it is that keeps not being in the room."',
+      ],
+    },
+    after: {
+      title: 'Quiet, And Not Better',
+      lines: [
+        'The cup is on the table and his hand is nowhere near it.',
+        '"It went quiet down south," he says. "I felt it go. And then this morning I could not remember why I have spent eleven years trying to remember a face."',
+        'He laughs and it comes out wrong. "So either I am finally getting better, or it has stopped bothering to hide from me because it does not have to. The shutters are still shut, traveller. Set them up again. Best thing for both of us."',
+      ],
+    },
   },
   innkeeper: {
     title: 'The Bar, Wiped Again',
@@ -538,7 +594,27 @@ const AGAIN: Partial<Record<House, { title: string; tellings: string[][] }>> = {
         'This time he does not watch the board while you finish. He watches you, the way a man checks a knife he already knows is sharp.',
         '"The road is longer past my door. You know that by now. Go and be somebody else\u2019s problem."',
       ],
+      [
+        'He does not reset the pieces. He leaves the board exactly as it ended and looks at it a while, the way a man looks at a receipt.',
+        '"You have stopped leaving things lying about," he says. "Took you long enough. It always does."',
+      ],
     ],
+    knowing: {
+      title: 'A Shape With A Name On It',
+      lines: [
+        'He fills two glasses and pushes one across, which in all the nights you have sat at this bar he has never once done.',
+        '"So it has a name," he says. "I have had a shape for it since the year the town went quiet. A shape and no name, and a man cannot serve a shape, so I have wiped this counter instead for eleven years."',
+        'He does not drink either. "It will not come out to meet you. Nothing that careful ever does. You will have to be worth coming out for."',
+      ],
+    },
+    after: {
+      title: 'The Same Four People',
+      lines: [
+        'The room is exactly as busy as it was, which is to say not.',
+        '"You went south, and you won, and I served the same four people this morning," he says, with no edge on it at all. "I have thought about nothing else all week."',
+        'He sets your glass down. "Here is where I have got to. A man who can be beaten and change nothing was never the one holding the door shut. He was the one standing in front of it, being interesting. Rest. Then go and find the door."',
+      ],
+    },
   },
   wit: {
     title: 'Talked Down, Again',
@@ -551,7 +627,29 @@ const AGAIN: Partial<Record<House, { title: string; tellings: string[][] }>> = {
         'He is quieter this time, and the quiet is more unsettling than the talk ever was.',
         '"You play like the road now, not like a traveller on it," he says. "I would think about what that costs, if I were the sort of man who thought about costs."',
       ],
+      [
+        'He resigns before you have shown him the mate, tidies the pieces into rows by height, and only then begins the speech.',
+        '"I have decided you are not lucky," he says. "It took a number of games and a certain amount of denial. Do not let it go to your head — mine has been quite enough for the two of us."',
+        'When you look back from the next rise he is still on the milestone, and he has not started walking anywhere.',
+      ],
     ],
+    knowing: {
+      title: 'A Name On The Trail',
+      lines: [
+        'You say the name out loud, because you have carried it up the hill and it has got heavy.',
+        'He is delighted. He is delighted for slightly too long. "Wittex! There is a name with a cellar in it. I shall tell you everything I know about him — and I will, and it will take no time at all, because it is nothing."',
+        'He sets the pieces back with great care, each one square in the middle of its square. "That is the trouble with a name, you know. A man can carry one a very long way and still walk straight past the fellow."',
+      ],
+    },
+    after: {
+      title: 'Still On The Milestone',
+      lines: [
+        'He is sitting where he always sits, with the board already set, and he does not stand up.',
+        '"You look tired," he says, kindly. "A long way south, I hear. Did you find what you went for?"',
+        'You watch him lay the pieces out. He does it the way he has always done it — square in the middle of each square, unhurried, one hand — and you have seen those hands do this before, at the end of a road, in a country that had stopped being a country.',
+        '"Sit down," says the wise man. The trail is very quiet. "We have a game, you and I. We have always had a game."',
+      ],
+    },
   },
   armored: {
     title: 'The Shields Come Off Faster Now',
@@ -564,7 +662,27 @@ const AGAIN: Partial<Record<House, { title: string; tellings: string[][] }>> = {
         'He waves off his own squire and resets the board himself, armour and all.',
         '"There is nothing left behind these shields you have not already broken. Go break something that is still proud of itself."',
       ],
+      [
+        'He is out of the breastplate before the pieces are back in the box, which he has never once been in a hurry to do.',
+        '"Plate teaches patience," he says, "and you have run out of things to learn from mine. That is not a complaint. Call it a discharge."',
+      ],
     ],
+    knowing: {
+      title: 'What The Plate Was For',
+      lines: [
+        'He does not sit down opposite you. He stands, in the armour, and sets his gauntlets on the table between you.',
+        '"I have never once been able to say what I armour against," he says. "Ask me on any other night and you will get a soldier\u2019s answer, and I will not mean a word of it."',
+        '"You have a name for it. I have wanted one of those for eleven years." He nods at the board. "Take it off me and go and use it."',
+      ],
+    },
+    after: {
+      title: 'Oiled, And Put Away',
+      lines: [
+        'The armour is not on him. It is stacked by the fire, oiled, in the manner of a thing being put away rather than set down.',
+        '"I slept," he says, the way another man would report a wound. "Straight through. No watch."',
+        'Then he looks down the valley — at the shut shutters, at the banner still folded by the well — and his jaw sets. "And not one other thing is different. So I will be putting it back on in the morning. One more game first, while I can still remember how to be worried."',
+      ],
+    },
   },
   ardax: {
     title: 'What Falls Stays Down, Again',
@@ -577,7 +695,27 @@ const AGAIN: Partial<Record<House, { title: string; tellings: string[][] }>> = {
         'He does not call anything back this time, even when he could, and you both notice him not doing it.',
         '"Raising the dead only frightens people who have not beaten them already," he says. "Go on. He is waiting, and he does not wait kindly."',
       ],
+      [
+        'The graveyard on his side of the table stays exactly where it is. He does not glance at it once, which from him is a kind of surrender.',
+        '"You have stopped being afraid of the second board," he says. "They all do in the end, and then they stop being interesting, and then I am the only one at this table still enjoying himself."',
+      ],
     ],
+    knowing: {
+      title: 'His Father, And The Other Name',
+      lines: [
+        'He hears the name and puts both hands flat on the table, like a man being searched.',
+        '"Say it again," he says. And then, before you can: "No. Do not."',
+        '"I raise the dead for a living. I have never once been able to lift what is on my father, and for eleven years I have taken that as a statement about me." He looks up. "Go and find out whose failing it actually is."',
+      ],
+    },
+    after: {
+      title: 'Nothing Came Back',
+      lines: [
+        'He does not call anything back tonight, and this time it is not restraint.',
+        '"I went up to him after you got home," he says. "I have my father\u2019s eyes and my father\u2019s trade, and I stood in front of him and could not shift a single thread of it."',
+        '"So whatever you beat down there was not the hand holding him. It was the knot." He starts setting the pieces, quickly. "Again. And do not go easy on me — I am in a mood to be beaten properly."',
+      ],
+    },
   },
   wittex: {
     title: 'The Curse, Beaten Back Again',
@@ -597,18 +735,64 @@ const AGAIN: Partial<Record<House, { title: string; tellings: string[][] }>> = {
 /** The card for a seat's fall: the full story beat on first blood, and the seat's own shorter
  *  returns after that. Kyrax and Rolain keep their instalment tellers, which predate this and
  *  do the same job with more to say. */
-export function seatFallCard(seat: House, timesBeatenBefore: number): StoryCard {
-  if (seat === 'kyrax') return kyraxCard(timesBeatenBefore);
-  if (seat === 'rolain') return rolainCard(timesBeatenBefore);
+/** Where the traveller stands in the story, which is what the road reacts to. */
+export interface RoadMood {
+  /** The Dragonlord has said his keeper's name: the road has an eighth seat now. */
+  knowsTruth?: boolean;
+  /** Wittex has been beaten at least once, and the air over the valley did not change. */
+  freed?: boolean;
+}
+
+/** The card for a seat's fall: the full story beat on first blood, and afterwards whichever of
+ *  that seat's returns matches how much the traveller now knows. Kyrax and Rolain keep their
+ *  own tellers, which predate this and do the same job with more to say. */
+export function seatFallCard(
+  seat: House,
+  timesBeatenBefore: number,
+  mood: RoadMood = {},
+): StoryCard {
+  if (seat === 'kyrax') return kyraxCard(timesBeatenBefore, mood);
+  if (seat === 'rolain') return rolainCard(timesBeatenBefore, mood);
   const base = STORY[seat].after;
   const again = AGAIN[seat];
   if (timesBeatenBefore === 0 || !again) return base;
+  // Wittex is his own exception: reaching him at all means the name is known, and beating him
+  // is what sets `freed`, so both phases would fire from his second fall onwards and drown the
+  // returns written for him. He keeps the cycling ones.
+  const phase = mood.freed
+    ? (again.after ?? again.knowing ?? null)
+    : mood.knowsTruth
+      ? (again.knowing ?? null)
+      : null;
+  if (phase) return { title: phase.title, lines: phase.lines, cta: base.cta };
   const tell = again.tellings[Math.min(timesBeatenBefore - 1, again.tellings.length - 1)];
   return { title: again.title, lines: tell, cta: base.cta };
 }
 
-export function rolainCard(timesBeatenBefore: number): StoryCard {
+export function rolainCard(timesBeatenBefore: number, mood: RoadMood = {}): StoryCard {
   const base = STORY.rolain.after;
+  if (timesBeatenBefore > 0 && mood.freed) {
+    return {
+      title: 'Still On Him',
+      lines: [
+        'She does not race you to the milestone. She is waiting at it, and the horse is already turned for home.',
+        '"I have been up to him twice since you got back," she says. "It has not moved. Not one thread of it. I put my hand on his and it was like putting your hand on a wall."',
+        '"So we were both wrong about where the end of this was." She swings up into the saddle, and for the first time since you met her she does not sound like someone carrying a story. "Good. I would rather be wrong and moving. Again — and do not let me have the middle of the board this time, I have been practising."',
+      ],
+      cta: base.cta,
+    };
+  }
+  if (timesBeatenBefore > 0 && mood.knowsTruth) {
+    return {
+      title: 'She Has Heard The Name',
+      lines: [
+        'She is off the horse before you have finished, which she has done exactly once before.',
+        '"They are saying my father told you something," she says. "They are saying there is a name."',
+        'She takes the reins in both hands and looks down the road rather than at you. "I have spent eleven years being the daughter of what happened. If that is the wrong story I would like it to be wrong all the way down, and I would like to be there when it is. Ride."',
+      ],
+      cta: base.cta,
+    };
+  }
   if (timesBeatenBefore === 0) return base;
 
   const again: string[][] = [

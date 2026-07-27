@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WITTEX_CLEARS_REQUIRED } from '../engine/ai';
-import { kyraxCard, runOverCard, seatFallCard, STORY } from './story';
+import { kyraxCard, rolainCard, runOverCard, seatFallCard, STORY } from './story';
 
 /* The Dragonlord tells the story in instalments, and the instalment count is load-bearing:
  * the reveal must land exactly on the clear that opens the eighth seat, and every clear after
@@ -67,6 +67,64 @@ describe('a seat that falls again says something new', () => {
     for (const seat of ['drunkard', 'innkeeper', 'wit', 'armored', 'ardax', 'wittex'] as const) {
       const again = seatFallCard(seat, 1);
       expect(again.lines, seat).not.toEqual(STORY[seat].after.lines);
+    }
+  });
+});
+
+/* The interesting variable is not how many times you have won, it is how much of the story you
+ * are carrying when you sit down. Every seat should have something different to say once the
+ * Dragonlord has given up the name, and different again once that name has been taken south and
+ * turned out not to be the end of anything. */
+describe('the road reacts to what the traveller knows', () => {
+  const seats = ['drunkard', 'innkeeper', 'wit', 'armored', 'ardax'] as const;
+
+  it('gives every seat a line for the name being known, and another for after the end', () => {
+    for (const seat of seats) {
+      const plain = seatFallCard(seat, 2).lines.join(' ');
+      const knowing = seatFallCard(seat, 2, { knowsTruth: true }).lines.join(' ');
+      const after = seatFallCard(seat, 2, { knowsTruth: true, freed: true }).lines.join(' ');
+      expect(knowing, `${seat}: knowing`).not.toBe(plain);
+      expect(after, `${seat}: after the end`).not.toBe(knowing);
+      expect(after, `${seat}: after the end`).not.toBe(plain);
+    }
+  });
+
+  it('says nothing new before the traveller has earned it', () => {
+    // First blood is the full story beat whatever else is true — the phases are returns.
+    for (const seat of seats) {
+      expect(seatFallCard(seat, 0, { knowsTruth: true, freed: true })).toEqual(STORY[seat].after);
+    }
+  });
+
+  it('keeps Wittex on his cycling returns, since both phases are true by the time he falls', () => {
+    // Reaching him means the name is known; beating him is what sets `freed`. A phase would
+    // fire from his second fall onwards and drown the returns written for him.
+    const second = seatFallCard('wittex', 1, { knowsTruth: true, freed: true });
+    expect(second).toEqual(seatFallCard('wittex', 1));
+    expect(second.lines).not.toEqual(STORY.wittex.after.lines);
+  });
+
+  it('has Rolain and the Dragonlord answer the end of the road too', () => {
+    const rolainAfter = rolainCard(2, { freed: true }).lines.join(' ');
+    expect(rolainAfter).toContain('It has not moved');
+    expect(rolainAfter).not.toBe(rolainCard(2).lines.join(' '));
+
+    const kyraxAfter = kyraxCard(3, { freed: true }).lines.join(' ');
+    expect(kyraxAfter, 'the curse outlived the man who was blamed for it').toContain('did not let go');
+    expect(kyraxAfter).not.toBe(kyraxCard(3).lines.join(' '));
+  });
+
+  it('never repeats a line between one seat and another', () => {
+    // Eight characters saying the same sentence is the failure this replaced.
+    const seen = new Map<string, string>();
+    for (const seat of seats) {
+      for (const mood of [{}, { knowsTruth: true }, { knowsTruth: true, freed: true }]) {
+        for (const line of seatFallCard(seat, 2, mood).lines) {
+          const owner = seen.get(line);
+          expect(owner === undefined || owner === seat, `"${line.slice(0, 40)}" is shared`).toBe(true);
+          seen.set(line, seat);
+        }
+      }
     }
   });
 });

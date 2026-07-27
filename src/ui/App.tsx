@@ -846,7 +846,13 @@ export default function App() {
         // The Dragonlord tells you a little more each time he falls, and the fifth time he
         // gives you the name. Read *before* `winSeat` lands, so the count is what it was when
         // he sat down.
-        const base = seatFallCard(seat, run.beaten[seat] ?? 0);
+        // What a seat says on a return depends on how much of the story the traveller is
+        // carrying: before the Dragonlord gives up the name, after it, and after that name has
+        // been taken south and turned out not to be the end of it.
+        const base = seatFallCard(seat, run.beaten[seat] ?? 0, {
+          knowsTruth: knowsTheTruth(run),
+          freed: run.freed,
+        });
         const beat = found ? relicCard(base, found) : base;
         // Beating the last seat ends the attempt, so the epilogue returns to the inn. Sending
         // it back to the road put the player on a ladder they had just finished, every seat
