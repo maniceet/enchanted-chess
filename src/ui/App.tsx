@@ -574,6 +574,13 @@ export default function App() {
    *  different prices, so the choice is the player's — same reasoning as the promotion picker,
    *  and the same shape. Without it the capture simply won and the binding was unreachable. */
   const [bindChoice, setBindChoice] = useState<{ from: number; to: number } | null>(null);
+  /* Chess960 can start a King next door to the square it castles onto — King on b1 with a rook
+   * on a1, and queen-side castling lands the King on c1, which is also an ordinary step. Both
+   * are legal, they are different moves, and the square cannot be allowed to pick one quietly:
+   * it did, and it always picked the step, so castling from those back ranks was unreachable. */
+  const [castleChoice, setCastleChoice] = useState<{ step: MoveAction; castle: MoveAction } | null>(
+    null,
+  );
   const [loader, setLoader] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const keepSelectionRef = useRef(false);
@@ -725,9 +732,10 @@ export default function App() {
       setLoader(null);
       return true;
     }
-    if (promo || bindChoice) {
+    if (promo || bindChoice || castleChoice) {
       setPromo(null);
       setBindChoice(null);
+      setCastleChoice(null);
       return true;
     }
     if (card && !cardAside) {
@@ -1272,10 +1280,14 @@ export default function App() {
 
     const candidates = targets.get(square);
     if (candidates?.length) {
+      const castle = candidates.find((m) => (m.flags ?? []).some((f) => f.startsWith('castle')));
+      const step = candidates.find((m) => !(m.flags ?? []).some((f) => f.startsWith('castle')));
       if (candidates.some((m) => m.promo)) setPromo({ from: candidates[0].from, to: square });
       else if (bindTargets.has(square) && selected !== null)
         setBindChoice({ from: selected, to: square });
-      else commit(candidates[0]);
+      // Only in 960, and only from the back ranks that produce the collision.
+      else if (castle && step) setCastleChoice({ step, castle });
+      else commit(castle ?? candidates[0]);
       return;
     }
     if (breakTargets.has(square) && selected !== null) {
@@ -3025,6 +3037,41 @@ export default function App() {
               </button>
               <button type="button" onClick={() => setLoader(null)}>
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {castleChoice && (
+        <div className="modal-backdrop" onClick={() => setCastleChoice(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Step, or castle</h3>
+            <p className="muted">
+              Your King begins beside the square he castles onto, so this one square is two
+              different moves. Castling brings the rook across with him and spends the right for
+              good; stepping is an ordinary King move and spends it just as surely.
+            </p>
+            <div className="promo-row">
+              <button
+                type="button"
+                onClick={() => {
+                  const { step } = castleChoice;
+                  setCastleChoice(null);
+                  commit(step);
+                }}
+              >
+                Step
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const { castle } = castleChoice;
+                  setCastleChoice(null);
+                  commit(castle);
+                }}
+              >
+                Castle
               </button>
             </div>
           </div>

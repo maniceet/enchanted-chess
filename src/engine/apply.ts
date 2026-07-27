@@ -41,8 +41,27 @@ import type {
 
 const err = (error: string): EngineError => ({ error });
 
+/** Is this move a castle rather than an ordinary step? */
+const castles = (m: MoveAction): boolean => {
+  const flags = m.flags ?? [];
+  return flags.includes('castleK') || flags.includes('castleQ');
+};
+
+/* Two moves are the same move when they start and end alike, promote alike — and castle alike.
+ *
+ * That last clause is not decoration. In Chess960 a King can begin next door to its castling
+ * square: with the King on b1 and a rook on a1, queen-side castling lands the King on c1, which
+ * is also an ordinary King step. `legalMoves` correctly offers both, and matching on squares
+ * alone found the ordinary step first — so asking the engine to castle moved the King one
+ * square, left the rook where it stood, and burned the castling rights on the way past. Classic
+ * chess cannot produce the collision (e1-g1 is never a King's step), so nothing caught it. */
 function sameMove(a: MoveAction, b: MoveAction): boolean {
-  return a.from === b.from && a.to === b.to && (a.promo ?? null) === (b.promo ?? null);
+  return (
+    a.from === b.from &&
+    a.to === b.to &&
+    (a.promo ?? null) === (b.promo ?? null) &&
+    castles(a) === castles(b)
+  );
 }
 
 function dropCastleRightsFor(
