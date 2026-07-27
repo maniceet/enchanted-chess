@@ -24,13 +24,32 @@ import { extname, join, normalize } from 'node:path';
 import { WebSocket } from 'ws';
 
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
-const PORT = 8199;
-const CDP_PORT = 9222;
+/* Ports derived from the pid: two runs (or a zombie from a killed one) can never collide on
+ * the same server or debugger port again. */
+const PORT = 8100 + (process.pid % 400);
+const CDP_PORT = 9300 + (process.pid % 400);
 const DIST = 'dist';
 
+/* The gate hung for a quarter of an hour the night Chrome auto-updated underneath it —
+ * attached, idle, holding its ports, blocking every later gate run. A check that can hang is
+ * worse than a check that fails: nothing downstream can tell the difference between "still
+ * working" and "never coming back". Ten minutes of wall clock is more than any healthy run
+ * has ever used; past that, die loudly. */
+const WATCHDOG = setTimeout(() => {
+  console.error('overflow.ts watchdog: no verdict after 10 minutes — infrastructure is stuck, not the layout.');
+  process.exit(2);
+}, 600_000);
+WATCHDOG.unref?.();
+
 /** Widths worth caring about. 320 is Android's largest Display size on a Pixel 6, which is the
- *  narrowest viewport a real phone produces and the one that caught the board overhang. */
-const WIDTHS = [320, 360, 393, 412, 480, 600, 820];
+ *  narrowest viewport a real phone produces and the one that caught the board overhang.
+ *
+ *  ONLY_WIDTH narrows the run to one width: the driver (overflow-all.ts) runs each width as
+ *  its own short-lived process. The night Chrome updated to 151, long-lived multi-width runs
+ *  stalled mid-screen at a random width — never the same one, never reproducibly — while every
+ *  short-lived process stayed healthy. Short lives contain whatever that is. */
+const ALL_WIDTHS = [320, 360, 393, 412, 480, 600, 820];
+const WIDTHS = process.env.ONLY_WIDTH ? [Number(process.env.ONLY_WIDTH)] : ALL_WIDTHS;
 
 /** Each screen, and the buttons to press to reach it from a cold load. Text is matched loosely
  *  because these labels are prose and will drift; a screen that cannot be reached fails loudly
@@ -92,13 +111,23 @@ class Devtools {
       if (msg.error) waiter.no(new Error(msg.error.message));
       else waiter.ok(msg.result);
     });
+    // A socket that dies must fail every waiter. Without this, a Chrome that exits mid-run
+    // leaves the in-flight send pending forever — the exact silent 10-minute hang the
+    // watchdog kept catching: no response, no rejection, no progress.
+    const fail = (why: string) => () => {
+      for (const [, waiter] of this.pending) waiter.no(new Error(`devtools socket ${why}`));
+      this.pending.clear();
+    };
+    socket.on('close', fail('closed'));
+    socket.on('error', fail('errored'));
   }
 
-  static async attach(): Promise<Devtools> {
+  static async attach(port: number): Promise<Devtools> {
     // Chrome needs a moment to open the port; poll rather than guess at a sleep.
     for (let i = 0; i < 50; i++) {
       try {
-        const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json/list`);
+        // A half-open port makes a plain fetch hang forever; bounded, it just retries.
+        const res = await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(1000) });
         const targets = (await res.json()) as Array<{ type: string; webSocketDebuggerUrl?: string }>;
         const page = targets.find((t) => t.type === 'page' && t.webSocketDebuggerUrl);
         if (page?.webSocketDebuggerUrl) {
@@ -214,24 +243,39 @@ async function main(): Promise<void> {
     process.exit(1);
   }
   const server = serve();
-  let chrome: ChildProcess | undefined;
-  let dt: Devtools | undefined;
   const failures: Failure[] = [];
 
+  /* One Chrome per width, not one for the whole run. The night Chrome auto-updated to 151 the
+   * long-lived session went quiet somewhere inside the second width — sixty-odd navigations on
+   * one DevTools socket — while every short-lived tour script stayed healthy. Nine navigations
+   * per process is the profile that works; pay the ~2s relaunch seven times and stop debugging
+   * a browser's session lifetime. */
   try {
-    chrome = execFile(CHROME, [
-      '--headless=new',
-      '--disable-gpu',
-      '--no-first-run',
-      `--remote-debugging-port=${CDP_PORT}`,
-      '--user-data-dir=/tmp/enchanted-chess-overflow',
-      'about:blank',
-    ]);
-    dt = await Devtools.attach();
-    await dt.send('Page.enable');
-    await dt.send('Runtime.enable');
-
-    for (const width of WIDTHS) {
+    for (const [index, width] of WIDTHS.entries()) {
+      // Port per width, not per run: the previous Chrome is still dying while the next one
+      // starts, and sharing the port let the new one bind to the old one's ghost.
+      const cdp = CDP_PORT + index;
+      console.error(`[${width}px] launching chrome on :${cdp}`);
+      const chrome = execFile(CHROME, [
+        '--headless=new',
+        '--disable-gpu',
+        '--no-first-run',
+        `--remote-debugging-port=${cdp}`,
+        // Unique per width as well as per pid: a killed Chrome leaves a SingletonLock in its
+        // profile, and the next launch against the same dir stalls waiting on it forever.
+        `--user-data-dir=/tmp/enchanted-chess-overflow-${process.pid}-${width}`,
+        'about:blank',
+      ]);
+      let dt: Devtools;
+      try {
+        dt = await Devtools.attach(cdp);
+      } catch (e) {
+        chrome.kill();
+        throw e;
+      }
+      console.error(`[${width}px] attached`);
+      await dt.send('Page.enable');
+      await dt.send('Runtime.enable');
       await dt.send('Emulation.setDeviceMetricsOverride', {
         width,
         height: 800,
@@ -240,6 +284,7 @@ async function main(): Promise<void> {
       });
 
       for (const screen of SCREENS) {
+        console.error(`[${width}px] ${screen.name}`);
         // Every screen starts from a cold load with no saved run, so one screen's state can
         // never explain another's result. The clear has to happen *after* a navigation:
         // `about:blank` is an opaque origin and touching its storage throws.
@@ -264,14 +309,21 @@ async function main(): Promise<void> {
         const m = await dt.evaluate<{ over: number; worst?: Failure['worst'] }>(MEASURE);
         if (m.over > 0) failures.push({ width, screen: screen.name, over: m.over, worst: m.worst });
       }
+      dt.close();
+      chrome.kill();
       console.log(`${width}px checked`);
+      // `chrome.kill()` reaches only the launcher process. The GPU, network and renderer
+      // helpers it spawned are separate processes that orphan and live on — forty-five of
+      // them were found still running after one night of gate and tour launches, and the
+      // accumulated load is what made every later launch slower and flakier. The profile dir
+      // is unique to this run, so the match cannot touch anything else.
+      execFile('/usr/bin/pkill', ['-f', `enchanted-chess-overflow-${process.pid}-${width}`]);
     }
   } finally {
-    dt?.close();
-    chrome?.kill();
     server.close();
   }
 
+  clearTimeout(WATCHDOG);
   if (failures.length === 0) {
     console.log(`\nNo horizontal overflow at ${WIDTHS.join(', ')}px across ${SCREENS.length} screens.`);
     return;

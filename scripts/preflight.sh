@@ -45,7 +45,7 @@ step "Types"
 check npx tsc -b
 
 step "Horizontal overflow, seven widths"
-check npx tsx scripts/overflow.ts
+check npx tsx scripts/overflow-all.ts
 
 step "Dev-only state absent from the bundle"
 check npx tsx scripts/devgate.ts

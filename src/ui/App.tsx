@@ -3398,7 +3398,10 @@ function PlayerBar({
         </button>
       ) : (
         ps.powers.map((word) => {
-          const why = powerReason(state, color, word);
+          // Once the game is over there are no turns, so "not your turn" is a false statement
+          // on a finished board. A spent word keeps its strikethrough; the rest just go quiet.
+          const live = powerReason(state, color, word);
+          const why = state.status.kind === 'ongoing' ? live : live === 'used' ? 'used' : null;
           return (
             <button
               key={word}
