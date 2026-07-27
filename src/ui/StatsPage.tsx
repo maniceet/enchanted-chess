@@ -8,11 +8,25 @@ import {
   winRate,
   type Tally,
 } from './stats';
-import type { Enchantment } from '../engine/types';
 import { forgetLessons } from './tutorial';
-import { enchName } from './i18n';
+import { enchName, powerName } from './i18n';
 
-function TallyTable({ title, rows, label }: { title: string; rows: Tally[]; label: string }) {
+/* `name` is a parameter rather than a fixed call, because this table is used twice and the
+ * second use was rendering raw identifiers. Every key went through `enchName`, which knows the
+ * enchantments and nothing else, so the King powers table listed "teleport" and "decree" in
+ * lowercase beside an enchantments table listing "Taunt" and "Poison" — the ?? fallback quietly
+ * printing the id rather than failing. */
+function TallyTable({
+  title,
+  rows,
+  label,
+  name,
+}: {
+  title: string;
+  rows: Tally[];
+  label: string;
+  name: (key: string) => string;
+}) {
   return (
     <div className="panel">
       <h3>{title}</h3>
@@ -32,7 +46,7 @@ function TallyTable({ title, rows, label }: { title: string; rows: Tally[]; labe
           <tbody>
             {rows.map((row) => (
               <tr key={row.key}>
-                <td>{enchName(row.key as Enchantment) ?? row.key}</td>
+                <td>{name(row.key)}</td>
                 <td className="num-col">{row.picks}</td>
                 <td className="num-col">{row.wins}</td>
                 <td className="num-col">{row.draws}</td>
@@ -69,6 +83,34 @@ export function Stats({ onBack }: { onBack: () => void }) {
         </button>
       </header>
 
+      {/* Before the first game there is nothing to count, and three tables of zeros is a worse
+          answer than one sentence. The old empty state printed "White wins 0 / Black wins 0 /
+          Draws 0", then "Nothing tallied yet" twice, which tells a curious first-time visitor
+          neither what the room is for nor why it is worth coming back to. Say what will be here
+          and what fills it. */}
+      {records.length === 0 ? (
+        <div className="stats-grid">
+          <div className="panel">
+            <h3>An empty slate</h3>
+            <p className="muted">
+              The house counts every finished game — at this table and on the road alike. Once
+              there are games on the slate, this is where the shape of them shows: which
+              enchantments you actually reach for, which of the King’s words win and which only
+              look like they should, and whether White’s move really is worth what everyone says.
+            </p>
+            <p className="muted">Play a game and come back.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              forgetLessons();
+              onBack();
+            }}
+          >
+            Hear the Innkeeper’s lessons again
+          </button>
+        </div>
+      ) : (
       <div className="stats-grid">
         <div className="panel">
           <h3>Colour</h3>
@@ -107,8 +149,13 @@ export function Stats({ onBack }: { onBack: () => void }) {
           )}
         </div>
 
-        <TallyTable title="Enchantments" rows={enchantmentTallies(records)} label="Enchantment" />
-        <TallyTable title="King powers" rows={powerTallies(records)} label="Power" />
+        <TallyTable
+          title="Enchantments"
+          rows={enchantmentTallies(records)}
+          label="Enchantment"
+          name={enchName}
+        />
+        <TallyTable title="King powers" rows={powerTallies(records)} label="Power" name={powerName} />
 
         {/* The Innkeeper teaches each rule once, ever. This is the one place to ask for the
             course again — worth having because "once, ever" is also what a rule half-read
@@ -124,6 +171,7 @@ export function Stats({ onBack }: { onBack: () => void }) {
           Hear the Innkeeper’s lessons again
         </button>
       </div>
+      )}
     </>
   );
 }
