@@ -31,3 +31,7 @@ play/ledger-*.png
 play/mate-*.png
 play/squire-*.png
 play/words-*.png
+play/*.png
+play/beats*/
+!play/feature-graphic.png
+!play/icon-512.png
