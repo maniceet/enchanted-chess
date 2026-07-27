@@ -45,7 +45,7 @@ function seeded(seed: number): () => number {
 /** The builds the hero can bring, and their mana.
  *
  *  The harness used to know exactly one four-point loadout, which is a build no campaign player
- *  will ever actually hold: on the road you start at two mana and climb to eight. Measuring the
+ *  will ever actually hold: on the road you start at three mana and climb to ten. Measuring the
  *  ladder against a build nobody plays answers a question nobody asked, so the reference player
  *  can now be pointed at the real ends of the range.
  *
@@ -64,6 +64,18 @@ const HERO_BUILDS = {
   bare: {
     mana: 2,
     loadout: { ...emptyLoadout(), power: 'teleport' as const, enchantments: {} },
+  },
+  /* What a traveller now walks out of the inn holding: three mana, and Taunt, which the
+   * Innkeeper hands over when he falls. This is the build the middle of the road is actually
+   * fought with, so it is the one to ask about when the complaint is that the middle starves. */
+  starter: {
+    mana: 3,
+    loadout: {
+      ...emptyLoadout(),
+      power: 'teleport' as const,
+      powers: ['teleport', 'relocate', 'decree'] as const,
+      enchantments: { b1: 'taunt' as const, e2: 'taunt' as const },
+    },
   },
   queen: {
     mana: 8,

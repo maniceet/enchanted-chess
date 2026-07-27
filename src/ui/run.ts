@@ -57,8 +57,16 @@ const SAVE_VERSION = 1;
  *  many attempts they had made rather than from how this walk was going, and two runs never
  *  differed from each other. Now it starts at one every time and is only ever earned at a board,
  *  so the shape of a run is something that happens inside the run. Gold is the thing that
- *  crosses between them — see `loseRun`. */
-export const MANA_START = 1;
+ *  crosses between them — see `loseRun`.
+ *
+ *  Three, not one. From playtesting: the middle of the road was starving. Rolain, the Wit, the
+ *  Armoured Knight and Ardax all sit down with three mana, and a traveller who arrived at them
+ *  holding one was not playing a harder game, they were playing a smaller one — the enchantments
+ *  are the whole subject of this game and they could not afford to bring any. Starting level
+ *  with the middle seats means the fight there is about what you spend it on rather than whether
+ *  you have any. The two teaching seats bring one and two, so they are still beneath the
+ *  traveller, which is what teaching seats are for. */
+export const MANA_START = 3;
 
 /** The eight files a pawn can stand on, which is where Venom picks from. */
 const PAWN_FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -816,6 +824,21 @@ export function winSeat(state: RunState, who: House): RunState {
     beaten: { ...state.beaten, [who]: (state.beaten[who] ?? 0) + 1 },
     walkPurse: state.walkPurse + paid,
     keeper: state.keeper || who === 'innkeeper',
+    /* The Innkeeper teaches Taunt by beating you with it, and then he teaches it properly.
+     *
+     * From playtesting: a traveller walked out of the inn with mana and nothing to spend it on.
+     * Taunt is eight gold, which is most of an early purse, so the first real decision of a run
+     * was usually "buy the cheap one" — a choice with one sensible answer is not a choice, and
+     * it delayed the game's actual subject by a seat or two. He hands it over now, so the
+     * traveller reaches Rolain with something in hand and the Sorcerer's shelf is about what to
+     * add rather than whether to start.
+     *
+     * Idempotent: a second win over him teaches nothing, and a traveller who bought Taunt before
+     * beating him keeps exactly one copy. */
+    taught:
+      who === 'innkeeper' && !state.taught.includes('taunt')
+        ? [...state.taught, 'taunt' as Enchantment]
+        : state.taught,
     // Beating the last seat ends the attempt too, so a traveller who clears the road without
     // ever falling still finds the room open when they get back. Reaching Kyrax means the
     // Innkeeper fell on the way, so there is nothing further to check.
