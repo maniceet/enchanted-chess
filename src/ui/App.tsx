@@ -3664,7 +3664,7 @@ function PlayerBar({
         <span
           className={`clock ${active ? 'clock-running' : ''} ${
             remainingMs < 20_000 ? 'clock-low' : ''
-          }`}
+          } ${active && remainingMs < 10_000 ? 'clock-critical' : ''}`}
           title={
             state.clock
               ? `${state.clock.control.label}${

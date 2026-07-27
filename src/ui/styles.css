@@ -4533,3 +4533,32 @@ button.primary:hover:not(:disabled) {
   border-color: #b4483c;
   background: #46201b;
 }
+
+/* The last ten seconds, and only while they are actually running out.
+ *
+ * Under twenty seconds the clock already turns red, which reports the number. Under ten it is no
+ * longer a number anyone is reading — it is a thing about to happen — and a still red figure
+ * says that no better than a black one. It beats once a second, which is the rate the digits are
+ * changing at anyway.
+ *
+ * Gated on the clock being the running one. A paused clock sitting at eight seconds is not
+ * urgent yet, and both clocks turn red under twenty: pulsing the opponent's while they think
+ * would be the board hurrying the wrong player. */
+.clock-critical {
+  animation: clock-beat 1s ease-in-out infinite;
+}
+
+@keyframes clock-beat {
+  50% {
+    color: #ffd0c4;
+    border-color: #ff6b4a;
+    box-shadow: 0 0 14px rgb(255 107 74 / 55%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The red stays; only the beat goes. */
+  .clock-critical {
+    animation: none;
+  }
+}
