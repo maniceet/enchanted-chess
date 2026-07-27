@@ -248,23 +248,30 @@ export function EnchRune({ ench, shield }: { ench: Enchantment; shield?: ShieldS
  * Deliberately unlabelled. It sits beside the numbers it illustrates rather than replacing
  * them, and at ten pips wide it still fits a 320px phone. */
 export function ManaMeter({
-  spent,
+  filled,
   total,
   reserved = 0,
 }: {
-  spent: number;
+  /** The first number in the fraction beside it, whatever that fraction is counting.
+   *
+   *  Not "spent", which is what this was called and which was wrong in half the places it is
+   *  used: the builder's label reads "4/7 used" and the spoils footer reads "Mana 6 of 10", so
+   *  the same widget was lighting up spent points on one screen and remaining points on the
+   *  other. It illustrates the number it sits next to — that is the rule, and the prop is named
+   *  for it now so the next caller cannot get it backwards. */
+  filled: number;
   total: number;
   /** Points held back on purpose — Revive's price. Shown apart from what is simply unspent. */
   reserved?: number;
 }) {
   const pips = Math.max(0, Math.min(20, Math.round(total)));
-  const used = Math.max(0, Math.min(pips, Math.round(spent)));
+  const used = Math.max(0, Math.min(pips, Math.round(filled)));
   const held = Math.max(0, Math.min(pips - used, Math.round(reserved)));
   return (
     <span
       className="mana-meter"
       role="img"
-      aria-label={`${used} of ${pips} mana spent${held ? `, ${held} held back` : ''}`}
+      aria-label={`${used} of ${pips} mana${held ? `, ${held} held back` : ''}`}
     >
       {Array.from({ length: pips }, (_, i) => (
         <i

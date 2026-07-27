@@ -4204,3 +4204,31 @@ button.primary:hover:not(:disabled) {
 .run-locked .mana-meter {
   justify-content: center;
 }
+
+/* A pip lights when it is spent.
+ *
+ * Class-driven, not mount-driven: the pips are keyed by index and never remount, so the
+ * animation runs exactly when a pip *gains* `is-spent` — the moment an enchantment is bought —
+ * and never on an unrelated re-render. Spending is the one decision this screen exists for and
+ * it used to happen in silence. */
+.mana-pip.is-spent {
+  animation: pip-lit 320ms ease-out;
+}
+@keyframes pip-lit {
+  0% {
+    transform: scale(2.1);
+    box-shadow: 0 0 14px rgb(126 196 255 / 95%);
+  }
+  60% {
+    box-shadow: 0 0 10px rgb(126 196 255 / 75%);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 5px rgb(126 196 255 / 55%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mana-pip.is-spent {
+    animation: none;
+  }
+}

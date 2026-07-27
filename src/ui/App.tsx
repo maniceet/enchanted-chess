@@ -2221,7 +2221,7 @@ export default function App() {
             ))}
           </div>
           <p className="run-locked">
-            <ManaMeter spent={campaignBudget(run)} total={MANA_CAP} />
+            <ManaMeter filled={campaignBudget(run)} total={MANA_CAP} />
             Mana {campaignBudget(run)} of {MANA_CAP} · gold {run.gold}
           </p>
         </div>
@@ -2694,7 +2694,7 @@ export default function App() {
                   </div>
                   <div className="reveal-budget">
                     <ManaMeter
-                      spent={check.spent}
+                      filled={check.spent}
                       total={budgetFor}
                       reserved={
                         (loadout.powers?.length ? loadout.powers : [loadout.power]).includes(

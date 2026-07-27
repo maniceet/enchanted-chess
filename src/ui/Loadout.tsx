@@ -121,7 +121,7 @@ export function LoadoutBuilder({
               every unspent point is simply free. Passing the reserve unconditionally made the
               whole meter look reserved before a single choice had been made. */}
           <ManaMeter
-            spent={check.spent}
+            filled={check.spent}
             total={budget}
             reserved={chosen.includes('revive') ? check.reserve : 0}
           />
