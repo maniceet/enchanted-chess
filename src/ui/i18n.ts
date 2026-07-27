@@ -133,6 +133,7 @@ const EN = {
   'ench.swift': 'Swift',
   'ench.herald': 'Herald',
   'ench.poison': 'Poison',
+  'ench.shield': 'Shield',
   'ench.immolation': 'Immolation',
   'power.teleport': 'Teleport',
   'power.relocate': 'Relocate',

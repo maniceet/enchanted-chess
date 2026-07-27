@@ -90,6 +90,10 @@ export const PURSE: Record<House, number> = {
 /** A full clear is worth 104 gold, and the book costs 96 to fill. Nobody buys everything on
  *  one run, and nobody needs to. */
 export const PRICE: Record<Enchantment, number> = {
+  // Dearer than a Herald and cheaper than Poison. It is three mana of unconditional armour and
+  // no seat on the road can answer it with one of its own, so it should be a walk's saving
+  // rather than an early impulse.
+  shield: 26,
   // Cheap for what it does, and priced that way on purpose: it does nothing at all without a
   // Herald, which costs 22 on its own, so the pair is the real purchase.
   squire: 12,
@@ -115,6 +119,9 @@ export const SPELLBOOK: Enchantment[] = [
   'herald',
   'squire',
   'poison',
+  // Last on the shelf, and the only thing on it the road cannot answer in kind: no seat's
+  // spellbook contains a Shield, so this is armour the house has no copy of.
+  'shield',
 ];
 
 /** Everything a book may contain, taught or found. Wider than SPELLBOOK, and the list a saved

@@ -131,13 +131,22 @@ function pawnBlockedByOutpost(attacker: Piece, victim: Piece | null): boolean {
  *  enemy ground and the shield sleeps, and it wakes again if the piece comes home. */
 export function isShielded(board: Board, square: number): boolean {
   const p = board[square];
-  return (
-    p != null &&
-    p.ench === 'taunt' &&
-    !p.shieldBroken &&
-    inOwnHalf(p.color, square) &&
-    isAttacked(board, square, p.color)
-  );
+  if (p == null || p.shieldBroken) return false;
+  /* The Aegis asks for nothing back.
+   *
+   * Taunt is cheap because it charges rent: be defended, and stay in your own half. This one is
+   * three points and simply holds — anywhere on the board, defended or not — so the piece under
+   * it cannot be taken in one turn. Everything downstream is shared with Taunt on purpose: the
+   * same `shieldBroken` flag, the same break action, the same hammer on the same square. It is
+   * one mechanic with two prices, not two mechanics.
+   *
+   * One consequence worth stating, because Taunt's comment below relies on the opposite: a
+   * Taunt shield implies a defender, so a King could never strike one without capturing into
+   * check. An Aegis implies nothing, so an undefended one *can* be stood next to a King, and a
+   * King may spend its turn breaking it. That is correct — a shield-break is not a capture and
+   * the King does not move — and it is the only place the two differ after this line. */
+  if (p.ench === 'shield') return true;
+  return p.ench === 'taunt' && inOwnHalf(p.color, square) && isAttacked(board, square, p.color);
 }
 
 /** A capture attempt on a shielded piece becomes a shield-break instead, so it is not a legal

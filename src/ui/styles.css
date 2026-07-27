@@ -1081,9 +1081,16 @@ h1 {
   filter: drop-shadow(0 2px 2px rgb(40 22 8 / 45%)) drop-shadow(0 0 6px rgb(226 98 44 / 65%));
 }
 
-/* the shield glow marks a Taunt that is actually in force right now */
+/* The glow marks a shield that is actually in force right now — both kinds carry it, because
+   both mean the same thing to the player about to move: you cannot take this in one turn.
+   The colour follows the rune, so the two are still told apart at a glance: Taunt's cold steel,
+   the Aegis's warmer metal. */
 .is-shielded {
   filter: drop-shadow(0 2px 2px rgb(40 22 8 / 45%)) drop-shadow(0 0 5px rgb(214 226 236 / 90%));
+}
+
+.ench-shield.is-shielded {
+  filter: drop-shadow(0 2px 2px rgb(40 22 8 / 45%)) drop-shadow(0 0 5px rgb(216 180 112 / 92%));
 }
 
 .plinth {
@@ -1190,6 +1197,25 @@ h1 {
 .rune-taunt.rune-shield-dormant .rune-crack {
   stroke: #9aa3ab;
   stroke-width: 1.4;
+}
+
+/* The Aegis. Same silhouette as Taunt so it reads as armour instantly, in a warmer metal so the
+   two are told apart at a glance, with a raised boss across it. It has no dormant state and so
+   never wears the crack: it is up until it is spent, and once spent it is not drawn at all. */
+.rune-shield .rune-fill {
+  fill: #c9a86a;
+}
+
+.rune-shield {
+  filter: drop-shadow(0 0 3px rgb(201 168 106 / 70%));
+}
+
+.rune-boss {
+  fill: none;
+  stroke: #2a1c10;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  opacity: 0.8;
 }
 .rune-crack { stroke: #241a12; stroke-width: 1.7; fill: none; stroke-linejoin: round; stroke-linecap: round; }
 .rune-martyr .rune-fill { fill: var(--blood); }

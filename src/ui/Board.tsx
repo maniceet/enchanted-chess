@@ -4,8 +4,8 @@ import { FILES, fileOf, inOwnHalf, rankOf, squareName } from '../engine/board';
 import { isFrozen } from '../engine/apply';
 import { isShielded } from '../engine/movegen';
 import { ENCH_TEXT } from '../engine/loadout';
-import type { GameState, MoveAction, Piece } from '../engine/types';
-import { EnchRune, PieceGlyph, PIECE_NAME, type ShieldState } from './Pieces';
+import type { Enchantment, GameState, MoveAction, Piece } from '../engine/types';
+import { EnchRune, PieceGlyph, PIECE_NAME, SHIELDING, type ShieldState } from './Pieces';
 import { enchName } from './i18n';
 
 export interface BoardProps {
@@ -38,8 +38,11 @@ export interface BoardProps {
 
 export function shieldStateOf(state: GameState, square: number): ShieldState {
   const piece = state.board[square];
-  if (!piece || piece.ench !== 'taunt') return 'none';
+  if (!piece || !SHIELDING.has(piece.ench ?? ('' as Enchantment))) return 'none';
   if (piece.shieldBroken) return 'broken';
+  /* `isShielded` answers for both, and answers differently: Taunt has to be defended and at
+   * home, the Aegis simply is. So an Aegis never shows the dormant crack — it is up or it is
+   * spent, and there is no third state to draw. */
   return isShielded(state.board, square) ? 'active' : 'dormant';
 }
 
@@ -53,7 +56,11 @@ function describe(state: GameState, square: number): string {
   if (!piece.ench) return name + bound;
   const shield = shieldStateOf(state, square);
   const shieldNote =
-    piece.ench === 'taunt'
+    piece.ench === 'shield'
+      ? shield === 'broken'
+        ? '\nShield: spent. This piece is now ordinary'
+        : '\nShield: UP — it cannot be taken in one turn'
+      : piece.ench === 'taunt'
       ? shield === 'active'
         ? '\nShield: UP (defended, in your own half)'
         : shield === 'broken'
@@ -82,7 +89,7 @@ export function label(state: GameState, square: number): string {
   if (!piece) return squareName(square);
   const parts = [`${piece.color === 'w' ? 'White' : 'Black'} ${PIECE_NAME[piece.type]} on ${squareName(square)}`];
   if (piece.ench) {
-    const shield = piece.ench === 'taunt' ? shieldStateOf(state, square) : null;
+    const shield = SHIELDING.has(piece.ench) ? shieldStateOf(state, square) : null;
     parts.push(
       shield === null
         ? enchName(piece.ench)

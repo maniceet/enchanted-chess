@@ -424,6 +424,8 @@ const TOOK: Record<Enchantment, string[]> = {
   herald: ['That one was going to be a queen. Was.', 'I do not let heralds finish their message.'],
   poison: ['Poison, in my own house. Rude.', 'Ah. That is going to sting for a while.'],
   immolation: ['It went up. Half my ground went with it.', 'Fire. In a room this small. Wonderful.'],
+  // The house never carries one, so this is only ever said about the traveller's.
+  shield: ['Twice. I had to reach for that one twice.', 'Steel that asks for nothing. Where did you get it?'],
 };
 
 /** What it says when you take an enchanted piece of its. */
@@ -436,6 +438,7 @@ const LOST: Record<Enchantment, string[]> = {
   herald: ['You stopped the message. That is the correct answer.', 'Well spotted, traveller.'],
   poison: ['Careful. That one bites on the way down.', 'Drink up. You will want to.'],
   immolation: ['Stand back, traveller. That one does not go quietly.', 'You may regret where you were standing.'],
+  shield: ['I broke it last turn. This turn I take it.', 'Steel spends. Yours just did.'],
 };
 
 const POISONED = ['That was poisoned and I knew it. I did it anyway.', 'Worth it. Probably.'];

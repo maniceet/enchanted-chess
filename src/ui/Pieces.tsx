@@ -123,17 +123,26 @@ const SHAPES: Record<PieceType, JSX.Element> = {
   ),
 };
 
+/* The two enchantments that put a shield on a piece.
+ *
+ * Taunt and the Aegis share every downstream mechanic — the same `shieldBroken` flag, the same
+ * break action, the same hammer — and differ only in what they ask for to stay up. So every
+ * question of the form "is there a shield here?" has to name both, and there are about ten of
+ * them across the board, the builder, the reveal and the drills. One set, exported, rather than
+ * ten copies of `=== 'taunt'` for the next enchantment to be missing from. */
+export const SHIELDING: ReadonlySet<Enchantment> = new Set<Enchantment>(['taunt', 'shield']);
+
 /** A piece plus its enchantment treatment. Consequences are rendered, not causes (spec §4):
  *  a Taunt shows an intact shield only while it is actually defended, a cracked shield when it
  *  is not, and nothing at all once the shield has been spent — a spent Taunt is an ordinary
  *  piece and is drawn as one. */
 export function PieceGlyph({ type, color, ench = null, shield = 'none', frozen }: GlyphProps) {
-  const shown = ench === 'taunt' && shield === 'broken' ? null : ench;
+  const shown = ench != null && SHIELDING.has(ench) && shield === 'broken' ? null : ench;
   const classes = [
     'piece',
     `piece-${color}`,
     shown ? `ench-${shown}` : '',
-    shown === 'taunt' && shield === 'active' ? 'is-shielded' : '',
+    shown != null && SHIELDING.has(shown) && shield === 'active' ? 'is-shielded' : '',
     frozen ? 'is-frozen' : '',
   ]
     .filter(Boolean)
@@ -172,8 +181,8 @@ export function PieceGlyph({ type, color, ench = null, shield = 'none', frozen }
 /** Corner rune marking which enchantment a piece carries — readable without hover.
  *  Taunt has two faces: whole while the piece is defended, cracked while it is not. */
 export function EnchRune({ ench, shield }: { ench: Enchantment; shield?: ShieldState }) {
-  const state = ench === 'taunt' ? (shield ?? 'dormant') : 'none';
-  if (ench === 'taunt' && shield === 'broken') return null;
+  const state = SHIELDING.has(ench) ? (shield ?? 'dormant') : 'none';
+  if (SHIELDING.has(ench) && shield === 'broken') return null;
 
   return (
     <svg className={`rune rune-${ench} rune-shield-${state}`} viewBox="0 0 24 24" aria-hidden="true">
@@ -184,6 +193,15 @@ export function EnchRune({ ench, shield }: { ench: Enchantment; shield?: ShieldS
             /* Undefended: the shield is shown cracked, because Taunt is not in effect. */
             <path className="rune-crack" d="M12 3.2 9.6 9.4l4.2 2-3 5.2 2.4 3.4" />
           )}
+        </>
+      )}
+      {ench === 'shield' && (
+        /* The same silhouette as Taunt so it reads as armour at a glance, with a raised boss
+           across it so the two are not each other at small sizes — and never a crack, because
+           this one is never merely dormant: it is up until it is spent. */
+        <>
+          <path className="rune-fill" d="M12 2.4 20.4 5.3v6.4c0 5.2-3.5 9-8.4 10.3C7.1 20.7 3.6 16.9 3.6 11.7V5.3z" />
+          <path className="rune-boss" d="M5.6 11.4h12.8M12 6.1v11.6" />
         </>
       )}
       {ench === 'martyr' && (
@@ -295,6 +313,7 @@ export const PIECE_NAME: Record<PieceType, string> = {
 };
 
 export const ENCH_NAME: Record<Enchantment, string> = {
+  shield: 'Shield',
   squire: 'Squire',
   taunt: 'Taunt',
   martyr: 'Martyr',

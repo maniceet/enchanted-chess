@@ -26,6 +26,7 @@ const FLAVOUR: Record<Enchantment, string> = {
   swift: 'Two ranks, always, not just the first.',
   herald: 'A crown one rank early.',
   poison: 'Whatever eats this dies of it.',
+  shield: 'Steel that asks for nothing back.',
   immolation: 'It takes the ground with it.',
 };
 

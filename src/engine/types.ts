@@ -15,6 +15,10 @@ export type Enchantment =
   | 'swift'
   | 'herald'
   | 'poison'
+  /** The Aegis. A shield with no conditions on it: it does not ask to be defended and it does
+   *  not sleep in the enemy half, so the piece under it simply cannot be taken in one turn.
+   *  Player-only — it is absent from `HOUSE_SPELLBOOK`, so no seat ever brings one. */
+  | 'shield'
   | 'immolation';
 
 export type PowerName =

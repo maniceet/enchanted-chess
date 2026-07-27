@@ -18,6 +18,7 @@ const CARRIERS: Record<Enchantment, string> = {
   swift: 'pawn',
   herald: 'pawn',
   poison: 'pawn',
+  shield: 'any piece but the King · yours only',
   immolation: 'pawn',
 };
 

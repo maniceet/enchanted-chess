@@ -24,6 +24,10 @@ export const ENCH_COST: Record<Enchantment, number> = {
   swift: 2,
   herald: 3,
   poison: 4,
+  // Three, and it buys a shield with no conditions on it — see ENCH_TEXT. Taunt is one
+  // because Taunt asks for two things back: be defended, and stay home. This asks for nothing,
+  // so it costs what a Herald costs.
+  shield: 3,
   immolation: 4,
 };
 
@@ -42,6 +46,9 @@ export const ENCHANTMENTS: Enchantment[] = [
   // the cheapest place to say so.
   'herald',
   'squire',
+  // Beside Taunt would read as a cheaper/dearer pair of the same thing; down here with the
+  // expensive and strange is honest about what three points buys.
+  'shield',
   'poison',
   'immolation',
 ];
@@ -83,6 +90,10 @@ export const LEGAL_CARRIERS: Record<Enchantment, PieceType[]> = {
   swift: ['p'],
   herald: ['p'],
   poison: ['p'],
+  // No Dragon, for the same reason Taunt has none: the raises shed shields, so it would be
+  // points spent on something the first move deletes. A Queen is legal and costs twelve, which
+  // the ten-point cap refuses on its own — the arithmetic does the balancing, not a special case.
+  shield: ['p', 'n', 'b', 'r', 'q'],
   immolation: ['p'],
 };
 
@@ -96,6 +107,8 @@ export const ENCH_TEXT: Record<Enchantment, string> = {
   swift: 'May move two squares forward on any move, not just its first. Every double-step is capturable en passant.',
   herald: 'Promotes on reaching the seventh rank instead of the eighth. Normal promotion choice.',
   poison: 'When captured, the capturing piece is also removed from the board. A capturing King is immune.',
+  shield:
+    'An unconditional shield: this piece cannot be taken in one turn. An enemy capture attempt breaks the shield instead — the attacker does not move, and its turn is spent — and only then can the piece be taken. Unlike Taunt it asks for nothing in return: it does not need to be defended, and it does not sleep in the enemy half. Once broken, it is gone for good. No seat on the road brings one.',
   immolation:
     'When captured, it burns the three squares in front of it — straight ahead and both diagonals, exactly where it could have moved. Every piece standing there is destroyed, yours as well as theirs. Kings do not burn, and the piece that took it survives, standing where it stood.',
 };
@@ -171,6 +184,7 @@ const ENCH_LABEL: Record<Enchantment, string> = {
   swift: 'Swift',
   herald: 'Herald',
   poison: 'Poison',
+  shield: 'Shield',
   immolation: 'Immolation',
 };
 
