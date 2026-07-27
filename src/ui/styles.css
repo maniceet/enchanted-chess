@@ -4276,3 +4276,21 @@ button.primary:hover:not(:disabled) {
   z-index: 3;
   pointer-events: none;
 }
+
+/* The language picker in the top bar: as quiet as the mute button beside it. */
+.lang {
+  flex: none;
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--edge-soft);
+  border-radius: 2px;
+  color: var(--parch-dim);
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+.lang:hover {
+  color: var(--parch);
+  border-color: var(--brass);
+}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, useSyncExternalStore } from 'react';
 import { applyAction } from '../engine/apply';
 import {
   PIECE_VALUE,
@@ -82,6 +82,7 @@ import {
   WITTEX_PALETTE,
 } from './portraits';
 import { isMuted, play, setMuted } from './sound';
+import { LOCALE_NAME, LOCALES, locale, setLocale, subscribeLocale, t as T, type Locale } from './i18n';
 import {
   availableEnchantments,
   beginRun,
@@ -515,6 +516,8 @@ export default function App() {
     },
   );
   const [bench, setBench] = useState<Loadout>(loadBench);
+  /* The screen listens for the language, because the screen is what renders the strings. */
+  useSyncExternalStore(subscribeLocale, locale);
   const [run, setRun] = useState<RunState>(loadRun);
   const [salvage, setSalvage] = useState(hasUnreadableSave);
   const won = run.progress;
@@ -1646,7 +1649,7 @@ export default function App() {
       <Shell bare muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
         <div className="home">
           <h2 className="home-title">Enchanted Chess</h2>
-          <p className="home-sub">Magic here has rules, a price, and no secrets.</p>
+          <p className="home-sub">{T('home.tagline')}</p>
           {/* No standing explanation here. How the run economy works is told once, on the
               prologue card, when a campaign begins — a home screen is a place to choose from,
               and prose sitting on it permanently gets read once and then becomes furniture. */}
@@ -1728,12 +1731,12 @@ export default function App() {
                   setPhase('house');
                 }}
               >
-                {run.active ? 'Continue the attempt' : 'Set out on the road'}
+                {run.active ? T('home.road.continue') : T('home.road')}
                 {run.active && nextSeat(run) ? (
                   <span className="soon">next: {HOUSE[nextSeat(run)!].label}</span>
                 ) : (
                   <span className="soon">
-                    {run.attempts === 0 ? 'one walk, from the taps up' : 'from the taps, again'}
+                    {run.attempts === 0 ? T('home.road.first') : T('home.road.again')}
                   </span>
                 )}
               </button>
@@ -1825,10 +1828,10 @@ export default function App() {
               </button>
             )}
             <button type="button" onClick={() => { play('select'); setPhase('chest'); }}>
-              The Sorting Chest
+              {T('home.chest')}
               <span className="soon">
                 {run.taught.length === 0
-                  ? 'nothing to sort yet'
+                  ? T('home.chest.empty')
                   : `lay out your ${run.taught.length === 1 ? 'enchantment' : 'enchantments'} · ${campaignBudget(run)} mana`}
               </span>
             </button>
@@ -1836,24 +1839,22 @@ export default function App() {
                 enchantment on the table from the first move, and nothing you do here touches
                 the run. Separated so it cannot be mistaken for progress. */}
             <div className="menu-rule">
-              <span>Away from the road</span>
+              <span>{T('home.away')}</span>
             </div>
             <button type="button" onClick={() => { play('select'); setPhase('friendly'); }}>
-              Duel another captain
-              <span className="soon">
-                every enchantment, no gold, no ladder
-              </span>
+              {T('home.duel')}
+              <span className="soon">{T('home.duel.sub')}</span>
             </button>
             <button type="button" onClick={() => { play('select'); setPhase('rules'); }}>
-              Rules
+              {T('home.rules')}
             </button>
             <button type="button" onClick={() => { play('select'); setPhase('drills'); }}>
-              The Innkeeper’s table
-              <span className="soon">learn each enchantment on a small board</span>
+              {T('home.table')}
+              <span className="soon">{T('home.table.sub')}</span>
             </button>
             <button type="button" onClick={() => { play('select'); setPhase('ledger'); }}>
-              The Ledger
-              <span className="soon">what has been winning, and how often</span>
+              {T('home.ledger')}
+              <span className="soon">{T('home.ledger.sub')}</span>
             </button>
             {resumable && !midRoadDuel && (
               <button type="button" onClick={() => { play('select'); setPhase('game'); }}>
@@ -2314,7 +2315,7 @@ export default function App() {
     return (
       <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
         <div className="menu">
-          <h2 className="menu-title">Away from the road</h2>
+          <h2 className="menu-title">{T('home.away')}</h2>
           <p className="menu-copy">
             A duel between captains is not part of the campaign. Both sides get all six
             enchantments and every King power from the first move, there is no gold in it, and
@@ -2359,8 +2360,8 @@ export default function App() {
               </button>
             )}
             <button type="button" onClick={() => { play('select'); setPhase('ledger'); }}>
-              The Ledger
-              <span className="soon">what has been winning, and how often</span>
+              {T('home.ledger')}
+              <span className="soon">{T('home.ledger.sub')}</span>
             </button>
             <button type="button" className="quiet" onClick={() => setPhase('home')}>
               ← Back
@@ -2945,7 +2946,7 @@ export default function App() {
                   />
                 </li>
               ))}
-              {!sanList.length && <li className="muted">No moves yet.</li>}
+              {!sanList.length && <li className="muted">{T('game.noMoves')}</li>}
             </ol>
           </div>
           {/* Against a stranger these stop being playtest tools and start being cheating.
@@ -3006,11 +3007,11 @@ export default function App() {
             {state.status.kind === 'ongoing' && (
               <div className="tool-row tool-row-quiet">
                 <button type="button" onClick={() => commit({ type: 'resign' })}>
-                  Resign
+                  {T('act.resign')}
                 </button>
                 {state.drawOfferedBy && state.drawOfferedBy !== state.turn ? (
                   <button type="button" onClick={() => commit({ type: 'drawAccept' })}>
-                    Accept draw
+                    {T('act.acceptDraw')}
                   </button>
                 ) : (
                   <button
@@ -3018,7 +3019,7 @@ export default function App() {
                     onClick={() => commit({ type: 'drawOffer' })}
                     disabled={state.drawOfferedBy === state.turn}
                   >
-                    {state.drawOfferedBy === state.turn ? 'Draw offered' : 'Offer draw'}
+                    {state.drawOfferedBy === state.turn ? T('act.drawOffered') : T('act.offerDraw')}
                   </button>
                 )}
               </div>
@@ -3312,6 +3313,7 @@ function Shell({
   /** Home: the big title carries the name, so the bar shows only the mark. */
   bare?: boolean;
 }) {
+
   return (
     <div className="app">
       <header className="topbar">
@@ -3321,6 +3323,20 @@ function Shell({
           </span>
           {!bare && <h1>Enchanted Chess</h1>}
         </div>
+        {/* Language sits beside sound because they are the same kind of thing: a preference
+            belonging to the person rather than to the game, reachable from every screen. */}
+        <select
+          className="lang"
+          value={locale()}
+          aria-label={T('app.language')}
+          onChange={(e) => setLocale(e.target.value as Locale)}
+        >
+          {LOCALES.map((l) => (
+            <option key={l} value={l}>
+              {LOCALE_NAME[l]}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           className={`mute ${muted ? 'is-muted' : ''}`}
@@ -3405,7 +3421,7 @@ function StatusPanel({ state, powerMode }: { state: GameState; powerMode: PowerM
 
   return (
     <div className={`panel status ${s.kind !== 'ongoing' ? 'status-over' : ''}`}>
-      <h3>Status</h3>
+      <h3>{T('game.status')}</h3>
       <p className="status-text">{text}</p>
       {/* Every armed state carries its exit: the hint says what to tap, this says you don't have to. */}
       {hint && <p className="status-hint">{hint} Tap elsewhere to cancel.</p>}
