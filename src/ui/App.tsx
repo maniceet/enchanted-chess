@@ -240,6 +240,21 @@ function storyFace(card: StoryCard): House | 'you' {
   return card.face ?? STORY_FACE_BY_TITLE[card.title] ?? 'you';
 }
 
+/** A story card is easier to enter when it tells the player where they are before asking them
+ * to read. The prose remains the source of truth; this is a small stage direction for the UI. */
+function storyScene(title: string, beatLabel: string, speaker: House | 'you'): string {
+  if (title === 'The Law of Lothar') return 'THE TAVERN DOOR · BEFORE THE FIRST MOVE';
+  if (title === 'The Name' || title === 'Not A Costume') return 'KYRAX’S HALL · THE FIFTH FALL';
+  if (title === 'The Valley, After' || title === 'The Longest Road, Walked') {
+    return 'THE VALLEY · AFTER THE BOARD';
+  }
+  if (speaker === 'wittex') return 'THE QUIET VALLEY · THE TRUE NAME';
+  if (speaker === 'kyrax') return 'THE MOUNTAIN HALL · THE BOUND DRAGON';
+  if (speaker === 'rolain') return 'THE ROAD SOUTH · BETWEEN TABLES';
+  if (speaker === 'you') return 'THE OPEN ROAD · YOUR NEXT MOVE';
+  return `${beatLabel} · A TABLE IN THE VALLEY`;
+}
+
 const isHouse = (o: Setup['opponent']): o is House => o !== 'table' && o !== 'online';
 
 /* How a drawn game is announced.
@@ -1980,9 +1995,11 @@ export default function App() {
       : card.card.lesson
         ? 'AN ENCOUNTER'
         : 'A BEAT FROM THE ROAD';
+    const sceneLabel = storyScene(card.card.title, beatLabel, speaker);
     const lastLine = Math.max(0, card.card.lines.length - 1);
     const visibleLine = Math.min(storyLineIndex, lastLine);
     const hasMoreLines = visibleLine < lastLine;
+    const lineIsQuoted = card.card.lines[visibleLine].trim().startsWith('"');
     const finish = () => {
       play('select');
       const go = card.then;
@@ -2003,11 +2020,21 @@ export default function App() {
         </aside>
         <div className="story-copy">
           <span className="story-eyebrow">THE CHRONICLE · {beatLabel}</span>
+          <span className="story-scene">
+            <span className="story-scene-mark" aria-hidden="true">✦</span>
+            {sceneLabel}
+          </span>
           <h2 className="story-title">{card.card.title}</h2>
-          <div className="story-dialogue" key={`${card.card.title}-${visibleLine}`}>
+          <div
+            className={`story-dialogue ${lineIsQuoted ? 'story-dialogue-quote' : ''}`}
+            key={`${card.card.title}-${visibleLine}`}
+          >
             <div className="story-dialogue-meta">
               <span>VOICE {visibleLine + 1} / {card.card.lines.length}</span>
               <span>{hasMoreLines ? 'tap onward to continue' : 'the beat is complete'}</span>
+            </div>
+            <div className="story-progress" aria-hidden="true">
+              <span style={{ width: `${((visibleLine + 1) / card.card.lines.length) * 100}%` }} />
             </div>
             <p className="story-line">{card.card.lines[visibleLine]}</p>
           </div>
@@ -2893,7 +2920,11 @@ export default function App() {
 
   return (
     <Shell muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
-      <div className={`layout ${isHouse(setup.opponent) ? 'layout-run' : ''}`}>
+      <div
+        className={`layout ${isHouse(setup.opponent) ? 'layout-run' : ''} ${
+          isHouse(setup.opponent) ? `layout-seat-${setup.opponent}` : 'layout-seat-freeplay'
+        }`}
+      >
         {/* The ladder, visible the whole time you are on it. A run should never make you
             go and look up how far you have come. */}
         {isHouse(setup.opponent) && (
@@ -3765,7 +3796,9 @@ function PlayerBar({
       : [];
 
   return (
-    <div className={`player ${active ? 'player-active' : ''}`}>
+    <div
+      className={`player ${active ? 'player-active' : ''} ${house ? 'player-house' : 'player-you'}`}
+    >
       {(house || retorts) && (
         <span
           className={`portrait ${house ? 'portrait-house' : 'portrait-you'} ${
@@ -3807,7 +3840,12 @@ function PlayerBar({
           )}
         </span>
       )}
-      <span className="player-name">{name}</span>
+      <span className="player-identity">
+        <span className="player-role">
+          {active ? (house ? 'THEIR MOVE' : 'YOUR MOVE') : house ? 'AT THE TABLE' : 'THE TRAVELLER'}
+        </span>
+        <span className="player-name">{name}</span>
+      </span>
       {/* Always in the row, only sometimes visible. Rendering it conditionally added and
           removed 26px of flex content on every single reply, which on a phone — where the bar
           is allowed to wrap — tipped it onto a second line and back, and the whole board

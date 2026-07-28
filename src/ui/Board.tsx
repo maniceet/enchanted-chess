@@ -268,9 +268,25 @@ export function Board({
     return () => cancelAnimationFrame(frame);
   }, [state.board, flipped]);
 
+  const boardFinished = state.status.kind !== 'ongoing';
+  const boardChecked = checkedKing !== null;
+
   return (
-    <div className="board-wrap">
-      <div className="board" role="grid" aria-label="chess board" ref={boardRef}>
+    <div
+      className={`board-wrap ${boardFinished ? 'board-wrap-finished' : ''} ${
+        boardChecked ? 'board-wrap-check' : ''
+      }`}
+      data-turn={state.turn}
+    >
+      <div className="board-crown" aria-hidden="true">
+        <span className="board-crown-mark">✦</span>
+        <span className="board-crown-name">THE OPEN BOARD</span>
+        <span className="board-crown-state">
+          {boardFinished ? 'THE TABLE IS QUIET' : `${state.turn === 'w' ? 'WHITE' : 'BLACK'} TO MOVE`}
+        </span>
+      </div>
+      <div className="board-surface">
+        <div className="board" role="grid" aria-label="chess board" ref={boardRef}>
         {squares.map((s) => {
           const piece = state.board[s];
           const dark = (fileOf(s) + rankOf(s)) % 2 === 0;
@@ -402,16 +418,17 @@ export function Board({
             </button>
           );
         })}
-      </div>
-      <div className="coords coords-file">
-        {(flipped ? [...FILES].reverse() : [...FILES]).map((f) => (
-          <span key={f}>{f}</span>
-        ))}
-      </div>
-      <div className="coords coords-rank">
-        {(flipped ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1]).map((r) => (
-          <span key={r}>{r}</span>
-        ))}
+        </div>
+        <div className="coords coords-file">
+          {(flipped ? [...FILES].reverse() : [...FILES]).map((f) => (
+            <span key={f}>{f}</span>
+          ))}
+        </div>
+        <div className="coords coords-rank">
+          {(flipped ? [1, 2, 3, 4, 5, 6, 7, 8] : [8, 7, 6, 5, 4, 3, 2, 1]).map((r) => (
+            <span key={r}>{r}</span>
+          ))}
+        </div>
       </div>
     </div>
   );

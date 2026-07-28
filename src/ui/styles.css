@@ -5971,3 +5971,325 @@ select:focus-visible {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Story stages and table identities
+
+   A portrait tells us who is speaking, but not where the camera is. The small scene
+   plate fixes that on story cards. The same idea carries into the game: each seat
+   lends the board a restrained accent, so a return to the table still feels like a
+   return to a particular place in the road.
+   --------------------------------------------------------------------------- */
+
+.story-scene {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin: -5px 0 18px;
+  padding: 7px 10px 6px 0;
+  color: color-mix(in srgb, var(--story-accent) 78%, var(--parch));
+  border-top: 1px solid color-mix(in srgb, var(--story-accent) 36%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--story-accent) 18%, transparent);
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.story-scene-mark {
+  color: var(--story-accent);
+  font-size: 13px;
+  line-height: 1;
+  text-shadow: 0 0 10px var(--story-glow);
+}
+
+.story-dialogue {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.story-dialogue-quote {
+  background:
+    radial-gradient(circle at 95% 0%, color-mix(in srgb, var(--story-accent) 12%, transparent), transparent 42%),
+    rgb(8 9 14 / 28%);
+  border-left-width: 3px;
+}
+
+.story-progress {
+  height: 3px;
+  overflow: hidden;
+  margin: 0 0 14px;
+  background: rgb(255 255 255 / 8%);
+  border-radius: 999px;
+}
+
+.story-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--story-accent), color-mix(in srgb, var(--story-accent) 45%, white));
+  border-radius: inherit;
+  box-shadow: 0 0 12px var(--story-glow);
+  transition: width 220ms ease-out;
+}
+
+.layout {
+  --table-accent: var(--brass);
+  --table-glow: rgb(201 151 84 / 16%);
+}
+
+.layout-seat-drunkard,
+.layout-seat-kyrax {
+  --table-accent: #df7050;
+  --table-glow: rgb(223 112 80 / 24%);
+}
+
+.layout-seat-innkeeper {
+  --table-accent: #d4a15c;
+  --table-glow: rgb(212 161 92 / 20%);
+}
+
+.layout-seat-rolain {
+  --table-accent: #a99be8;
+  --table-glow: rgb(169 155 232 / 20%);
+}
+
+.layout-seat-wit {
+  --table-accent: #b1a5ed;
+  --table-glow: rgb(177 165 237 / 20%);
+}
+
+.layout-seat-armored {
+  --table-accent: #a9c1cd;
+  --table-glow: rgb(169 193 205 / 19%);
+}
+
+.layout-seat-ardax {
+  --table-accent: #9bb978;
+  --table-glow: rgb(155 185 120 / 19%);
+}
+
+.layout-seat-wittex {
+  --table-accent: #d47cf0;
+  --table-glow: rgb(212 124 240 / 26%);
+}
+
+.board-crown {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  height: 25px;
+  padding: 0 9px 0 2px;
+  color: color-mix(in srgb, var(--table-accent) 80%, var(--parch));
+  border-bottom: 1px solid color-mix(in srgb, var(--table-accent) 28%, transparent);
+  font-family: ui-monospace, monospace;
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.board-crown-mark {
+  color: var(--table-accent);
+  font-size: 13px;
+  text-shadow: 0 0 10px var(--table-glow);
+}
+
+.board-crown-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-crown-state {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.board-surface {
+  position: relative;
+  width: 100%;
+}
+
+.board-wrap::before {
+  content: '';
+  position: absolute;
+  z-index: 5;
+  inset: 25px 0 15px 15px;
+  border: 1px solid color-mix(in srgb, var(--table-accent) 38%, transparent);
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 24%), 0 0 22px var(--table-glow);
+  pointer-events: none;
+}
+
+.board-wrap::after {
+  content: '◆';
+  position: absolute;
+  z-index: 6;
+  top: 17px;
+  right: 0;
+  color: var(--table-accent);
+  font-size: 9px;
+  opacity: 0.8;
+  pointer-events: none;
+  text-shadow: 0 0 9px var(--table-glow);
+}
+
+.board {
+  border-color: color-mix(in srgb, var(--table-accent) 62%, #3a2412);
+  outline-color: color-mix(in srgb, var(--table-accent) 58%, transparent);
+  box-shadow:
+    0 0 0 1px #0d0b10,
+    0 0 0 4px rgb(14 10 8 / 48%),
+    0 0 32px var(--table-glow),
+    0 22px 44px rgb(0 0 0 / 48%);
+}
+
+.sq::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgb(255 247 224 / 4%);
+  pointer-events: none;
+}
+
+.player {
+  border-color: color-mix(in srgb, var(--table-accent) 26%, transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--table-accent) 7%, transparent), rgb(18 15 21 / 76%));
+}
+
+.player-active {
+  border-color: color-mix(in srgb, var(--table-accent) 78%, white);
+  background:
+    radial-gradient(circle at 0 50%, var(--table-glow), transparent 50%),
+    linear-gradient(90deg, color-mix(in srgb, var(--table-accent) 16%, transparent), rgb(20 14 12 / 78%));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--table-accent) 28%, transparent), 0 0 18px color-mix(in srgb, var(--table-accent) 10%, transparent);
+}
+
+.player-identity {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 1px;
+}
+
+.player-role {
+  overflow: hidden;
+  color: var(--table-accent);
+  font-family: ui-monospace, monospace;
+  font-size: 7px;
+  letter-spacing: 0.13em;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.player-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-house .portrait {
+  border-color: color-mix(in srgb, var(--table-accent) 65%, var(--edge));
+  box-shadow: 0 0 12px var(--table-glow);
+}
+
+.player-you .portrait {
+  border-color: color-mix(in srgb, var(--table-accent) 38%, var(--edge));
+}
+
+.board-wrap-check .board {
+  box-shadow:
+    0 0 0 1px #0d0b10,
+    0 0 0 4px rgb(14 10 8 / 48%),
+    0 0 34px rgb(184 74 74 / 26%),
+    0 22px 44px rgb(0 0 0 / 48%);
+}
+
+.board-wrap-finished .board {
+  filter: saturate(0.82);
+}
+
+@media (max-width: 620px) {
+  .story-scene {
+    width: 100%;
+    margin-bottom: 14px;
+    font-size: 8px;
+    letter-spacing: 0.11em;
+  }
+
+  .story-progress {
+    margin-bottom: 12px;
+  }
+
+  .board-crown {
+    height: 23px;
+    padding-right: 7px;
+    font-size: 7px;
+    letter-spacing: 0.11em;
+  }
+
+  .board-crown-mark {
+    font-size: 11px;
+  }
+
+  .board-crown-state {
+    font-size: 6px;
+    letter-spacing: 0.08em;
+  }
+
+  .board-wrap::before {
+    top: 23px;
+  }
+
+  .board-wrap::after {
+    top: 15px;
+    right: 0;
+    font-size: 8px;
+  }
+
+  .player {
+    gap: 9px;
+    padding-inline: 10px;
+  }
+
+  .player-role {
+    font-size: 6px;
+  }
+
+  .player-name {
+    font-size: 15px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-progress span {
+    transition: none;
+  }
+}
+
+/* The illustrated desktop rail is roomier than the phone rail. Keep the compact seat size as
+   the final rule so the seven-seat strip stays inside a 393px viewport instead of creating a
+   one-pixel document scroll at the far edge. */
+@media (max-width: 820px) {
+  .rail {
+    box-sizing: border-box;
+  }
+
+  .rail-seat {
+    width: 34px;
+    height: 34px;
+  }
+}
