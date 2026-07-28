@@ -196,7 +196,7 @@ so it exercises the artifact Play ships on the OS version the app targets:
   at the inn does it leave the app. The duel in progress survived every one of those.
 - **Safe-area insets**: content clears the punch-hole in portrait, the left cutout in
   landscape, and the gesture bar at the bottom in both.
-- **The status bar** paints `#140c06` — no white strip above the tavern, and no white flash on
+- **The status bar** paints `#090b10` — no white strip above the tavern, and no white flash on
   launch now that the splash is a themed drawable rather than a bitmap.
 - **No layout jitter.** The board's top edge is identical before a move, while the opponent's
   `●●●` indicator is up, and after the reply lands.

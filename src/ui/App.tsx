@@ -1687,43 +1687,55 @@ export default function App() {
     return (
       <Shell bare muted={muted} onMute={() => toggleMute(muted, setMutedState)}>
         <div className="home">
-          <h2 className="home-title">Enchanted Chess</h2>
-          <p className="home-sub">{T('home.tagline')}</p>
-          {/* No standing explanation here. How the run economy works is told once, on the
-              prologue card, when a campaign begins — a home screen is a place to choose from,
-              and prose sitting on it permanently gets read once and then becomes furniture. */}
-          {(run.gold > 0 || run.attempts > 0) && (
-            <div className="run-strip">
-              <Purse gold={run.gold} dark />
-              <span>
-                attempt <strong>{run.attempts + (run.active ? 0 : 1)}</strong>
-              </span>
-              <span>
-                mana <strong>{campaignBudget(run)}</strong>/{MANA_CAP}
-              </span>
-              <span>
-                deepest <strong>{run.best}</strong>/{roadFor(run).length}
-              </span>
-            {run.trials.length > 0 && (
-              /* What you agreed to, kept visible for the whole walk. A player who took three
-                 cruelties a week ago and came back to a turned board deserves to be told why
-                 rather than left to work it out from the pieces. */
-              <span className="trial-strip">
-                {run.trials.map((t) => (
-                  <span className="trial-chip" key={t}>
-                    {TRIAL[t].name}
-                  </span>
-                ))}
-              </span>
-            )}
-
-              {run.clears > 0 && (
-                <span>
-                  cleared <strong>{run.clears}×</strong>
-                </span>
-              )}
+          <div className="home-identity">
+            <span className="home-kicker">THE OPEN BOARD · A ROGUELIKE CHESS ADVENTURE</span>
+            <div className="home-mark" aria-hidden="true">
+              <GameMark />
             </div>
-          )}
+            <h2 className="home-title">
+              <span>Enchanted</span>
+              <span>Chess</span>
+            </h2>
+            <p className="home-sub">{T('home.tagline')}</p>
+            <p className="home-blurb">
+              Build an army, read the board, and walk south until the story stops telling the truth.
+            </p>
+            {/* No standing explanation here. How the run economy works is told once, on the
+                prologue card, when a campaign begins — a home screen is a place to choose from,
+                and prose sitting on it permanently gets read once and then becomes furniture. */}
+            {(run.gold > 0 || run.attempts > 0) && (
+              <div className="run-strip">
+                <Purse gold={run.gold} dark />
+                <span>
+                  attempt <strong>{run.attempts + (run.active ? 0 : 1)}</strong>
+                </span>
+                <span>
+                  mana <strong>{campaignBudget(run)}</strong>/{MANA_CAP}
+                </span>
+                <span>
+                  deepest <strong>{run.best}</strong>/{roadFor(run).length}
+                </span>
+                {run.trials.length > 0 && (
+                  /* What you agreed to, kept visible for the whole walk. A player who took three
+                      cruelties a week ago and came back to a turned board deserves to be told why
+                      rather than left to work it out from the pieces. */
+                  <span className="trial-strip">
+                    {run.trials.map((t) => (
+                      <span className="trial-chip" key={t}>
+                        {TRIAL[t].name}
+                      </span>
+                    ))}
+                  </span>
+                )}
+
+                {run.clears > 0 && (
+                  <span>
+                    cleared <strong>{run.clears}×</strong>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
           <div className="home-buttons">
             {midRoadDuel ? (
               <button
@@ -3390,6 +3402,40 @@ function SoundIcon({ muted }: { muted: boolean }) {
   );
 }
 
+/** The app mark: a knight silhouette carrying the game's E monogram.
+ *
+ * The Android launcher and Play assets are generated from the same shape in scripts/icons.ts.
+ * Keeping the small web version vector-based means the header stays sharp at every density and
+ * the title page no longer falls back to a platform-dependent chess glyph. */
+function GameMark() {
+  return (
+    <svg className="game-mark" viewBox="0 0 100 100" role="img" aria-label="Enchanted Chess mark">
+      <path
+        d="M17 47 C15 43 17 39 21 36 C27 31 33 25 38 18 L44 10 L47 21 L53 12 L57 22 L62 15 C70 24 76 35 78 47 C80 58 79 66 77 73 L31 73 C30 64 33 57 39 51 C41 49 43 46 44 43 L30 51 C24 54 19 52 17 47 Z"
+        fill="currentColor"
+      />
+      <path d="M25 73 H83 A5 5 0 0 1 88 78 V90 H20 V78 A5 5 0 0 1 25 73 Z" fill="currentColor" />
+      <path d="M62 20 l9 5 l-6 5 z M68 32 l9 5 l-6 5 z M72 45 l8 5 l-6 5 z" fill="var(--mark-shadow)" />
+      <circle cx="40" cy="32" r="3.6" fill="var(--mark-shadow)" />
+      <path d="M24 43 q3.5 -1.5 6 0.5" stroke="var(--mark-shadow)" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+      <text
+        x="52"
+        y="55"
+        fill="var(--mark-gold)"
+        fontFamily="Georgia, serif"
+        fontSize="56"
+        textAnchor="middle"
+        dominantBaseline="central"
+        stroke="var(--mark-ground)"
+        strokeWidth="4"
+        paintOrder="stroke"
+      >
+        E
+      </text>
+    </svg>
+  );
+}
+
 /** The chrome around every screen. Deliberately almost nothing: a mark, the name, and the
  *  sound toggle. The home screen sets the title in type three times this size, so the bar does
  *  not repeat it there — one wordmark per screen is the whole rule. */
@@ -3411,7 +3457,7 @@ function Shell({
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
-            ♜
+            <GameMark />
           </span>
           {!bare && <h1>Enchanted Chess</h1>}
         </div>

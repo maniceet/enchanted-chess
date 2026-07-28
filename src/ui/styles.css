@@ -4588,3 +4588,500 @@ button.primary:hover:not(:disabled) {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Final presentation pass
+
+   The game already has the right ingredients — warm tavern light, brass, parchment,
+   and a cold violet threat. This layer gives those ingredients a clearer hierarchy:
+   the title page gets a world behind it, the mark is consistent across surfaces, and
+   interactive controls read as deliberate choices instead of a long stack of boxes.
+   --------------------------------------------------------------------------- */
+
+:root {
+  --mark-gold: #f2cb7c;
+  --mark-shadow: #342238;
+  --mark-ground: #171018;
+  --focus-ring: rgb(242 203 124 / 82%);
+  --surface-0: rgb(13 12 18 / 86%);
+  --surface-1: rgb(28 23 34 / 90%);
+  --surface-2: rgb(48 36 49 / 92%);
+}
+
+::selection {
+  color: #241715;
+  background: var(--gold);
+}
+
+button:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+.game-mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: #a87c37;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 42%));
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  padding: 4px;
+  color: var(--gold);
+  background: linear-gradient(145deg, rgb(242 203 124 / 18%), rgb(222 112 80 / 9%));
+  border-color: rgb(242 203 124 / 55%);
+  border-radius: 10px;
+}
+
+.brand-mark .game-mark {
+  color: #c99754;
+  --mark-shadow: #4f2f2d;
+  --mark-gold: #f5d789;
+  --mark-ground: #171018;
+}
+
+.topbar {
+  position: relative;
+  overflow: hidden;
+}
+
+.topbar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgb(242 203 124 / 5%), transparent);
+  transform: translateX(-100%);
+  animation: topbar-glint 12s ease-in-out infinite;
+}
+
+@keyframes topbar-glint {
+  0%,
+  72%,
+  100% { transform: translateX(-100%); }
+  86% { transform: translateX(100%); }
+}
+
+.home {
+  position: relative;
+  isolation: isolate;
+  max-width: 1120px;
+  margin-top: clamp(44px, 10vh, 112px);
+  overflow: clip;
+}
+
+.home::after {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  left: -110px;
+  top: -118px;
+  width: min(820px, 86vw);
+  height: 560px;
+  pointer-events: none;
+  opacity: 0.74;
+  background:
+    linear-gradient(90deg, rgb(9 11 16 / 38%) 0%, rgb(9 11 16 / 26%) 54%, transparent 100%),
+    linear-gradient(180deg, rgb(9 11 16 / 18%), rgb(9 11 16 / 68%)),
+    url('/art/enchanted-chess-banner-v2.png') center / cover no-repeat;
+  border-radius: 30px;
+  mask-image: linear-gradient(90deg, #000 0%, rgb(0 0 0 / 92%) 62%, transparent 100%);
+}
+
+.home > *,
+.home-identity,
+.home-buttons {
+  position: relative;
+  z-index: 1;
+}
+
+.home-identity {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.home-kicker {
+  display: block;
+  margin-bottom: 18px;
+  color: var(--brass);
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  line-height: 1.5;
+}
+
+.home-mark {
+  display: none;
+}
+
+.home-title {
+  max-width: 7ch;
+  line-height: 0.88;
+  text-wrap: balance;
+}
+
+.home-title span {
+  display: block;
+}
+
+.home-title span + span {
+  color: var(--parch);
+  font-size: 0.78em;
+  letter-spacing: 0.14em;
+  text-indent: 0.12em;
+}
+
+.home-sub {
+  max-width: 31ch;
+  color: var(--gold);
+  text-shadow: 0 1px 0 #000;
+}
+
+.home-blurb {
+  max-width: 40ch;
+  margin: 16px 0 0;
+  color: var(--parch-dim);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.home-identity > .run-strip {
+  justify-content: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  margin: 26px 0 0;
+}
+
+.home-buttons {
+  align-self: center;
+}
+
+.home-buttons button {
+  position: relative;
+  border-color: rgb(201 151 84 / 34%);
+  background: linear-gradient(135deg, rgb(39 31 42 / 94%), rgb(24 20 29 / 94%));
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.home-buttons button::after {
+  content: '↗';
+  position: absolute;
+  top: 50%;
+  right: 17px;
+  color: var(--brass);
+  font-family: Georgia, serif;
+  font-size: 20px;
+  opacity: 0.52;
+  transform: translateY(-50%);
+  transition: transform 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.home-buttons button:hover:not(:disabled) {
+  transform: translateX(4px);
+  border-color: var(--gold);
+  background: linear-gradient(135deg, rgb(59 45 61 / 98%), rgb(31 25 39 / 98%));
+  box-shadow: 0 10px 22px rgb(0 0 0 / 24%), inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+.home-buttons button:hover:not(:disabled)::after {
+  color: var(--gold);
+  opacity: 1;
+  transform: translate(3px, -50%);
+}
+
+.home-buttons button.primary::after {
+  color: #6c421d;
+  opacity: 0.72;
+}
+
+.home-buttons .menu-rule {
+  color: var(--brass);
+}
+
+.story-face-wittex {
+  --story-accent: #d47cf0;
+  --story-glow: rgb(151 58 183 / 34%);
+}
+
+.story-face-kyrax {
+  --story-accent: #df7050;
+  --story-glow: rgb(223 112 80 / 28%);
+}
+
+.story-face-wit {
+  --story-accent: #a99be8;
+  --story-glow: rgb(115 103 192 / 25%);
+}
+
+.story {
+  --story-accent: var(--gold);
+  --story-glow: rgb(242 203 124 / 16%);
+  background:
+    radial-gradient(circle at 14% 20%, var(--story-glow), transparent 30%),
+    linear-gradient(135deg, rgb(42 31 38 / 96%), rgb(16 17 24 / 98%));
+  border-color: color-mix(in srgb, var(--story-accent) 46%, transparent);
+}
+
+.story-portrait-frame {
+  border-color: color-mix(in srgb, var(--story-accent) 76%, transparent);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--story-accent) 9%, transparent),
+    0 16px 34px rgb(0 0 0 / 38%),
+    0 0 34px var(--story-glow);
+}
+
+.story-portrait-glow {
+  background: var(--story-glow);
+}
+
+.story-portrait-kicker,
+.story-eyebrow,
+.story-lesson::before {
+  color: var(--story-accent);
+}
+
+.story-title {
+  color: color-mix(in srgb, var(--story-accent) 86%, white);
+}
+
+.story-lesson {
+  border-left-color: var(--story-accent);
+  background: color-mix(in srgb, var(--story-accent) 8%, transparent);
+}
+
+.menu-title {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 13px;
+}
+
+.menu-title::after {
+  content: '';
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+}
+
+.menu-copy {
+  text-wrap: pretty;
+}
+
+.cast-card {
+  overflow: hidden;
+}
+
+.cast-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+  opacity: 0.62;
+}
+
+.cast-boss::before {
+  background: linear-gradient(90deg, transparent, var(--ember), #d47cf0, transparent);
+  opacity: 0.9;
+}
+
+.cast-done::before {
+  background: linear-gradient(90deg, transparent, var(--moss), transparent);
+}
+
+.run-strip {
+  backdrop-filter: blur(10px);
+}
+
+.reveal {
+  max-width: 1120px;
+  margin: 42px auto 0;
+}
+
+.reveal > .screen-title,
+.reveal > .screen-sub {
+  display: block;
+  text-align: center;
+  margin-inline: auto;
+}
+
+.reveal-side {
+  overflow: hidden;
+}
+
+.reveal-side::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+}
+
+.layout {
+  position: relative;
+}
+
+.board-column {
+  filter: drop-shadow(0 20px 30px rgb(0 0 0 / 13%));
+}
+
+.board-column > .board {
+  box-shadow:
+    0 0 0 1px #0d0b10,
+    0 0 30px rgb(201 151 84 / 10%),
+    0 22px 44px rgb(0 0 0 / 48%);
+}
+
+.player {
+  backdrop-filter: blur(8px);
+}
+
+.player-name {
+  font-family: var(--display);
+  font-size: 16px;
+  letter-spacing: 0.03em;
+}
+
+.player-active .player-name {
+  color: var(--gold);
+}
+
+.status {
+  overflow: hidden;
+}
+
+.status::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+}
+
+.status-over::before {
+  background: linear-gradient(90deg, transparent, var(--ember), var(--gold), transparent);
+}
+
+.moves,
+.tools {
+  background: linear-gradient(180deg, rgb(25 21 28 / 94%), rgb(14 13 19 / 94%));
+}
+
+.movelist li {
+  padding-block: 3px;
+  border-radius: 4px;
+}
+
+.movelist li:nth-child(odd) {
+  background: rgb(242 203 124 / 5%);
+}
+
+.card-peek {
+  border-color: rgb(242 203 124 / 46%);
+  background: rgb(18 16 23 / 96%);
+  backdrop-filter: blur(14px);
+}
+
+@media (max-width: 820px) {
+  .home::after {
+    left: -170px;
+    top: -104px;
+    width: 820px;
+    height: 440px;
+    opacity: 0.46;
+  }
+
+  .home-identity {
+    text-align: center;
+  }
+
+  .home-kicker,
+  .home-sub,
+  .home-blurb {
+    margin-inline: auto;
+  }
+
+  .home-identity > .run-strip {
+    margin-inline: auto;
+  }
+
+  .home-buttons button:hover:not(:disabled) {
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 620px) {
+  .app {
+    padding-inline: 10px;
+  }
+
+  .home {
+    margin-top: 34px;
+  }
+
+  .home-kicker {
+    max-width: 29ch;
+    font-size: 9px;
+  }
+
+  .home-mark {
+    display: block;
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 18px;
+    padding: 8px;
+    color: #c99754;
+    background: rgb(242 203 124 / 8%);
+    border: 1px solid rgb(242 203 124 / 52%);
+    border-radius: 20px;
+    box-shadow: 0 14px 30px rgb(0 0 0 / 24%), 0 0 30px rgb(223 112 80 / 18%);
+  }
+
+  .home-title {
+    max-width: none;
+    font-size: clamp(48px, 15vw, 76px);
+  }
+
+  .home-blurb {
+    max-width: 34ch;
+    font-size: 13px;
+  }
+
+  .home-identity > .run-strip {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .story {
+    padding: 18px;
+  }
+
+  .story .menu-actions {
+    align-items: stretch;
+  }
+
+  .story .menu-actions button {
+    flex: 1 1 180px;
+  }
+
+  .reveal {
+    margin-top: 26px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topbar::after {
+    animation: none;
+  }
+
+  .home-buttons button,
+  .home-buttons button::after {
+    transition: none;
+  }
+}

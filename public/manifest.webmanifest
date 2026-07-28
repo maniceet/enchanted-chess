@@ -1,13 +1,13 @@
 {
   "name": "Enchanted Chess",
   "short_name": "Enchanted Chess",
-  "description": "Chess where every piece can be enchanted, and nothing is hidden.",
+  "description": "A story-driven roguelike chess adventure where every piece can be enchanted, and nothing is hidden.",
   "start_url": ".",
   "scope": ".",
   "display": "fullscreen",
   "orientation": "portrait",
-  "background_color": "#140c06",
-  "theme_color": "#140c06",
+  "background_color": "#090b10",
+  "theme_color": "#090b10",
   "categories": ["games", "board"],
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
