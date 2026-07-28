@@ -1727,7 +1727,7 @@ export default function App() {
             </h2>
             <p className="home-sub">{T('home.tagline')}</p>
             <p className="home-blurb">
-              Build an army, read the board, and walk south until the story stops telling the truth.
+              Build an army. Read the board. Walk south until the story stops telling the truth.
             </p>
             {/* No standing explanation here. How the run economy works is told once, on the
                 prologue card, when a campaign begins — a home screen is a place to choose from,
@@ -1766,6 +1766,10 @@ export default function App() {
             )}
           </div>
           <div className="home-buttons">
+            <div className="home-choice-heading">
+              <span>YOUR NEXT MOVE</span>
+              <small>Choose a road, not a menu.</small>
+            </div>
             <div className="home-primary-actions">
             {midRoadDuel ? (
               <button
