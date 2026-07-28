@@ -1737,6 +1737,7 @@ export default function App() {
             )}
           </div>
           <div className="home-buttons">
+            <div className="home-primary-actions">
             {midRoadDuel ? (
               <button
                 type="button"
@@ -1881,14 +1882,16 @@ export default function App() {
                 {run.taught.length === 0
                   ? T('home.chest.empty')
                   : `lay out your ${run.taught.length === 1 ? 'enchantment' : 'enchantments'} · ${campaignBudget(run)} mana`}
-              </span>
+                </span>
             </button>
+            </div>
             {/* Everything below the rule is a different game from the road: two captains, every
                 enchantment on the table from the first move, and nothing you do here touches
                 the run. Separated so it cannot be mistaken for progress. */}
             <div className="menu-rule">
               <span>{T('home.away')}</span>
             </div>
+            <div className="home-secondary-actions">
             <button type="button" onClick={() => { play('select'); setPhase('friendly'); }}>
               {T('home.duel')}
               <span className="soon">{T('home.duel.sub')}</span>
@@ -1940,6 +1943,7 @@ export default function App() {
                 </span>
               </button>
             )}
+            </div>
           </div>
         </div>
       </Shell>
