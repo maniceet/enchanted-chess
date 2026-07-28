@@ -517,6 +517,9 @@ export default function App() {
   const won = run.progress;
   const [net, setNet] = useState<OnlineSnapshot>(online.current);
   const [card, setCard] = useState<{ card: StoryCard; then: () => void } | null>(null);
+  /** Story arrives in spoken beats. The player advances the voice instead of receiving a
+   *  whole chapter in one scroll. */
+  const [storyLineIndex, setStoryLineIndex] = useState(0);
   /** The purse landing after a seat falls, shown for a beat before the story card. */
   const [paid, setPaid] = useState<number | null>(null);
   /** The three spoils on the table after a seat's first fall, and where to go once one is
@@ -609,6 +612,12 @@ export default function App() {
     house: null,
     you: null,
   });
+  /** The readable version of the latest line. The portrait bubble remains a visual cue; this
+   *  panel is where a phone player actually reads the words. */
+  const [dialogue, setDialogue] = useState<{
+    who: 'house' | 'you';
+    text: string;
+  } | null>(null);
   const [retortOpen, setRetortOpen] = useState(false);
   /** A story card sitting on a finished board can be pushed aside to look at the position. */
   const [cardAside, setCardAside] = useState(false);
@@ -632,8 +641,10 @@ export default function App() {
   // A new beat always arrives in front of the board, never behind it.
   useEffect(() => {
     setCardAside(false);
+    setStoryLineIndex(0);
   }, [card]);
   const bubbleTimers = useRef<{ house?: number; you?: number }>({});
+  const dialogueTimer = useRef<number | undefined>(undefined);
   const sayRef = useRef<(who: 'house' | 'you', text: string, teaching?: boolean) => void>(() => {});
   /* When the house bubble comes free, and until when a lesson owns it.
    *
@@ -648,13 +659,16 @@ export default function App() {
   const say = useCallback((who: 'house' | 'you', text: string, teaching = false) => {
     if (who === 'house' && !teaching && Date.now() < teachingUntil.current) return;
     setBubbles((prev) => ({ ...prev, [who]: text }));
+    setDialogue({ who, text });
     window.clearTimeout(bubbleTimers.current[who]);
+    window.clearTimeout(dialogueTimer.current);
     const dwell = dwellFor(text);
     if (who === 'house') houseFreeAt.current = Date.now() + dwell;
     if (teaching) teachingUntil.current = Date.now() + dwell;
     bubbleTimers.current[who] = window.setTimeout(() => {
       setBubbles((prev) => ({ ...prev, [who]: null }));
     }, dwell);
+    dialogueTimer.current = window.setTimeout(() => setDialogue(null), dwell);
   }, []);
   /* `commit` and the tutorial effect reach the bubble through this ref rather than through `say`
    * directly, so that neither has to list it as a dependency and re-run on every render. It was
@@ -1966,6 +1980,15 @@ export default function App() {
       : card.card.lesson
         ? 'AN ENCOUNTER'
         : 'A BEAT FROM THE ROAD';
+    const lastLine = Math.max(0, card.card.lines.length - 1);
+    const visibleLine = Math.min(storyLineIndex, lastLine);
+    const hasMoreLines = visibleLine < lastLine;
+    const finish = () => {
+      play('select');
+      const go = card.then;
+      setCard(null);
+      go();
+    };
 
     return (
       <div className={`story story-face-${face.key}`}>
@@ -1981,25 +2004,34 @@ export default function App() {
         <div className="story-copy">
           <span className="story-eyebrow">THE CHRONICLE · {beatLabel}</span>
           <h2 className="story-title">{card.card.title}</h2>
-          {card.card.lines.map((line, i) => (
-            <p key={i} className="story-line">
-              {line}
-            </p>
-          ))}
-          {card.card.lesson && <p className="story-lesson">{card.card.lesson}</p>}
+          <div className="story-dialogue" key={`${card.card.title}-${visibleLine}`}>
+            <div className="story-dialogue-meta">
+              <span>VOICE {visibleLine + 1} / {card.card.lines.length}</span>
+              <span>{hasMoreLines ? 'tap onward to continue' : 'the beat is complete'}</span>
+            </div>
+            <p className="story-line">{card.card.lines[visibleLine]}</p>
+          </div>
+          {!hasMoreLines && card.card.lesson && <p className="story-lesson">{card.card.lesson}</p>}
           <div className="menu-actions">
             <button
               type="button"
               className="primary"
               onClick={() => {
-                play('select');
-                const go = card.then;
-                setCard(null);
-                go();
+                if (hasMoreLines) {
+                  play('select');
+                  setStoryLineIndex((index) => Math.min(index + 1, lastLine));
+                  return;
+                }
+                finish();
               }}
             >
-              {card.card.cta ?? T('act.onward')}
+              {hasMoreLines ? 'Next line →' : card.card.cta ?? T('act.onward')}
             </button>
+            {hasMoreLines && (
+              <button type="button" className="quiet" onClick={() => setStoryLineIndex(lastLine)}>
+                Read to the end
+              </button>
+            )}
             {onSeeBoard && (
               <button type="button" className="quiet" onClick={onSeeBoard}>
                 See the board
@@ -2949,6 +2981,14 @@ export default function App() {
                 : undefined
             }
           />
+          {dialogue && (
+            <DialoguePanel
+              dialogue={dialogue}
+              speaker={
+                dialogue.who === 'house' && isHouse(setup.opponent) ? setup.opponent : 'you'
+              }
+            />
+          )}
           {reviewing && (
             <div className="review-bar" role="status">
               <span className="review-mark">◷</span>
@@ -3581,6 +3621,75 @@ function StatusPanel({ state, powerMode }: { state: GameState; powerMode: PowerM
         {state.halfmove >= 75 ? ` · draw in ${100 - state.halfmove} half-moves` : ''}
         {state.ep !== null ? ` · en passant ${squareName(state.ep)}` : ''}
       </p>
+    </div>
+  );
+}
+
+/** A line of speech that arrives as a small performance rather than a disappearing tooltip.
+ *  Words enter one by one, and a tap completes the sentence immediately. The full text remains
+ *  in the button's accessible label, so the reveal never makes the dialogue inaccessible. */
+function DialoguePanel({
+  dialogue,
+  speaker,
+}: {
+  dialogue: { who: 'house' | 'you'; text: string };
+  speaker: House | 'you';
+}) {
+  const [shownWords, setShownWords] = useState(0);
+  const [complete, setComplete] = useState(false);
+  const words = useMemo(() => dialogue.text.trim().split(/\s+/).filter(Boolean), [dialogue.text]);
+
+  useEffect(() => {
+    setShownWords(0);
+    setComplete(false);
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      setShownWords(words.length);
+      setComplete(true);
+      return;
+    }
+    let count = 0;
+    const timer = window.setInterval(() => {
+      count += 1;
+      setShownWords(count);
+      if (count >= words.length) {
+        window.clearInterval(timer);
+        setComplete(true);
+      }
+    }, 72);
+    return () => window.clearInterval(timer);
+  }, [dialogue.text, words.length]);
+
+  const face = FACE[speaker];
+  const speakerName = speaker === 'you' ? 'The traveller' : HOUSE[speaker].label;
+  const visible = complete ? dialogue.text : words.slice(0, shownWords).join(' ');
+
+  return (
+    <div className="panel dialogue-panel" role="status" aria-live="polite">
+      <div className="dialogue-heading">
+        <span className="dialogue-portrait">
+          <img src={faceAsset(face)} alt="" />
+        </span>
+        <span>
+          <span className="dialogue-kicker">{dialogue.who === 'you' ? 'YOUR VOICE' : 'AT THE TABLE'}</span>
+          <strong>{speakerName}</strong>
+        </span>
+        {!complete && <span className="dialogue-pulse" aria-hidden="true" />}
+      </div>
+      <button
+        type="button"
+        className="dialogue-copy"
+        aria-label={`${speakerName}: ${dialogue.text}`}
+        onClick={() => {
+          setShownWords(words.length);
+          setComplete(true);
+        }}
+      >
+        {visible}
+        {!complete && <span className="dialogue-caret" aria-hidden="true">▌</span>}
+      </button>
+      <span className="dialogue-hint">
+        {complete ? 'The line will fade when the board speaks again.' : 'Tap the line to reveal it all.'}
+      </span>
     </div>
   );
 }

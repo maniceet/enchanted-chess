@@ -66,15 +66,64 @@ const SCREENS: Array<{ name: string; path: string[] }> = [
   { name: 'drills', path: ['Innkeeper’s table'] },
   { name: 'drill stage', path: ['Innkeeper’s table', 'The shield'] },
   { name: 'prologue', path: ['Set out on the road'] },
-  { name: 'the road', path: ['Set out on the road', 'Onward'] },
-  { name: 'story card', path: ['Set out on the road', 'Onward', 'The Drunken Knight'] },
+  /* Story beats now reveal one voice at a time. Walk the opening all the way through before
+   * measuring the road, otherwise this tour would stop on the first paragraph and call it the
+   * ladder. */
+  {
+    name: 'the road',
+    path: [
+      'Set out on the road',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Onward',
+    ],
+  },
+  {
+    name: 'story card',
+    path: [
+      'Set out on the road',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Onward',
+      'The Drunken Knight',
+    ],
+  },
   {
     name: 'reveal',
-    path: ['Set out on the road', 'Onward', 'The Drunken Knight', 'Onward'],
+    path: [
+      'Set out on the road',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Onward',
+      'The Drunken Knight',
+      'Next line',
+      'Onward',
+    ],
   },
   {
     name: 'board',
-    path: ['Set out on the road', 'Onward', 'The Drunken Knight', 'Onward', 'Begin the game'],
+    path: [
+      'Set out on the road',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Next line',
+      'Onward',
+      'The Drunken Knight',
+      'Next line',
+      'Onward',
+      'Begin the game',
+    ],
   },
 ];
 
@@ -296,9 +345,11 @@ async function main(): Promise<void> {
         // `about:blank` is an opaque origin and touching its storage throws.
         await dt.send('Page.navigate', { url: `http://127.0.0.1:${PORT}/` });
         await new Promise((r) => setTimeout(r, 500));
-        await dt.evaluate('localStorage.clear()');
-        await dt.send('Page.reload', {});
-        await new Promise((r) => setTimeout(r, 700));
+        /* Clear and reload in the same page turn. Clearing a mounted React app and then waiting
+         * before reloading lets its save effect write the old run straight back into storage,
+         * so the next screen starts halfway through the previous tour. */
+        await dt.evaluate('localStorage.clear(); sessionStorage.clear(); location.reload()');
+        await new Promise((r) => setTimeout(r, 900));
 
         let reached = true;
         for (const step of screen.path) {
